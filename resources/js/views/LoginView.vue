@@ -17,7 +17,12 @@ async function handleSubmit() {
     submitting.value = true
     try {
         if (isRegister.value) {
-            await auth.register(form.value.name, form.value.email, form.value.password)
+            await auth.register(
+                form.value.name,
+                form.value.email,
+                form.value.password,
+                form.value.password_confirmation
+            )
         } else {
             await auth.login(form.value.email, form.value.password)
         }
