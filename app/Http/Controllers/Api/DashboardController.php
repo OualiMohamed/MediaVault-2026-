@@ -15,20 +15,20 @@ class DashboardController extends Controller
 {
     // GET /api/dashboard/stats
 
-/**
- * The function `stats` retrieves various statistics related to a user's collection items including
- * total count, total value, distribution by type, counts by format/platform, books read vs unread,
- * games completed, recent additions, and wishlist count.
- * 
- * @return JsonResponse The `stats()` function returns a JSON response containing various statistics
- * related to a user's collection items. The returned data includes:
- * - Total number of items in the collection
- * - Total value of all items in the collection
- * - Breakdown of items by type (count and total value for each type)
- * - Number of movies by format
- * - Number of games by platform
- * - Number of music items by
- */
+    /**
+     * The function `stats` retrieves various statistics related to a user's collection items including
+     * total count, total value, distribution by type, counts by format/platform, books read vs unread,
+     * games completed, recent additions, and wishlist count.
+     * 
+     * @return JsonResponse The `stats()` function returns a JSON response containing various statistics
+     * related to a user's collection items. The returned data includes:
+     * - Total number of items in the collection
+     * - Total value of all items in the collection
+     * - Breakdown of items by type (count and total value for each type)
+     * - Number of movies by format
+     * - Number of games by platform
+     * - Number of music items by
+     */
     public function stats(): JsonResponse
     {
         $userId = Auth::id();
@@ -101,16 +101,15 @@ class DashboardController extends Controller
     // Helper function to format collection item with its details
     private function formatItem(CollectionItem $item): array
     {
-        $details = $item->{$item->type} ?? null;
+        $typeKey = $item->type;
+        $details = $item->$typeKey ?? null;
+
         return [
             'id' => $item->id,
             'type' => $item->type,
             'title' => $item->title,
             'cover_image' => $item->cover_image,
             'purchase_date' => $item->purchase_date?->format('Y-m-d'),
-            // 'purchase_date' => $item->purchase_date instanceof \DateTimeInterface
-            //     ? $item->purchase_date->format('Y-m-d')
-            //     : $item->purchase_date,
             'purchase_price' => $item->purchase_price,
             'condition' => $item->condition,
             'status' => $item->status,

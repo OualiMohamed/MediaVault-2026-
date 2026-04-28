@@ -4,11 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class CollectionItem extends Model
 {
-    // Mass assignable attributes 
     protected $fillable = [
         'user_id',
         'type',
@@ -21,36 +20,49 @@ class CollectionItem extends Model
         'notes',
     ];
 
-    // Cast attributes to appropriate data types
     protected $casts = [
         'purchase_date' => 'date',
         'purchase_price' => 'decimal:2',
     ];
 
-    // Define the relationship to the CollectionItemDetail model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    // Define a polymorphic relationship to the specific item details based on the type
-    public function details(): MorphOne
+    // ── hasOne, NOT morphOne ──
+    public function movie(): HasOne
     {
-        return $this->morphOne(
-            match($this->type) {
-                'movie' => Movie::class,
-                'book'  => Book::class,
-                'game'  => Game::class,
-                'music' => Music::class,
-                default => Movie::class,
-            },
-            'collectionItem'
-        );
+        return $this->hasOne(Movie::class, 'collection_item_id');
     }
 
-    // Define specific relationships for each type for easier access
-    public function movie(): MorphOne { return $this->morphOne(Movie::class, 'collectionItem'); }
-    public function book(): MorphOne  { return $this->morphOne(Book::class, 'collectionItem'); }
-    public function game(): MorphOne  { return $this->morphOne(Game::class, 'collectionItem'); }
-    public function music(): MorphOne { return $this->morphOne(Music::class, 'collectionItem'); }
+    public function book(): HasOne
+    {
+        return $this->hasOne(Book::class, 'collection_item_id');
+    }
+
+    public function game(): HasOne
+    {
+        return $this->hasOne(Game::class, 'collection_item_id');
+    }
+
+    public function music(): HasOne
+    {
+        return $this->hasOne(Music::class, 'collection_item_id');
+    }
+
+    /**
+     * Dynamic accessor — returns the correct detail relation
+     * based on $this->type. Used by the API formatter.
+     */
+    public function details(): HasOne
+    {
+        return match ($this->type) {
+            'movie' => $this->hasOne(Movie::class, 'collection_item_id'),
+            'book' => $this->hasOne(Book::class, 'collection_item_id'),
+            'game' => $this->hasOne(Game::class, 'collection_item_id'),
+            'music' => $this->hasOne(Music::class, 'collection_item_id'),
+            default => $this->hasOne(Movie::class, 'collection_item_id'),
+        };
+    }
 }

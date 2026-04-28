@@ -24,6 +24,6 @@ class Movie extends Model
 
     public function collectionItem(): BelongsTo
     {
-        return $this->belongsTo(CollectionItem::class);
+        return $this->belongsTo(CollectionItem::class, 'collection_item_id');
     }
 }
