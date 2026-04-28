@@ -28,8 +28,21 @@ async function handleSubmit() {
         }
         router.push('/')
     } catch (err) {
+        // Handle validation errors (422)
         if (err.response?.status === 422) {
             errors.value = err.response.data.errors
+        }
+        // Handle all other errors — show a general message
+        else if (err.response) {
+            errors.value = {
+                _general: [err.response.data.message || 'Something went wrong. Please try again.'],
+            }
+        }
+        // Handle network/offline errors
+        else {
+            errors.value = {
+                _general: ['Network error. Is the server running?'],
+            }
         }
     } finally {
         submitting.value = false
@@ -91,7 +104,11 @@ async function handleSubmit() {
                             class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
                             placeholder="Re-enter password" />
                     </div>
-
+                    <!-- General error message -->
+                    <div v-if="errors._general"
+                        class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm">
+                        {{ errors._general[0] }}
+                    </div>
                     <button type="submit" :disabled="submitting"
                         class="w-full py-3 bg-gradient-to-r from-amber-500 to-ember-500 text-white font-semibold rounded-xl hover:from-amber-400 hover:to-ember-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                         {{ submitting ? 'Please wait...' : (isRegister ? 'Create Account' : 'Sign In') }}
