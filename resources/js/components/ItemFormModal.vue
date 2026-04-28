@@ -1,4 +1,3 @@
-<!-- resources/js/components/ItemFormModal.vue -->
 <script setup>
 import { ref, reactive, watch, computed } from 'vue'
 import { useCollectionStore } from '../stores/collection'
@@ -12,9 +11,9 @@ const emit = defineEmits(['close', 'saved'])
 const store = useCollectionStore()
 const submitting = ref(false)
 const errors = ref({})
+const serverError = ref('')          // <-- NEW: visible server error
 const coverPreview = ref(null)
 
-// données du formulaire
 const form = reactive({
     title: '',
     cover_image: null,
@@ -23,7 +22,6 @@ const form = reactive({
     condition: 'near_mint',
     status: 'owned',
     notes: '',
-    // Movie Champ 
     format: 'Blu-ray',
     runtime_minutes: '',
     director: '',
@@ -31,18 +29,15 @@ const form = reactive({
     personal_rating: '',
     release_year: '',
     imdb_id: '',
-    // Book Champ 
     author: '',
     isbn: '',
     page_count: '',
     publisher: '',
     read: false,
     date_finished: '',
-    // Game Champ 
     platform: 'PS5',
     completed: false,
     completion_date: '',
-    // Music Champ 
     artist: '',
     label: '',
     track_count: '',
@@ -51,7 +46,6 @@ const form = reactive({
 
 const isEditing = computed(() => !!props.item)
 
-// Options de formatage
 const formatOptions = computed(() => {
     const map = {
         movie: ['DVD', 'Blu-ray', '4K UHD', 'Digital', 'VHS'],
@@ -66,14 +60,25 @@ const platformOptions = [
     'Xbox Series X', 'Xbox One', 'PC', 'Steam', 'Other',
 ]
 
-// Remplissez le formulaire lors de la modification
+// Which fields belong to which type
+const typeFieldMap = {
+    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id'],
+    book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'read', 'date_finished'],
+    game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'completed', 'completion_date'],
+    music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed'],
+}
+
+const baseFields = ['title', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes']
+const booleanFields = ['read', 'completed']   // <-- NEW: explicit boolean list
+
+// Populate form when editing
 watch(() => props.item, (item) => {
     if (!item) return
     Object.assign(form, {
-        title: item.title,
+        title: item.title || '',
         cover_image: null,
         purchase_date: item.purchase_date || '',
-        purchase_price: item.purchase_price || '',
+        purchase_price: item.purchase_price ?? '',
         condition: item.condition || 'near_mint',
         status: item.status || 'owned',
         notes: item.notes || '',
@@ -85,11 +90,11 @@ watch(() => props.item, (item) => {
     }
 }, { immediate: true })
 
-// Définir le format par défaut selon le type
+// Set type-specific defaults on fresh forms
 watch(() => props.type, (type) => {
     if (!isEditing.value) {
         if (type === 'movie') form.format = 'Blu-ray'
-        if (type === 'game') form.platform = 'PS5'
+        if (type === 'game') { form.platform = 'PS5'; form.format = 'Physical' }
         if (type === 'music') form.format = 'CD'
     }
 }, { immediate: true })
@@ -104,35 +109,29 @@ function handleCoverChange(e) {
 
 async function handleSubmit() {
     errors.value = {}
+    serverError.value = ''
     submitting.value = true
 
     try {
         const formData = new FormData()
-        // N'envoyez que les champs non vides
-        const fields = [
-            'title', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes',
-            'format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id',
-            'author', 'isbn', 'page_count', 'publisher', 'read', 'date_finished',
-            'platform', 'completed', 'completion_date',
-            'artist', 'label', 'track_count', 'vinyl_speed',
-        ]
+        const activeFields = [...baseFields, ...(typeFieldMap[props.type] || [])]
 
-        // N'envoyez que les champs pertinents en fonction du type.
-        const baseFields = ['title', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes']
-        const typeFields = {
-            movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id'],
-            book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'read', 'date_finished'],
-            game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'completed', 'completion_date'],
-            music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed'],
-        }
-
-        const activeFields = [...baseFields, ...(typeFields[props.type] || [])]
         activeFields.forEach(field => {
-            if (form[field] !== '' && form[field] !== null && form[field] !== undefined) {
-                formData.append(field, form[field])
+            const value = form[field]
+
+            // Always send booleans explicitly — even when false
+            if (booleanFields.includes(field)) {
+                formData.append(field, value ? '1' : '0')
+                return
             }
+
+            // Skip empty strings, null, undefined for everything else
+            if (value === '' || value === null || value === undefined) return
+
+            formData.append(field, value)
         })
 
+        // Cover image (only if a new file was selected)
         if (form.cover_image instanceof File) {
             formData.append('cover_image', form.cover_image)
         }
@@ -147,7 +146,16 @@ async function handleSubmit() {
     } catch (err) {
         if (err.response?.status === 422) {
             errors.value = err.response.data.errors
+        } else if (err.response?.status === 401) {
+            serverError.value = 'Your session has expired. Please log in again.'
+        } else if (err.response?.status === 403) {
+            serverError.value = 'You do not have permission to do this.'
+        } else if (err.response?.status === 404) {
+            serverError.value = 'This item no longer exists.'
+        } else if (err.response?.data?.message) {
+            serverError.value = err.response.data.message
         } else {
+            serverError.value = 'Something went wrong. Please try again.'
             console.error('Save failed:', err)
         }
     } finally {
@@ -166,16 +174,13 @@ function fieldError(field) {
             @click.self="emit('close')">
             <div
                 class="bg-vault-800 border border-vault-600 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl">
-                <!-- En-tête de la modale -->
+
+                <!-- Header -->
                 <div
                     class="sticky top-0 bg-vault-800 border-b border-vault-700 px-6 py-4 flex items-center justify-between z-10 rounded-t-2xl">
                     <h2 class="text-lg font-bold text-white">
                         {{ isEditing ? 'Edit' : 'Add' }}
-                        {{
-                            type === 'movie' ? 'Movie' :
-                                type === 'book' ? 'Book' :
-                                    type === 'game' ? 'Game' : 'Album'
-                        }}
+                        {{ type === 'movie' ? 'Movie' : type === 'book' ? 'Book' : type === 'game' ? 'Game' : 'Album' }}
                     </h2>
                     <button @click="emit('close')"
                         class="w-8 h-8 rounded-lg flex items-center justify-center text-vault-400 hover:text-white hover:bg-vault-700 transition-all">
@@ -185,9 +190,14 @@ function fieldError(field) {
                     </button>
                 </div>
 
-                <!-- contenu du formulaire -->
+                <!-- Server error banner -->
+                <div v-if="serverError" class="mx-6 mt-4 p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl">
+                    <p class="text-rose-400 text-sm font-medium">{{ serverError }}</p>
+                </div>
+
                 <form @submit.prevent="handleSubmit" class="p-6 space-y-5">
-                    <!-- Téléchargement de la couverture -->
+
+                    <!-- Cover Image -->
                     <div>
                         <label class="block text-sm font-medium text-vault-200 mb-2">Cover Image</label>
                         <div class="flex items-center gap-4">
@@ -198,8 +208,8 @@ function fieldError(field) {
                                     class="w-full h-full object-cover" />
                                 <div v-else
                                     class="w-full h-full flex items-center justify-center text-vault-500 text-2xl">
-                                    {{ type === 'movie' ? '\u{1F3AC}' : type === 'book' ? '\u{1F4D6}' : type === 'game'
-                                    ? '\u{1F3AE}' : '\u{1F3B5}' }}
+                                    {{ type === 'movie' ? '🎬' : type === 'book' ? '📖' : type === 'game' ? '🎮' : '🎵'
+                                    }}
                                 </div>
                             </div>
                             <label class="flex-1 cursor-pointer">
@@ -213,7 +223,7 @@ function fieldError(field) {
                         </div>
                     </div>
 
-                    <!-- Titre (tous types) -->
+                    <!-- Title (required for all types) -->
                     <div>
                         <label class="block text-sm font-medium text-vault-200 mb-1.5">Title *</label>
                         <input v-model="form.title" type="text"
@@ -223,8 +233,7 @@ function fieldError(field) {
                         <p v-if="fieldError('title')" class="text-rose-500 text-xs mt-1">{{ fieldError('title') }}</p>
                     </div>
 
-                    <!-- Champs spécifiques au type -->
-                    <!-- Movie -->
+                    <!-- ─── Movie Fields ─── -->
                     <template v-if="type === 'movie'">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
@@ -233,6 +242,8 @@ function fieldError(field) {
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                                     <option v-for="f in formatOptions" :key="f" :value="f">{{ f }}</option>
                                 </select>
+                                <p v-if="fieldError('format')" class="text-rose-500 text-xs mt-1">{{
+                                    fieldError('format') }}</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-vault-200 mb-1.5">Director</label>
@@ -264,7 +275,7 @@ function fieldError(field) {
                         </div>
                     </template>
 
-                    <!-- Book -->
+                    <!-- ─── Book Fields ─── -->
                     <template v-if="type === 'book'">
                         <div>
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Author *</label>
@@ -302,8 +313,8 @@ function fieldError(field) {
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
                                     placeholder="Publisher" />
                             </div>
-                            <div class="flex items-end gap-4">
-                                <label class="flex items-center gap-2 cursor-pointer pb-2.5">
+                            <div class="flex items-end pb-2.5">
+                                <label class="flex items-center gap-2 cursor-pointer">
                                     <input v-model="form.read" type="checkbox"
                                         class="w-4 h-4 rounded bg-vault-700 border-vault-600 text-amber-500 focus:ring-amber-500/50" />
                                     <span class="text-sm text-vault-200">Mark as Read</span>
@@ -317,7 +328,7 @@ function fieldError(field) {
                         </div>
                     </template>
 
-                    <!-- Game -->
+                    <!-- ─── Game Fields ─── -->
                     <template v-if="type === 'game'">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
@@ -326,6 +337,8 @@ function fieldError(field) {
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                                     <option v-for="p in platformOptions" :key="p" :value="p">{{ p }}</option>
                                 </select>
+                                <p v-if="fieldError('platform')" class="text-rose-500 text-xs mt-1">{{
+                                    fieldError('platform') }}</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-vault-200 mb-1.5">Format *</label>
@@ -333,6 +346,8 @@ function fieldError(field) {
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                                     <option v-for="f in formatOptions" :key="f" :value="f">{{ f }}</option>
                                 </select>
+                                <p v-if="fieldError('format')" class="text-rose-500 text-xs mt-1">{{
+                                    fieldError('format') }}</p>
                             </div>
                         </div>
                         <div class="grid grid-cols-3 gap-4">
@@ -348,8 +363,8 @@ function fieldError(field) {
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
                                     placeholder="Publisher" />
                             </div>
-                            <div class="flex items-end">
-                                <label class="flex items-center gap-2 cursor-pointer pb-2.5">
+                            <div class="flex items-end pb-2.5">
+                                <label class="flex items-center gap-2 cursor-pointer">
                                     <input v-model="form.completed" type="checkbox"
                                         class="w-4 h-4 rounded bg-vault-700 border-vault-600 text-amber-500 focus:ring-amber-500/50" />
                                     <span class="text-sm text-vault-200">Completed</span>
@@ -363,7 +378,7 @@ function fieldError(field) {
                         </div>
                     </template>
 
-                    <!-- Music -->
+                    <!-- ─── Music Fields ─── -->
                     <template v-if="type === 'music'">
                         <div>
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Artist *</label>
@@ -381,6 +396,8 @@ function fieldError(field) {
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                                     <option v-for="f in formatOptions" :key="f" :value="f">{{ f }}</option>
                                 </select>
+                                <p v-if="fieldError('format')" class="text-rose-500 text-xs mt-1">{{
+                                    fieldError('format') }}</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-vault-200 mb-1.5">Tracks</label>
@@ -394,32 +411,27 @@ function fieldError(field) {
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
                                     placeholder="2024" />
                             </div>
-                            <div v-if="form.format === 'Vinyl'">
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Speed (RPM)</label>
-                                <select v-model="form.vinyl_speed"
-                                    class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
-                                    <option value="">Select</option>
-                                    <option value="33">33 RPM</option>
-                                    <option value="45">45 RPM</option>
-                                    <option value="78">78 RPM</option>
-                                </select>
-                            </div>
-                            <div v-else>
+                            <div>
                                 <label class="block text-sm font-medium text-vault-200 mb-1.5">Label</label>
                                 <input v-model="form.label" type="text"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
                                     placeholder="Label" />
                             </div>
                         </div>
-                        <div v-if="form.format === 'Vinyl' && !form.vinyl_speed ? true : false">
-                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Label</label>
-                            <input v-model="form.label" type="text"
-                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                placeholder="Label" />
+                        <!-- Vinyl speed — only shown when Vinyl is selected -->
+                        <div v-if="form.format === 'Vinyl'">
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Vinyl Speed (RPM)</label>
+                            <select v-model="form.vinyl_speed"
+                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                                <option value="">Select speed</option>
+                                <option value="33">33 RPM</option>
+                                <option value="45">45 RPM</option>
+                                <option value="78">78 RPM</option>
+                            </select>
                         </div>
                     </template>
 
-                    <!-- Champs communs: Genre -->
+                    <!-- Genre (all types) -->
                     <div>
                         <label class="block text-sm font-medium text-vault-200 mb-1.5">Genre</label>
                         <input v-model="form.genre" type="text"
@@ -427,23 +439,20 @@ function fieldError(field) {
                             placeholder="e.g. Action, Sci-Fi, Rock" />
                     </div>
 
-                    <!-- Champs communs: Personal Rating -->
+                    <!-- Personal Rating (all types) -->
                     <div>
                         <label class="block text-sm font-medium text-vault-200 mb-2">Personal Rating</label>
                         <div class="flex items-center gap-1">
                             <button v-for="n in 10" :key="n" type="button"
                                 @click="form.personal_rating = form.personal_rating === n ? '' : n"
                                 class="star w-7 h-7 rounded flex items-center justify-center text-sm font-bold transition-all"
-                                :class="n <= form.personal_rating
-                                    ? 'bg-amber-500 text-white'
-                                    : 'bg-vault-700 text-vault-400 hover:bg-vault-600'">
-                                {{ n }}
-                            </button>
+                                :class="n <= form.personal_rating ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-400 hover:bg-vault-600'">{{
+                                n }}</button>
                             <span class="text-vault-400 text-sm ml-2">/ 10</span>
                         </div>
                     </div>
 
-                    <!-- Champs communs: Purchase Info -->
+                    <!-- Purchase Details -->
                     <div class="border-t border-vault-700 pt-5">
                         <h3 class="text-sm font-semibold text-vault-200 mb-3">Purchase Details</h3>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -472,21 +481,19 @@ function fieldError(field) {
                         </div>
                     </div>
 
-                    <!-- Champs communs: Status -->
+                    <!-- Status -->
                     <div>
                         <label class="block text-sm font-medium text-vault-200 mb-1.5">Status</label>
                         <div class="flex flex-wrap gap-2">
                             <button v-for="s in ['owned', 'wishlist', 'borrowed', 'sold', 'lost']" :key="s"
                                 type="button" @click="form.status = s"
-                                class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all" :class="form.status === s
-                                    ? 'bg-amber-500 text-white'
-                                    : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
-                                {{ s.charAt(0).toUpperCase() + s.slice(1) }}
-                            </button>
+                                class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                                :class="form.status === s ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">{{
+                                    s.charAt(0).toUpperCase() + s.slice(1) }}</button>
                         </div>
                     </div>
 
-                    <!-- Champs communs: Notes -->
+                    <!-- Notes -->
                     <div>
                         <label class="block text-sm font-medium text-vault-200 mb-1.5">Notes</label>
                         <textarea v-model="form.notes" rows="3"
@@ -494,7 +501,7 @@ function fieldError(field) {
                             placeholder="Any additional notes..."></textarea>
                     </div>
 
-                    <!-- Bouton de soumission -->
+                    <!-- Submit -->
                     <div class="flex items-center justify-end gap-3 pt-2">
                         <button type="button" @click="emit('close')"
                             class="px-5 py-2.5 rounded-xl text-sm font-medium text-vault-300 hover:text-white hover:bg-vault-700 transition-all">

@@ -1,7 +1,6 @@
-// resources/js/stores/dashboard.js
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import axios from 'axios'
+import api from '../api'          // <-- changed from 'axios'
 
 export const useDashboardStore = defineStore('dashboard', () => {
   const stats = ref(null)
@@ -10,7 +9,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
   async function fetchStats() {
     loading.value = true
     try {
-      const { data } = await axios.get('/api/dashboard/stats')
+      const { data } = await api.get('/dashboard/stats')
       stats.value = data
     } catch (err) {
       console.error('Failed to fetch dashboard stats:', err)

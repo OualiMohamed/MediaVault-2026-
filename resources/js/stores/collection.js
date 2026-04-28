@@ -1,7 +1,6 @@
-// resources/js/stores/collection.js
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import axios from 'axios'
+import api from '../api'          // <-- changed from 'axios'
 
 export const useCollectionStore = defineStore('collection', () => {
   const items = ref([])
@@ -16,7 +15,7 @@ export const useCollectionStore = defineStore('collection', () => {
   async function fetchItems(type, params = {}) {
     loading.value = true
     try {
-      const { data } = await axios.get(`/api/collection/${type}`, { params })
+      const { data } = await api.get(`/collection/${type}`, { params })
       items.value = data.data
       pagination.value = {
         current_page: data.current_page,
@@ -32,7 +31,7 @@ export const useCollectionStore = defineStore('collection', () => {
   }
 
   async function createItem(type, formData) {
-    const { data } = await axios.post(`/api/collection/${type}`, formData, {
+    const { data } = await api.post(`/collection/${type}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
     items.value.unshift(data)
@@ -40,9 +39,10 @@ export const useCollectionStore = defineStore('collection', () => {
   }
 
   async function updateItem(type, id, formData) {
-    const { data } = await axios.post(`/api/collection/${type}/${id}`, formData, {
+    // _method must go IN the form body, not as a query parameter
+    formData.append('_method', 'PUT')
+    const { data } = await api.post(`/collection/${type}/${id}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-      params: { _method: 'PUT' },
     })
     const idx = items.value.findIndex(i => i.id === id)
     if (idx !== -1) items.value[idx] = data
@@ -50,7 +50,7 @@ export const useCollectionStore = defineStore('collection', () => {
   }
 
   async function deleteItem(type, id) {
-    await axios.delete(`/api/collection/${type}/${id}`)
+    await api.delete(`/collection/${type}/${id}`)
     items.value = items.value.filter(i => i.id !== id)
   }
 

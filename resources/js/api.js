@@ -7,9 +7,10 @@ const api = axios.create({
     'Accept': 'application/json',
     'Content-Type': 'application/json',
   },
+  withCredentials: false,
 })
 
-// Intercepteur de requêtes — attachement automatique du token
+// Attach token from localStorage on every request
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('vault_token')
   if (token) {
@@ -18,7 +19,7 @@ api.interceptors.request.use(config => {
   return config
 })
 
-// intercepteur de réponse — 401 Redirection automatique de connexion
+// 401 → clear token and redirect to login
 api.interceptors.response.use(
   response => response,
   error => {
