@@ -1,6 +1,9 @@
 <script setup>
 import { ref, reactive, watch, computed } from 'vue'
 import { useCollectionStore } from '../stores/collection'
+// ── New imports ──
+import api from '../api'
+import BarcodeScanner from './BarcodeScanner.vue'
 
 const props = defineProps({
     type: { type: String, required: true },
@@ -13,6 +16,12 @@ const submitting = ref(false)
 const errors = ref({})
 const serverError = ref('')
 const coverPreview = ref(null)
+
+// ── New refs ──
+const showScanner = ref(false)
+const lookupLoading = ref(false)
+const lookupMessage = ref('')
+const existingCover = ref('') // path returned from barcode lookup
 
 const form = reactive({
     title: '',
@@ -42,6 +51,7 @@ const form = reactive({
     label: '',
     track_count: '',
     vinyl_speed: '',
+    barcode: '',
 })
 
 const isEditing = computed(() => !!props.item)
@@ -67,7 +77,7 @@ const typeFieldMap = {
     music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed'],
 }
 
-const baseFields = ['title', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes']
+const baseFields = ['title', 'barcode', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes']
 const booleanFields = ['read', 'completed']
 
 // Computed: human-readable list of all validation errors
@@ -96,6 +106,7 @@ watch(() => props.item, (item) => {
             if (key in form) form[key] = item.details[key]
         })
     }
+    existingCover.value = item.cover_image || ''
 }, { immediate: true })
 
 watch(() => props.type, (type) => {
@@ -142,7 +153,10 @@ async function handleSubmit() {
             formData.append(field, value)
         })
 
-        if (form.cover_image instanceof File) {
+        // In handleSubmit — replace the cover handling section:
+        if (existingCover.value) {
+            formData.append('existing_cover', existingCover.value)
+        } else if (form.cover_image instanceof File) {
             formData.append('cover_image', form.cover_image)
         }
 
@@ -184,6 +198,56 @@ async function handleSubmit() {
 
 function fieldError(field) {
     return errors.value[field] ? errors.value[field][0] : ''
+}
+
+// ── New function: handle scanned barcode ──
+async function handleBarcodeScanned(code) {
+    showScanner.value = false
+    form.barcode = code
+    lookupMessage.value = ''
+    lookupLoading.value = true
+    existingCover.value = ''
+
+    try {
+        const { data } = await api.post('/barcode/lookup', {
+            type: props.type,
+            barcode: code,
+        })
+
+        if (data.auto_filled) {
+            // Auto-fill form fields from lookup
+            const fieldsToFill = ['title', 'author', 'publisher', 'page_count', 'release_year', 'genre', 'notes']
+            fieldsToFill.forEach(field => {
+                if (data[field] !== null && data[field] !== undefined && data[field] !== '') {
+                    form[field] = data[field]
+                }
+            })
+
+            // Handle cover image from lookup
+            if (data.cover_image) {
+                existingCover.value = data.cover_image
+                coverPreview.value = '/storage/' + data.cover_image
+            }
+
+            lookupMessage.value = 'Auto-filled from Open Library'
+        } else {
+            lookupMessage.value = data.message || 'Barcode saved. Fill in details manually.'
+        }
+    } catch (err) {
+        if (err.response?.data?.message) {
+            lookupMessage.value = err.response.data.message
+        } else {
+            lookupMessage.value = 'Lookup failed. Barcode saved for reference.'
+        }
+    } finally {
+        lookupLoading.value = false
+    }
+}
+
+// ── Manual ISBN lookup button (for typed barcodes) ──
+async function manualLookup() {
+    if (!form.barcode || props.type !== 'book') return
+    await handleBarcodeScanned(form.barcode)
 }
 </script>
 
@@ -257,7 +321,48 @@ function fieldError(field) {
                             </label>
                         </div>
                     </div>
-
+                    <!-- ═══ Barcode Scanner Section ═══ -->
+                    <div>
+                        <label class="block text-sm font-medium text-vault-200 mb-1.5">Barcode / ISBN</label>
+                        <div class="flex gap-2">
+                            <input v-model="form.barcode" type="text"
+                                class="flex-1 px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all text-sm font-mono"
+                                placeholder="Scan or type barcode..." />
+                            <button v-if="type === 'book' && form.barcode" @click="manualLookup"
+                                :disabled="lookupLoading" type="button"
+                                class="px-4 py-2.5 bg-vault-600 text-white rounded-xl text-sm font-medium hover:bg-vault-500 transition-all disabled:opacity-50 flex items-center gap-1.5">
+                                <svg v-if="!lookupLoading" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                <div v-else
+                                    class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin">
+                                </div>
+                                Lookup
+                            </button>
+                            <button @click="showScanner = true" type="button"
+                                class="px-4 py-2.5 bg-amber-500/15 text-amber-400 rounded-xl text-sm font-medium hover:bg-amber-500/25 transition-all flex items-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                                </svg>
+                                Scan
+                            </button>
+                        </div>
+                        <!-- Lookup status message -->
+                        <div v-if="lookupMessage" class="mt-2 flex items-center gap-2">
+                            <svg class="w-3.5 h-3.5 flex-shrink-0"
+                                :class="existingCover ? 'text-emerald-400' : 'text-amber-400'" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="text-xs" :class="existingCover ? 'text-emerald-400' : 'text-amber-400'">{{
+                                lookupMessage }}</span>
+                        </div>
+                    </div>
                     <!-- Title -->
                     <div>
                         <label class="block text-sm font-medium text-vault-200 mb-1.5">Title <span
@@ -552,6 +657,8 @@ function fieldError(field) {
                         </button>
                     </div>
                 </form>
+                <!-- Barcode Scanner Modal -->
+                <BarcodeScanner v-if="showScanner" @scanned="handleBarcodeScanned" @close="showScanner = false" />
             </div>
         </div>
     </transition>
