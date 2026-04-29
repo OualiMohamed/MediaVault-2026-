@@ -81,7 +81,6 @@ const metadata = computed(() => {
         if (d.author) rows.push({ label: 'Author', value: d.author })
         if (d.publisher) rows.push({ label: 'Publisher', value: d.publisher })
         if (d.page_count) rows.push({ label: 'Pages', value: d.page_count })
-        if (d.isbn) rows.push({ label: 'ISBN', value: d.isbn })
         if (d.release_year) rows.push({ label: 'Year', value: d.release_year })
         if (d.read) rows.push({ label: 'Read', value: d.date_finished ? `Finished ${d.date_finished}` : 'Yes' })
     }
