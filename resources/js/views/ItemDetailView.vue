@@ -65,6 +65,7 @@ const metadata = computed(() => {
     const rows = []
 
     if (type.value === 'movie') {
+        if (item.value.barcode) rows.push({ label: 'Barcode', value: item.value.barcode, copyable: true })
         if (d.director) rows.push({ label: 'Director', value: d.director })
         if (d.runtime_minutes) {
             const h = Math.floor(d.runtime_minutes / 60)
@@ -76,6 +77,7 @@ const metadata = computed(() => {
     }
 
     if (type.value === 'book') {
+        if (item.value.barcode) rows.push({ label: 'ISBN', value: item.value.barcode, copyable: true })
         if (d.author) rows.push({ label: 'Author', value: d.author })
         if (d.publisher) rows.push({ label: 'Publisher', value: d.publisher })
         if (d.page_count) rows.push({ label: 'Pages', value: d.page_count })
@@ -85,6 +87,7 @@ const metadata = computed(() => {
     }
 
     if (type.value === 'game') {
+        if (item.value.barcode) rows.push({ label: 'Barcode', value: item.value.barcode, copyable: true })
         if (d.platform) rows.push({ label: 'Platform', value: d.platform })
         if (d.publisher) rows.push({ label: 'Publisher', value: d.publisher })
         if (d.release_year) rows.push({ label: 'Year', value: d.release_year })
@@ -92,6 +95,7 @@ const metadata = computed(() => {
     }
 
     if (type.value === 'music') {
+        if (item.value.barcode) rows.push({ label: 'Barcode', value: item.value.barcode, copyable: true })
         if (d.artist) rows.push({ label: 'Artist', value: d.artist })
         if (d.label) rows.push({ label: 'Label', value: d.label })
         if (d.track_count) rows.push({ label: 'Tracks', value: d.track_count })
@@ -262,6 +266,7 @@ watch(() => route.params.id, fetchItem)
                         </div>
 
                         <!-- Metadata Grid -->
+                        <!-- Replace the metadata grid rendering -->
                         <div v-if="metadata.length" class="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-4 mb-8">
                             <div v-for="row in metadata" :key="row.label" class="flex flex-col">
                                 <span class="text-vault-500 text-xs font-medium uppercase tracking-wider mb-0.5">{{
@@ -275,6 +280,16 @@ watch(() => route.params.id, fetchItem)
                                             d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                     </svg>
                                 </a>
+                                <button v-else-if="row.copyable" @click="navigator.clipboard.writeText(row.value)"
+                                    class="text-left text-white text-sm font-mono hover:text-amber-400 transition-colors group flex items-center gap-1.5"
+                                    title="Click to copy">
+                                    <span>{{ row.value }}</span>
+                                    <svg class="w-3.5 h-3.5 text-vault-500 group-hover:text-amber-400 transition-colors flex-shrink-0"
+                                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                </button>
                                 <span v-else class="text-white text-sm font-medium">{{ row.value }}</span>
                             </div>
                         </div>
