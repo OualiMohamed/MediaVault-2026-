@@ -13,6 +13,7 @@ class CollectionItem extends Model
         'type',
         'title',
         'cover_image',
+        'barcode',
         'purchase_date',
         'purchase_price',
         'condition',
