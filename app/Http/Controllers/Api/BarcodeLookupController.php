@@ -21,16 +21,15 @@ class BarcodeLookupController extends Controller
         $type = $request->input('type');
         $barcode = $request->input('barcode');
 
-        if ($type === 'book') {
-            return $this->lookupBook($barcode);
-        }
-
-        return response()->json([
-            'barcode' => $barcode,
-            'auto_filled' => false,
-            'message' => 'Barcode scanned successfully. Fill in the details manually.',
-        ]);
+        return match ($type) {
+            'book' => $this->lookupBook($barcode),
+            'music' => $this->lookupMusic($barcode),
+            'movie' => $this->lookupGeneric($barcode, 'movie'),
+            'game' => $this->lookupGeneric($barcode, 'game'),
+        };
     }
+
+    // ═══ BOOKS: Open Library (free, no key) ═══
 
     private function lookupBook(string $barcode): JsonResponse
     {
@@ -38,19 +37,15 @@ class BarcodeLookupController extends Controller
 
         try {
             $response = Http::timeout(15)
-                ->withoutVerifying()  // Bypass SSL — safe for public read-only API
+                ->withoutVerifying()
                 ->get("https://openlibrary.org/isbn/{$isbn}.json");
 
             if (!$response->successful() || !$response->json()) {
-                return response()->json([
-                    'barcode' => $barcode,
-                    'auto_filled' => false,
-                    'message' => 'No book found for this ISBN in Open Library.',
-                ], 404);
+                return $this->notFound($barcode, 'No book found for this ISBN.');
             }
 
             $data = $response->json();
-            $coverPath = $this->downloadCover($isbn);
+            $coverPath = $this->downloadCover("https://covers.openlibrary.org/b/isbn/{$isbn}-L.jpg", "covers/book_{$isbn}.jpg");
 
             return response()->json([
                 'barcode' => $barcode,
@@ -64,42 +59,160 @@ class BarcodeLookupController extends Controller
                 'notes' => $data['subtitle'] ?? '',
                 'cover_image' => $coverPath,
             ]);
-
         } catch (\Exception $e) {
-            // Log the REAL error so you can see it in storage/logs/laravel.log
-            Log::error('Open Library lookup failed', [
-                'isbn' => $isbn,
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'barcode' => $barcode,
-                'auto_filled' => false,
-                'message' => 'Lookup service unavailable. Check the log for details.',
-                'debug' => $e->getMessage(),  // visible in browser DevTools
-            ], 503);
+            return $this->serviceError($barcode, $e);
         }
     }
 
-    private function downloadCover(string $isbn): ?string
+    // ═══ MUSIC: MusicBrainz (free, no key, excellent barcode support) ═══
+
+    private function lookupMusic(string $barcode): JsonResponse
     {
         try {
-            $url = "https://covers.openlibrary.org/b/isbn/{$isbn}-L.jpg";
-            $response = Http::timeout(10)
+            // MusicBrainz requires a User-Agent header
+            $response = Http::timeout(15)
                 ->withoutVerifying()
-                ->get($url);
+                ->withHeaders(['User-Agent' => 'MediaVault/1.0 (media-vault.local)'])
+                ->get("https://musicbrainz.org/ws/2/release/", [
+                    'query' => "barcode:{$barcode}",
+                    'fmt' => 'json',
+                    'limit' => 1,
+                ]);
 
+            if (!$response->successful() || empty($response->json('releases'))) {
+                return $this->notFound($barcode, 'No album found for this barcode in MusicBrainz.');
+            }
+
+            $release = $response->json('releases.0');
+            $mbid = $release['id'];
+
+            // Artist
+            $artist = '';
+            if (!empty($release['artist-credit'])) {
+                $artist = $release['artist-credit'][0]['name'] ?? '';
+            }
+
+            // Label
+            $label = '';
+            if (!empty($release['label-info'])) {
+                $label = $release['label-info'][0]['label']['name'] ?? '';
+            }
+
+            // Track count from all media
+            $trackCount = 0;
+            if (!empty($release['media'])) {
+                foreach ($release['media'] as $medium) {
+                    $trackCount += $medium['track-count'] ?? 0;
+                }
+            }
+
+            // Year
+            $year = null;
+            if (!empty($release['date'])) {
+                $year = substr($release['date'], 0, 4);
+            } elseif (!empty($release['release-events'])) {
+                $year = substr($release['release-events'][0]['date'] ?? '', 0, 4);
+            }
+
+            // Detect vinyl speed from format
+            $vinylSpeed = null;
+            if (!empty($release['media'])) {
+                $format = strtolower($release['media'][0]['format'] ?? '');
+                if (str_contains($format, '33'))
+                    $vinylSpeed = '33';
+                elseif (str_contains($format, '45'))
+                    $vinylSpeed = '45';
+                elseif (str_contains($format, '78'))
+                    $vinylSpeed = '78';
+            }
+
+            // Detect format
+            $format = 'CD';
+            if (!empty($release['media'])) {
+                $rawFormat = strtolower($release['media'][0]['format'] ?? '');
+                if (str_contains($rawFormat, 'vinyl') || str_contains($rawFormat, 'lp'))
+                    $format = 'Vinyl';
+                elseif (str_contains($rawFormat, 'cassette'))
+                    $format = 'Cassette';
+                elseif (str_contains($rawFormat, 'digital'))
+                    $format = 'Digital';
+                elseif (str_contains($rawFormat, '8-track'))
+                    $format = '8-Track';
+            }
+
+            // Cover art from CoverArtArchive (free, linked to MusicBrainz)
+            $coverPath = $this->downloadCover(
+                "https://coverartarchive.org/release/{$mbid}/front-500",
+                "covers/music_{$mbid}.jpg"
+            );
+
+            return response()->json([
+                'barcode' => $barcode,
+                'auto_filled' => true,
+                'title' => $release['title'] ?? '',
+                'artist' => $artist,
+                'label' => $label,
+                'track_count' => $trackCount ?: null,
+                'release_year' => $year ? (int) $year : null,
+                'format' => $format,
+                'vinyl_speed' => $vinylSpeed,
+                'cover_image' => $coverPath,
+            ]);
+        } catch (\Exception $e) {
+            return $this->serviceError($barcode, $e);
+        }
+    }
+
+    // ═══ MOVIES & GAMES: Store barcode, explain limitation ═══
+
+    private function lookupGeneric(string $barcode, string $type): JsonResponse
+    {
+        $label = $type === 'movie' ? 'movie/DVD/Blu-ray' : 'game';
+
+        return response()->json([
+            'barcode' => $barcode,
+            'auto_filled' => false,
+            'message' => "Barcode saved. There is no free API that maps {$label} barcodes to metadata — you'll need to fill in the details manually.",
+        ]);
+    }
+
+    // ═══ Helpers ═══
+
+    private function downloadCover(string $url, string $path): ?string
+    {
+        try {
+            $response = Http::timeout(10)->withoutVerifying()->get($url);
             if ($response->successful() && strlen($response->body()) > 1000) {
-                $path = "covers/book_{$isbn}.jpg";
                 Storage::disk('public')->put($path, $response->body());
                 return $path;
             }
         } catch (\Exception $e) {
-            Log::warning('Open Library cover download failed', [
-                'isbn' => $isbn,
-                'error' => $e->getMessage(),
-            ]);
+            Log::warning('Cover download failed', ['url' => $url, 'error' => $e->getMessage()]);
         }
         return null;
+    }
+
+    private function notFound(string $barcode, string $message): JsonResponse
+    {
+        return response()->json([
+            'barcode' => $barcode,
+            'auto_filled' => false,
+            'message' => $message,
+        ], 404);
+    }
+
+    private function serviceError(string $barcode, \Exception $e): JsonResponse
+    {
+        Log::error('Barcode lookup failed', [
+            'barcode' => $barcode,
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'barcode' => $barcode,
+            'auto_filled' => false,
+            'message' => 'Lookup service unavailable. Try again or fill in manually.',
+            'debug' => $e->getMessage(),
+        ], 503);
     }
 }
