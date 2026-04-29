@@ -361,7 +361,6 @@ async function manualLookup() {
                                 </div>
                                 Lookup
                             </button>
-                            </button>
                             <button @click="showScanner = true" type="button"
                                 class="px-4 py-2.5 bg-amber-500/15 text-amber-400 rounded-xl text-sm font-medium hover:bg-amber-500/25 transition-all flex items-center gap-1.5">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
