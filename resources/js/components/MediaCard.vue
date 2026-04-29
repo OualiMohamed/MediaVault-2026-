@@ -1,5 +1,7 @@
+<!-- resources/js/components/MediaCard.vue -->
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useCollectionStore } from '../stores/collection'
 
 const props = defineProps({
@@ -9,6 +11,7 @@ const props = defineProps({
 
 const emit = defineEmits(['edit', 'deleted'])
 const store = useCollectionStore()
+const router = useRouter()
 const confirmingDelete = ref(false)
 
 const statusColors = {
@@ -29,6 +32,28 @@ const subtitle = computed(() => {
     return ''
 })
 
+// Navigate to detail page — stop propagation on action buttons
+function goToDetail() {
+    router.push(`/${props.type}/${props.item.id}`)
+}
+
+function onEdit(e) {
+    e.stopPropagation()
+    emit('edit', props.item)
+}
+
+function onConfirmDelete(e) {
+    e.stopPropagation()
+    confirmingDelete.value = true
+}
+
+function onDelete(e) {
+    e.stopPropagation()
+    confirmingDelete.value = false
+    store.deleteItem(props.type, props.item.id)
+    emit('deleted')
+}
+
 async function handleDelete() {
     confirmingDelete.value = false
     await store.deleteItem(props.type, props.item.id)
@@ -37,9 +62,9 @@ async function handleDelete() {
 </script>
 
 <template>
-    <div
-        class="media-card bg-vault-800 border border-vault-700 rounded-xl overflow-hidden group relative flex flex-col">
-        <!-- Cover container — aspect-2/3 is Tailwind v4 syntax -->
+    <div @click="goToDetail"
+        class="media-card bg-vault-800 border border-vault-700 rounded-xl overflow-hidden group relative flex flex-col cursor-pointer">
+        <!-- Cover container -->
         <div class="aspect-2/3 bg-vault-700 relative overflow-hidden min-h-0 flex-shrink-0">
             <img v-if="item.cover_image" :src="'/storage/' + item.cover_image" :alt="item.title"
                 class="block w-full h-full object-cover" loading="lazy" />
@@ -64,10 +89,10 @@ async function handleDelete() {
                 </span>
             </div>
 
-            <!-- Hover overlay -->
+            <!-- Hover overlay with action buttons -->
             <div
                 class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                <button @click.stop="$emit('edit', item)"
+                <button @click="onEdit"
                     class="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/25 transition-all"
                     title="Edit">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -75,7 +100,7 @@ async function handleDelete() {
                             d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                     </svg>
                 </button>
-                <button v-if="!confirmingDelete" @click.stop="confirmingDelete = true"
+                <button v-if="!confirmingDelete" @click="onConfirmDelete"
                     class="w-10 h-10 rounded-xl bg-rose-500/30 backdrop-blur-sm flex items-center justify-center text-rose-400 hover:bg-rose-500/50 transition-all"
                     title="Delete">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -83,7 +108,7 @@ async function handleDelete() {
                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                 </button>
-                <button v-else @click.stop="handleDelete"
+                <button v-else @click="onDelete"
                     class="px-3 h-10 rounded-xl bg-rose-500 backdrop-blur-sm flex items-center justify-center text-white text-xs font-bold hover:bg-rose-600 transition-all">
                     Confirm
                 </button>
