@@ -69,6 +69,7 @@ class BarcodeLookupController extends Controller
     private function lookupMusic(string $barcode): JsonResponse
     {
         try {
+            sleep(1); // MusicBrainz rate limit: 1 req/sec
             // MusicBrainz requires a User-Agent header
             $response = Http::timeout(15)
                 ->withoutVerifying()
