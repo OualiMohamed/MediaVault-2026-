@@ -264,9 +264,8 @@ async function handleBarcodeScanned(code) {
 // ── Manual ISBN lookup button (for typed barcodes) ──
 async function manualLookup() {
     if (!form.barcode) return
-    // Only books support typed ISBN lookup (Open Library)
-    // Music requires the scanner (MusicBrainz barcodes are EAN, not manually typed)
-    if (props.type !== 'book') return
+    // Books use Open Library, Music uses MusicBrainz — both support typed barcodes
+    if (props.type !== 'book' && props.type !== 'music') return
     await handleBarcodeScanned(form.barcode)
 }
 </script>
@@ -348,7 +347,7 @@ async function manualLookup() {
                             <input v-model="form.barcode" type="text"
                                 class="flex-1 px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all text-sm font-mono"
                                 placeholder="Scan or type barcode..." />
-                            <button v-if="type === 'book' && form.barcode" @click="manualLookup"
+                            <button v-if="(type === 'book' || type === 'music') && form.barcode" @click="manualLookup"
                                 :disabled="lookupLoading" type="button"
                                 class="px-4 py-2.5 bg-vault-600 text-white rounded-xl text-sm font-medium hover:bg-vault-500 transition-all disabled:opacity-50 flex items-center gap-1.5">
                                 <svg v-if="!lookupLoading" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
