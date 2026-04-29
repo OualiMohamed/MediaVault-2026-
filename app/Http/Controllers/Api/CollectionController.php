@@ -26,6 +26,7 @@ class CollectionController extends Controller
             'type' => $item->type,
             'title' => $item->title,
             'cover_image' => $item->cover_image,
+            'barcode' => $item->barcode,              // <-- ADD THIS
             'purchase_date' => $item->purchase_date?->format('Y-m-d'),
             'purchase_price' => $item->purchase_price,
             'condition' => $item->condition,
@@ -103,15 +104,23 @@ class CollectionController extends Controller
         return DB::transaction(function () use ($validated, $type, $request) {
             // Handle cover upload
             $coverImage = null;
-            if ($request->hasFile('cover_image')) {
+
+            // Priority 1: cover already downloaded during barcode lookup
+            if ($request->filled('existing_cover')) {
+                $coverImage = $request->input('existing_cover');
+            }
+            // Priority 2: user uploaded a new file
+            elseif ($request->hasFile('cover_image')) {
                 $coverImage = $request->file('cover_image')->store('covers', 'public');
             }
+            // Priority 3: editing and no new cover — keep existing (handled by not setting $coverImage)
 
             $item = CollectionItem::create([
                 'user_id' => Auth::id(),
                 'type' => $type,
                 'title' => $validated['title'],
                 'cover_image' => $coverImage,
+                'barcode' => $validated['barcode'] ?? null,  // <-- ADD THIS
                 'purchase_date' => $validated['purchase_date'] ?? null,
                 'purchase_price' => $validated['purchase_price'] ?? null,
                 'condition' => $validated['condition'] ?? 'near_mint',
@@ -169,9 +178,11 @@ class CollectionController extends Controller
 
         return DB::transaction(function () use ($item, $validated, $type, $request) {
             // Handle cover replacement
-            $coverImage = $item->cover_image; // keep existing by default
-            if ($request->hasFile('cover_image')) {
-                // Delete old file
+            $coverImage = $item->cover_image;
+
+            if ($request->filled('existing_cover')) {
+                $coverImage = $request->input('existing_cover');
+            } elseif ($request->hasFile('cover_image')) {
                 if ($item->cover_image) {
                     Storage::disk('public')->delete($item->cover_image);
                 }
@@ -182,6 +193,7 @@ class CollectionController extends Controller
             $item->update([
                 'title' => $validated['title'] ?? $item->title,
                 'cover_image' => $coverImage,
+                'barcode' => $validated['barcode'] ?? $item->barcode,  // <-- ADD THIS
                 'purchase_date' => $validated['purchase_date'] ?? $item->purchase_date,
                 'purchase_price' => $validated['purchase_price'] ?? $item->purchase_price,
                 'condition' => $validated['condition'] ?? $item->condition,
@@ -228,6 +240,7 @@ class CollectionController extends Controller
     private function getValidationRules(string $type): array
     {
         $base = [
+            'barcode' => 'nullable|string|max:20',   // <-- ADD THIS
             'cover_image' => 'nullable|image|max:2048',
             'purchase_date' => 'nullable|date',
             'purchase_price' => 'nullable|numeric|min:0|max:999999.99',
