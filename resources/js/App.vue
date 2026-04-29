@@ -1,4 +1,3 @@
-<!-- resources/js/App.vue -->
 <script setup>
 import { onMounted } from 'vue'
 import { useAuthStore } from './stores/auth'
@@ -10,9 +9,10 @@ onMounted(() => { if (auth.token) auth.fetchUser() })
 
 <template>
   <AppLayout>
-    <router-view v-slot="{ Component }">
+    <router-view v-slot="{ Component, route }">
       <transition name="page" mode="out-in">
-        <component :is="Component" />
+        <!-- :key forces a brand new component instance on every route change -->
+        <component :is="Component" :key="route.fullPath" />
       </transition>
     </router-view>
   </AppLayout>

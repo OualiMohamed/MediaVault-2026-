@@ -1,4 +1,3 @@
-<!-- resources/js/views/CollectionView.vue -->
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
@@ -18,7 +17,6 @@ const showForm = ref(false)
 const editItem = ref(null)
 const currentPage = ref(1)
 
-// Les options de mise en forme varient selon le type.
 const formatOptions = computed(() => {
     const map = {
         movie: ['DVD', 'Blu-ray', '4K UHD', 'Digital', 'VHS'],
@@ -77,6 +75,16 @@ function handleFormSaved() {
 
 onMounted(loadItems)
 
+// Re-fetch when navigating between /movies, /books, /games, /music
+watch(() => route.path, () => {
+    search.value = ''
+    filterFormat.value = ''
+    filterStatus.value = ''
+    filterPlatform.value = ''
+    currentPage.value = 1
+    loadItems()
+})
+
 watch([search, filterFormat, filterStatus, filterPlatform], () => {
     currentPage.value = 1
     loadItems()
@@ -85,7 +93,6 @@ watch([search, filterFormat, filterStatus, filterPlatform], () => {
 
 <template>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <!-- En-tête -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
             <div>
                 <h1 class="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
@@ -105,23 +112,19 @@ watch([search, filterFormat, filterStatus, filterPlatform], () => {
             </button>
         </div>
 
-        <!-- barre de filtre -->
         <div class="flex flex-wrap gap-3 mb-6">
             <input v-model="search" type="text" :placeholder="`Search ${config.label.toLowerCase()}...`"
                 class="flex-1 min-w-[200px] px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all text-sm" />
-
-            <select v-model="filterFormat"
+            <select v-if="formatOptions.length" v-model="filterFormat"
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                 <option value="">All Formats</option>
                 <option v-for="f in formatOptions" :key="f" :value="f">{{ f }}</option>
             </select>
-
             <select v-if="type === 'game'" v-model="filterPlatform"
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                 <option value="">All Platforms</option>
                 <option v-for="p in platformOptions" :key="p" :value="p">{{ p }}</option>
             </select>
-
             <select v-model="filterStatus"
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                 <option value="">All Status</option>
@@ -133,7 +136,6 @@ watch([search, filterFormat, filterStatus, filterPlatform], () => {
             </select>
         </div>
 
-        <!-- grille de contenu -->
         <div v-if="store.loading && store.items.length === 0" class="flex justify-center py-20">
             <div class="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
@@ -149,12 +151,9 @@ watch([search, filterFormat, filterStatus, filterPlatform], () => {
                 @deleted="loadItems" />
         </div>
 
-        <!-- Pagination -->
         <div v-if="store.pagination.last_page > 1" class="flex items-center justify-center gap-2 mt-10">
             <button @click="handlePageChange(currentPage - 1)" :disabled="currentPage <= 1"
-                class="px-3 py-2 bg-vault-800 border border-vault-600 rounded-lg text-vault-300 hover:text-white hover:border-vault-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm">
-                Previous
-            </button>
+                class="px-3 py-2 bg-vault-800 border border-vault-600 rounded-lg text-vault-300 hover:text-white hover:border-vault-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm">Previous</button>
             <template v-for="page in store.pagination.last_page" :key="page">
                 <button v-if="page === 1 || page === store.pagination.last_page || Math.abs(page - currentPage) <= 2"
                     @click="handlePageChange(page)" :class="[
@@ -162,19 +161,14 @@ watch([search, filterFormat, filterStatus, filterPlatform], () => {
                         page === currentPage
                             ? 'bg-amber-500 text-white'
                             : 'bg-vault-800 border border-vault-600 text-vault-300 hover:text-white hover:border-vault-500'
-                    ]">
-                    {{ page }}
-                </button>
+                    ]">{{ page }}</button>
                 <span v-else-if="page === 2 || page === store.pagination.last_page - 1"
                     class="text-vault-500 px-1">...</span>
             </template>
             <button @click="handlePageChange(currentPage + 1)" :disabled="currentPage >= store.pagination.last_page"
-                class="px-3 py-2 bg-vault-800 border border-vault-600 rounded-lg text-vault-300 hover:text-white hover:border-vault-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm">
-                Next
-            </button>
+                class="px-3 py-2 bg-vault-800 border border-vault-600 rounded-lg text-vault-300 hover:text-white hover:border-vault-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm">Next</button>
         </div>
 
-        <!-- Ajouter/Modifier la fenêtre modale -->
         <ItemFormModal v-if="showForm" :type="type" :item="editItem" @close="showForm = false"
             @saved="handleFormSaved" />
     </div>

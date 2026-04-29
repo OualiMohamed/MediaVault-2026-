@@ -119,6 +119,12 @@ async function handleSubmit() {
     serverError.value = ''
     submitting.value = true
 
+    // Clean up blob URL to prevent stale image references
+    if (coverPreview.value) {
+        URL.revokeObjectURL(coverPreview.value)
+        coverPreview.value = null
+    }
+
     try {
         const formData = new FormData()
         const activeFields = [...baseFields, ...(typeFieldMap[props.type] || [])]
@@ -214,7 +220,7 @@ function fieldError(field) {
                             class="text-rose-300 text-sm flex items-start gap-2">
                             <span class="text-rose-500 mt-0.5">&#8226;</span>
                             <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                                }}</span>
+                            }}</span>
                         </li>
                     </ul>
                 </div>
@@ -482,7 +488,7 @@ function fieldError(field) {
                                 @click="form.personal_rating = form.personal_rating === n ? '' : n"
                                 class="star w-7 h-7 rounded flex items-center justify-center text-sm font-bold transition-all"
                                 :class="n <= form.personal_rating ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-400 hover:bg-vault-600'">{{
-                                n }}</button>
+                                    n }}</button>
                             <span class="text-vault-400 text-sm ml-2">/ 10</span>
                         </div>
                     </div>
