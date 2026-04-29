@@ -205,8 +205,17 @@ async function handleBarcodeScanned(code) {
     showScanner.value = false
     form.barcode = code
     lookupMessage.value = ''
-    lookupLoading.value = true
+    lookupLoading.value = false
     existingCover.value = ''
+
+    // For movies and games, just save the barcode — no auto-fill available
+    if (props.type === 'movie' || props.type === 'game') {
+        lookupMessage.value = 'Barcode saved. Fill in the details manually.'
+        return
+    }
+
+    // Books and music: call the lookup API
+    lookupLoading.value = true
 
     try {
         const { data } = await api.post('/barcode/lookup', {
@@ -215,23 +224,31 @@ async function handleBarcodeScanned(code) {
         })
 
         if (data.auto_filled) {
-            // Auto-fill form fields from lookup
-            const fieldsToFill = ['title', 'author', 'publisher', 'page_count', 'release_year', 'genre', 'notes']
+            // Fill all matching fields — works for both books and music
+            const fieldsToFill = [
+                'title', 'author', 'publisher', 'page_count', 'release_year',
+                'genre', 'notes', 'artist', 'label', 'track_count', 'format', 'vinyl_speed',
+            ]
+
             fieldsToFill.forEach(field => {
                 if (data[field] !== null && data[field] !== undefined && data[field] !== '') {
                     form[field] = data[field]
                 }
             })
 
-            // Handle cover image from lookup
+            // Handle cover from lookup
             if (data.cover_image) {
                 existingCover.value = data.cover_image
                 coverPreview.value = '/storage/' + data.cover_image
             }
 
-            lookupMessage.value = 'Auto-filled from Open Library'
+            if (props.type === 'book') {
+                lookupMessage.value = 'Auto-filled from Open Library'
+            } else {
+                lookupMessage.value = 'Auto-filled from MusicBrainz'
+            }
         } else {
-            lookupMessage.value = data.message || 'Barcode saved. Fill in details manually.'
+            lookupMessage.value = data.message || 'No match found. Fill in manually.'
         }
     } catch (err) {
         if (err.response?.data?.message) {
@@ -246,7 +263,10 @@ async function handleBarcodeScanned(code) {
 
 // ── Manual ISBN lookup button (for typed barcodes) ──
 async function manualLookup() {
-    if (!form.barcode || props.type !== 'book') return
+    if (!form.barcode) return
+    // Only books support typed ISBN lookup (Open Library)
+    // Music requires the scanner (MusicBrainz barcodes are EAN, not manually typed)
+    if (props.type !== 'book') return
     await handleBarcodeScanned(form.barcode)
 }
 </script>
@@ -284,7 +304,7 @@ async function manualLookup() {
                             class="text-rose-300 text-sm flex items-start gap-2">
                             <span class="text-rose-500 mt-0.5">&#8226;</span>
                             <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                            }}</span>
+                                }}</span>
                         </li>
                     </ul>
                 </div>
@@ -340,6 +360,7 @@ async function manualLookup() {
                                     class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin">
                                 </div>
                                 Lookup
+                            </button>
                             </button>
                             <button @click="showScanner = true" type="button"
                                 class="px-4 py-2.5 bg-amber-500/15 text-amber-400 rounded-xl text-sm font-medium hover:bg-amber-500/25 transition-all flex items-center gap-1.5">
