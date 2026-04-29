@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BarcodeLookupController;
 use App\Http\Controllers\Api\CollectionController;
 use App\Http\Controllers\Api\DashboardController;
 use Illuminate\Support\Facades\Route;
@@ -20,4 +21,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/collection/{type}/{id}', [CollectionController::class, 'update']);
     Route::post('/collection/{type}/{id}', [CollectionController::class, 'update']); // for _method=PUT via FormData
     Route::delete('/collection/{type}/{id}', [CollectionController::class, 'destroy']);
+
+    // routes/api.php — add inside the auth:sanctum group
+    Route::post('/barcode/lookup', [BarcodeLookupController::class, 'lookup']);
 });
