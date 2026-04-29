@@ -1,4 +1,3 @@
-<!-- resources/js/components/RecentItems.vue -->
 <script setup>
 defineProps({
     items: { type: Array, default: () => [] },
@@ -24,11 +23,11 @@ const typeLabels = { movie: 'Movie', book: 'Book', game: 'Game', music: 'Music' 
         <div v-else class="space-y-3">
             <div v-for="item in items" :key="item.id"
                 class="flex items-center gap-3 p-2 rounded-lg hover:bg-vault-700/50 transition-colors">
-                <!-- Miniature de couverture -->
+                <!-- Thumbnail — fixed size, no aspect-ratio needed -->
                 <div class="w-10 h-10 rounded-lg bg-vault-700 flex-shrink-0 overflow-hidden">
                     <img v-if="item.cover_image" :src="'/storage/' + item.cover_image" :alt="item.title"
-                        class="w-full h-full object-cover" />
-                    <div v-else class="w-full h-full flex items-center justify-center text-vault-500 text-xs">
+                        class="block w-full h-full object-cover" />
+                    <div v-else class="block w-full h-full flex items-center justify-center text-vault-500 text-xs">
                         {{ item.type === 'movie' ? '\u{1F3AC}' : item.type === 'book' ? '\u{1F4D6}' : item.type ===
                             'game' ? '\u{1F3AE}' : '\u{1F3B5}' }}
                     </div>

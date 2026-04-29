@@ -238,11 +238,11 @@ function fieldError(field) {
                         <div class="flex items-center gap-4">
                             <div
                                 class="w-24 h-36 rounded-xl bg-vault-700 overflow-hidden flex-shrink-0 border border-vault-600">
-                                <img v-if="coverPreview" :src="coverPreview" class="w-full h-full object-cover" />
+                                <img v-if="coverPreview" :src="coverPreview" class="block w-full h-full object-cover" />
                                 <img v-else-if="item?.cover_image" :src="'/storage/' + item.cover_image"
-                                    class="w-full h-full object-cover" />
+                                    class="block w-full h-full object-cover" />
                                 <div v-else
-                                    class="w-full h-full flex items-center justify-center text-vault-500 text-2xl">
+                                    class="block w-full h-full flex items-center justify-center text-vault-500 text-2xl">
                                     {{ type === 'movie' ? '🎬' : type === 'book' ? '📖' : type === 'game' ? '🎮' : '🎵'
                                     }}
                                 </div>

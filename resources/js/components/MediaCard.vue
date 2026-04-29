@@ -1,6 +1,5 @@
-<!-- resources/js/components/MediaCard.vue -->
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useCollectionStore } from '../stores/collection'
 
 const props = defineProps({
@@ -10,7 +9,6 @@ const props = defineProps({
 
 const emit = defineEmits(['edit', 'deleted'])
 const store = useCollectionStore()
-const showMenu = ref(false)
 const confirmingDelete = ref(false)
 
 const statusColors = {
@@ -33,40 +31,40 @@ const subtitle = computed(() => {
 
 async function handleDelete() {
     confirmingDelete.value = false
-    showMenu.value = false
     await store.deleteItem(props.type, props.item.id)
     emit('deleted')
 }
 </script>
 
 <template>
-    <div class="media-card bg-vault-800 border border-vault-700 rounded-xl overflow-hidden group relative">
-        <!-- image de couverture -->
-        <div class="aspect-[2/3] bg-vault-700 relative overflow-hidden">
+    <div
+        class="media-card bg-vault-800 border border-vault-700 rounded-xl overflow-hidden group relative flex flex-col">
+        <!-- Cover container — aspect-2/3 is Tailwind v4 syntax -->
+        <div class="aspect-2/3 bg-vault-700 relative overflow-hidden min-h-0 flex-shrink-0">
             <img v-if="item.cover_image" :src="'/storage/' + item.cover_image" :alt="item.title"
-                class="w-full h-full object-cover" loading="lazy" />
+                class="block w-full h-full object-cover" loading="lazy" />
             <div v-else
-                class="w-full h-full flex items-center justify-center bg-gradient-to-br from-vault-700 to-vault-800">
+                class="block w-full h-full flex items-center justify-center bg-gradient-to-br from-vault-700 to-vault-800">
                 <span class="text-4xl opacity-30">
                     {{ type === 'movie' ? '\u{1F3AC}' : type === 'book' ? '\u{1F4D6}' : type === 'game' ? '\u{1F3AE}' :
-                        '\u{1F3B5}' }}
+                    '\u{1F3B5}' }}
                 </span>
             </div>
 
-            <!-- score -->
+            <!-- Rating badge -->
             <div v-if="item.details?.personal_rating"
                 class="absolute top-2 right-2 w-8 h-8 rounded-lg bg-black/70 backdrop-blur-sm flex items-center justify-center text-amber-400 text-xs font-bold">
                 {{ item.details.personal_rating }}
             </div>
 
-            <!-- status label -->
+            <!-- Status badge -->
             <div class="absolute top-2 left-2">
                 <span :class="['text-[10px] font-semibold px-1.5 py-0.5 rounded', statusColors[item.status] || '']">
                     {{ item.status }}
                 </span>
             </div>
 
-            <!-- Menu de fonctionnement flottant -->
+            <!-- Hover overlay -->
             <div
                 class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                 <button @click.stop="$emit('edit', item)"
@@ -92,22 +90,19 @@ async function handleDelete() {
             </div>
         </div>
 
-        <!-- Espace informations -->
-        <div class="p-3">
+        <!-- Info area -->
+        <div class="p-3 flex-shrink-0">
             <h3 class="text-white text-sm font-semibold truncate" :title="item.title">{{ item.title }}</h3>
             <p class="text-vault-400 text-xs truncate mt-0.5">{{ subtitle }}</p>
-            <div v-if="item.details?.format || item.details?.platform" class="mt-2">
-                <span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-vault-700 text-vault-300">
+            <div class="mt-2 flex items-center justify-between gap-2">
+                <span v-if="item.details?.format || item.details?.platform"
+                    class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-vault-700 text-vault-300 truncate">
                     {{ item.details.format || item.details.platform }}
                 </span>
-            </div>
-            <div v-if="item.purchase_price" class="mt-1.5 text-xs text-vault-400">
-                ${{ Number(item.purchase_price).toFixed(2) }}
+                <span v-if="item.purchase_price" class="text-xs text-vault-400 whitespace-nowrap ml-auto">
+                    ${{ Number(item.purchase_price).toFixed(2) }}
+                </span>
             </div>
         </div>
     </div>
 </template>
-
-<script>
-import { computed } from 'vue'
-</script>
