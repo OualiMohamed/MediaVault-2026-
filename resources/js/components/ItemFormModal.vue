@@ -11,7 +11,7 @@ const emit = defineEmits(['close', 'saved'])
 const store = useCollectionStore()
 const submitting = ref(false)
 const errors = ref({})
-const serverError = ref('')          // <-- NEW: visible server error
+const serverError = ref('')
 const coverPreview = ref(null)
 
 const form = reactive({
@@ -60,7 +60,6 @@ const platformOptions = [
     'Xbox Series X', 'Xbox One', 'PC', 'Steam', 'Other',
 ]
 
-// Which fields belong to which type
 const typeFieldMap = {
     movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id'],
     book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'read', 'date_finished'],
@@ -69,9 +68,18 @@ const typeFieldMap = {
 }
 
 const baseFields = ['title', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes']
-const booleanFields = ['read', 'completed']   // <-- NEW: explicit boolean list
+const booleanFields = ['read', 'completed']
 
-// Populate form when editing
+// Computed: human-readable list of all validation errors
+const validationErrors = computed(() => {
+    const list = []
+    if (!errors.value) return list
+    for (const [field, messages] of Object.entries(errors.value)) {
+        messages.forEach(msg => list.push({ field, message: msg }))
+    }
+    return list
+})
+
 watch(() => props.item, (item) => {
     if (!item) return
     Object.assign(form, {
@@ -90,7 +98,6 @@ watch(() => props.item, (item) => {
     }
 }, { immediate: true })
 
-// Set type-specific defaults on fresh forms
 watch(() => props.type, (type) => {
     if (!isEditing.value) {
         if (type === 'movie') form.format = 'Blu-ray'
@@ -119,22 +126,26 @@ async function handleSubmit() {
         activeFields.forEach(field => {
             const value = form[field]
 
-            // Always send booleans explicitly — even when false
             if (booleanFields.includes(field)) {
                 formData.append(field, value ? '1' : '0')
                 return
             }
 
-            // Skip empty strings, null, undefined for everything else
             if (value === '' || value === null || value === undefined) return
 
             formData.append(field, value)
         })
 
-        // Cover image (only if a new file was selected)
         if (form.cover_image instanceof File) {
             formData.append('cover_image', form.cover_image)
         }
+
+        // ── Debug: log exactly what's being sent ──
+        console.group('FormData being sent to /api/collection/' + props.type)
+        for (const [key, val] of formData.entries()) {
+            console.log(`  ${key}: ${val instanceof File ? '[File: ' + val.name + ']' : val}`)
+        }
+        console.groupEnd()
 
         if (isEditing.value) {
             await store.updateItem(props.type, props.item.id, formData)
@@ -146,6 +157,8 @@ async function handleSubmit() {
     } catch (err) {
         if (err.response?.status === 422) {
             errors.value = err.response.data.errors
+            // Also log so it's impossible to miss
+            console.error('Validation failed:', err.response.data.errors)
         } else if (err.response?.status === 401) {
             serverError.value = 'Your session has expired. Please log in again.'
         } else if (err.response?.status === 403) {
@@ -190,8 +203,24 @@ function fieldError(field) {
                     </button>
                 </div>
 
-                <!-- Server error banner -->
-                <div v-if="serverError" class="mx-6 mt-4 p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl">
+                <!-- ── VALIDATION ERROR SUMMARY ── -->
+                <div v-if="validationErrors.length"
+                    class="mx-6 mt-4 p-4 bg-rose-500/15 border border-rose-500/30 rounded-xl">
+                    <p class="text-rose-400 text-sm font-semibold mb-2">
+                        {{ validationErrors.length }} error{{ validationErrors.length > 1 ? 's' : '' }} found:
+                    </p>
+                    <ul class="space-y-1">
+                        <li v-for="(err, i) in validationErrors" :key="i"
+                            class="text-rose-300 text-sm flex items-start gap-2">
+                            <span class="text-rose-500 mt-0.5">&#8226;</span>
+                            <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
+                                }}</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Server error (non-validation) -->
+                <div v-else-if="serverError" class="mx-6 mt-4 p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl">
                     <p class="text-rose-400 text-sm font-medium">{{ serverError }}</p>
                 </div>
 
@@ -223,9 +252,10 @@ function fieldError(field) {
                         </div>
                     </div>
 
-                    <!-- Title (required for all types) -->
+                    <!-- Title -->
                     <div>
-                        <label class="block text-sm font-medium text-vault-200 mb-1.5">Title *</label>
+                        <label class="block text-sm font-medium text-vault-200 mb-1.5">Title <span
+                                class="text-rose-400">*</span></label>
                         <input v-model="form.title" type="text"
                             class="w-full px-4 py-2.5 bg-vault-700 border rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all text-sm"
                             :class="fieldError('title') ? 'border-rose-500' : 'border-vault-600'"
@@ -233,11 +263,12 @@ function fieldError(field) {
                         <p v-if="fieldError('title')" class="text-rose-500 text-xs mt-1">{{ fieldError('title') }}</p>
                     </div>
 
-                    <!-- ─── Movie Fields ─── -->
+                    <!-- Movie Fields -->
                     <template v-if="type === 'movie'">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Format *</label>
+                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Format <span
+                                        class="text-rose-400">*</span></label>
                                 <select v-model="form.format"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                                     <option v-for="f in formatOptions" :key="f" :value="f">{{ f }}</option>
@@ -275,10 +306,11 @@ function fieldError(field) {
                         </div>
                     </template>
 
-                    <!-- ─── Book Fields ─── -->
+                    <!-- Book Fields -->
                     <template v-if="type === 'book'">
                         <div>
-                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Author *</label>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Author <span
+                                    class="text-rose-400">*</span></label>
                             <input v-model="form.author" type="text"
                                 class="w-full px-4 py-2.5 bg-vault-700 border rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
                                 :class="fieldError('author') ? 'border-rose-500' : 'border-vault-600'"
@@ -328,11 +360,12 @@ function fieldError(field) {
                         </div>
                     </template>
 
-                    <!-- ─── Game Fields ─── -->
+                    <!-- Game Fields -->
                     <template v-if="type === 'game'">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Platform *</label>
+                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Platform <span
+                                        class="text-rose-400">*</span></label>
                                 <select v-model="form.platform"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                                     <option v-for="p in platformOptions" :key="p" :value="p">{{ p }}</option>
@@ -341,7 +374,8 @@ function fieldError(field) {
                                     fieldError('platform') }}</p>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Format *</label>
+                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Format <span
+                                        class="text-rose-400">*</span></label>
                                 <select v-model="form.format"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                                     <option v-for="f in formatOptions" :key="f" :value="f">{{ f }}</option>
@@ -378,10 +412,11 @@ function fieldError(field) {
                         </div>
                     </template>
 
-                    <!-- ─── Music Fields ─── -->
+                    <!-- Music Fields -->
                     <template v-if="type === 'music'">
                         <div>
-                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Artist *</label>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Artist <span
+                                    class="text-rose-400">*</span></label>
                             <input v-model="form.artist" type="text"
                                 class="w-full px-4 py-2.5 bg-vault-700 border rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
                                 :class="fieldError('artist') ? 'border-rose-500' : 'border-vault-600'"
@@ -391,7 +426,8 @@ function fieldError(field) {
                         </div>
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Format *</label>
+                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Format <span
+                                        class="text-rose-400">*</span></label>
                                 <select v-model="form.format"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                                     <option v-for="f in formatOptions" :key="f" :value="f">{{ f }}</option>
@@ -418,7 +454,6 @@ function fieldError(field) {
                                     placeholder="Label" />
                             </div>
                         </div>
-                        <!-- Vinyl speed — only shown when Vinyl is selected -->
                         <div v-if="form.format === 'Vinyl'">
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Vinyl Speed (RPM)</label>
                             <select v-model="form.vinyl_speed"
@@ -431,7 +466,7 @@ function fieldError(field) {
                         </div>
                     </template>
 
-                    <!-- Genre (all types) -->
+                    <!-- Genre -->
                     <div>
                         <label class="block text-sm font-medium text-vault-200 mb-1.5">Genre</label>
                         <input v-model="form.genre" type="text"
@@ -439,7 +474,7 @@ function fieldError(field) {
                             placeholder="e.g. Action, Sci-Fi, Rock" />
                     </div>
 
-                    <!-- Personal Rating (all types) -->
+                    <!-- Rating -->
                     <div>
                         <label class="block text-sm font-medium text-vault-200 mb-2">Personal Rating</label>
                         <div class="flex items-center gap-1">
@@ -504,9 +539,7 @@ function fieldError(field) {
                     <!-- Submit -->
                     <div class="flex items-center justify-end gap-3 pt-2">
                         <button type="button" @click="emit('close')"
-                            class="px-5 py-2.5 rounded-xl text-sm font-medium text-vault-300 hover:text-white hover:bg-vault-700 transition-all">
-                            Cancel
-                        </button>
+                            class="px-5 py-2.5 rounded-xl text-sm font-medium text-vault-300 hover:text-white hover:bg-vault-700 transition-all">Cancel</button>
                         <button type="submit" :disabled="submitting"
                             class="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-ember-500 text-white font-semibold rounded-xl hover:from-amber-400 hover:to-ember-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm">
                             {{ submitting ? 'Saving...' : (isEditing ? 'Update' : 'Add to Collection') }}

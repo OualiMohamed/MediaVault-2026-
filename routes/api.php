@@ -5,19 +5,19 @@ use App\Http\Controllers\Api\CollectionController;
 use App\Http\Controllers\Api\DashboardController;
 use Illuminate\Support\Facades\Route;
 
-// Public auth routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-// Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
-
-    // Dashboard
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 
-    // Collection CRUD — movie, book, game, music
-    Route::apiResource('collection/{type}', CollectionController::class)
-        ->parameters(['{type}' => 'id']);
+    // Collection routes — {type} is the library, {id} is the item
+    Route::get('/collection/{type}', [CollectionController::class, 'index']);
+    Route::post('/collection/{type}', [CollectionController::class, 'store']);
+    Route::get('/collection/{type}/{id}', [CollectionController::class, 'show']);
+    Route::put('/collection/{type}/{id}', [CollectionController::class, 'update']);
+    Route::post('/collection/{type}/{id}', [CollectionController::class, 'update']); // for _method=PUT via FormData
+    Route::delete('/collection/{type}/{id}', [CollectionController::class, 'destroy']);
 });
