@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class BarcodeLookupController extends Controller
@@ -24,7 +25,6 @@ class BarcodeLookupController extends Controller
             return $this->lookupBook($barcode);
         }
 
-        // Movies, games, music — store barcode, manual fill
         return response()->json([
             'barcode' => $barcode,
             'auto_filled' => false,
@@ -37,19 +37,19 @@ class BarcodeLookupController extends Controller
         $isbn = preg_replace('/[\s\-]/', '', $barcode);
 
         try {
-            $response = Http::timeout(8)->get("https://openlibrary.org/isbn/{$isbn}.json");
+            $response = Http::timeout(15)
+                ->withoutVerifying()  // Bypass SSL — safe for public read-only API
+                ->get("https://openlibrary.org/isbn/{$isbn}.json");
 
             if (!$response->successful() || !$response->json()) {
                 return response()->json([
                     'barcode' => $barcode,
                     'auto_filled' => false,
-                    'message' => 'No book found for this ISBN.',
+                    'message' => 'No book found for this ISBN in Open Library.',
                 ], 404);
             }
 
             $data = $response->json();
-
-            // Download cover image from Open Library
             $coverPath = $this->downloadCover($isbn);
 
             return response()->json([
@@ -62,13 +62,21 @@ class BarcodeLookupController extends Controller
                 'release_year' => isset($data['publish_date']) ? substr($data['publish_date'], 0, 4) : null,
                 'genre' => $data['subjects'][0] ?? '',
                 'notes' => $data['subtitle'] ?? '',
-                'cover_image' => $coverPath, // local storage path or null
+                'cover_image' => $coverPath,
             ]);
+
         } catch (\Exception $e) {
+            // Log the REAL error so you can see it in storage/logs/laravel.log
+            Log::error('Open Library lookup failed', [
+                'isbn' => $isbn,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'barcode' => $barcode,
                 'auto_filled' => false,
-                'message' => 'Lookup service unavailable. Please try again.',
+                'message' => 'Lookup service unavailable. Check the log for details.',
+                'debug' => $e->getMessage(),  // visible in browser DevTools
             ], 503);
         }
     }
@@ -77,7 +85,9 @@ class BarcodeLookupController extends Controller
     {
         try {
             $url = "https://covers.openlibrary.org/b/isbn/{$isbn}-L.jpg";
-            $response = Http::timeout(5)->get($url);
+            $response = Http::timeout(10)
+                ->withoutVerifying()
+                ->get($url);
 
             if ($response->successful() && strlen($response->body()) > 1000) {
                 $path = "covers/book_{$isbn}.jpg";
@@ -85,7 +95,10 @@ class BarcodeLookupController extends Controller
                 return $path;
             }
         } catch (\Exception $e) {
-            // Silently fail — user can upload manually
+            Log::warning('Open Library cover download failed', [
+                'isbn' => $isbn,
+                'error' => $e->getMessage(),
+            ]);
         }
         return null;
     }
