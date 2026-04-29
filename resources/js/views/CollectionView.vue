@@ -33,10 +33,10 @@ const platformOptions = [
 ]
 
 const typeConfig = {
-    movie: { label: 'Movies', icon: '\u{1F3AC}', color: 'amber' },
-    book: { label: 'Books', icon: '\u{1F4D6}', color: 'emerald' },
-    game: { label: 'Games', icon: '\u{1F3AE}', color: 'sky' },
-    music: { label: 'Music', icon: '\u{1F3B5}', color: 'violet' },
+    movie: { label: 'Movies', singular: 'Movie', icon: '\u{1F3AC}', color: 'amber' },
+    book: { label: 'Books', singular: 'Book', icon: '\u{1F4D6}', color: 'emerald' },
+    game: { label: 'Games', singular: 'Game', icon: '\u{1F3AE}', color: 'sky' },
+    music: { label: 'Music', singular: 'Album', icon: '\u{1F3B5}', color: 'violet' },
 }
 
 const config = computed(() => typeConfig[type.value])
@@ -108,7 +108,7 @@ watch([search, filterFormat, filterStatus, filterPlatform], () => {
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
-                Add {{ config.label.slice(0, -1) }}
+                Add {{ config.singular }}
             </button>
         </div>
 
