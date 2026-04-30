@@ -12,12 +12,12 @@ const mobileMenuOpen = ref(false)
 const navItems = [
     { name: 'Dashboard', path: '/', icon: 'dashboard' },
     { name: 'Movies', path: '/movies', icon: 'movie' },
+    { name: 'TV Shows', path: '/tv-shows', icon: 'tv' },
     { name: 'Books', path: '/books', icon: 'book' },
     { name: 'Games', path: '/games', icon: 'gamepad' },
     { name: 'Music', path: '/music', icon: 'music' },
     { name: 'Wishlist', path: '/wishlist', icon: 'heart' },
 ]
-
 const currentPath = computed(() => route.path)
 const isAuth = computed(() => auth.isAuthenticated)
 
@@ -55,6 +55,7 @@ function navIcon(icon) {
         movie: '\u{1F3AC}',
         book: '\u{1F4D6}',
         gamepad: '\u{1F3AE}',
+        tv: '\u{1F4FA}',        // <-- ADD TV icon
         music: '\u{1F3B5}',
         heart: '\u2665',
     }
@@ -131,6 +132,14 @@ const bottomNavItems = computed(() => navItems.slice(0, 5))
                     </div>
 
                     <!-- Wishlist link — NO @click here, let the watcher close the menu -->
+                    <!-- In the mobile dropdown, replace the single wishlist link with both music and wishlist -->
+                    <router-link to="/music"
+                        class="flex items-center gap-3 px-4 py-3 text-vault-200 hover:text-white hover:bg-vault-700 transition-colors"
+                        :class="currentPath === '/music' ? 'text-amber-400 bg-amber-500/10' : ''">
+                        <span class="text-base">{{ navIcon('music') }}</span>
+                        <span class="text-sm font-medium">Music</span>
+                    </router-link>
+
                     <router-link to="/wishlist"
                         class="flex items-center gap-3 px-4 py-3 text-vault-200 hover:text-white hover:bg-vault-700 transition-colors"
                         :class="currentPath === '/wishlist' ? 'text-amber-400 bg-amber-500/10' : ''">
