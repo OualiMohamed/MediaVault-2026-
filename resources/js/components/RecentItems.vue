@@ -8,9 +8,10 @@ const typeColors = {
     book: 'text-emerald-400 bg-emerald-500/15',
     game: 'text-sky-400 bg-sky-500/15',
     music: 'text-violet-400 bg-violet-500/15',
+    tv_show: 'text-rose-400 bg-rose-500/15',
 }
 
-const typeLabels = { movie: 'Movie', book: 'Book', game: 'Game', music: 'Music' }
+const typeLabels = { movie: 'Movie', book: 'Book', game: 'Game', music: 'Album', tv_show: 'TV' }
 </script>
 
 <template>
@@ -29,7 +30,7 @@ const typeLabels = { movie: 'Movie', book: 'Book', game: 'Game', music: 'Music' 
                         class="block w-full h-full object-cover" />
                     <div v-else class="block w-full h-full flex items-center justify-center text-vault-500 text-xs">
                         {{ item.type === 'movie' ? '\u{1F3AC}' : item.type === 'book' ? '\u{1F4D6}' : item.type ===
-                            'game' ? '\u{1F3AE}' : '\u{1F3B5}' }}
+                            'game' ? '\u{1F3AE}' : item.type === 'tv_show' ? '\u{1F4FA}' : '\u{1F3B5}' }}
                     </div>
                 </div>
 
@@ -39,6 +40,7 @@ const typeLabels = { movie: 'Movie', book: 'Book', game: 'Game', music: 'Music' 
                         <span v-if="item.details?.director">{{ item.details.director }} &middot; </span>
                         <span v-if="item.details?.author">{{ item.details.author }} &middot; </span>
                         <span v-if="item.details?.artist">{{ item.details.artist }} &middot; </span>
+                        <span v-if="item.details?.network">{{ item.details.network }} &middot; </span>
                         {{ item.details?.format || item.details?.platform || '' }}
                     </p>
                 </div>
