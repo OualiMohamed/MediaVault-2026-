@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useRouter, useRoute } from 'vue-router'
 
@@ -21,16 +21,13 @@ const navItems = [
 const currentPath = computed(() => route.path)
 const isAuth = computed(() => auth.isAuthenticated)
 
-// Close mobile menu on route change
-const stopWatch = computed(() => {
-    if (route.path) mobileMenuOpen.value = false
+// Close mobile menu when the route changes (after navigation completes)
+watch(() => route.path, () => {
+    mobileMenuOpen.value = false
 })
 
-// Close mobile menu when tapping outside
-function handleClickOutside(e) {
-    if (mobileMenuOpen.value) {
-        mobileMenuOpen.value = false
-    }
+function handleClickOutside() {
+    mobileMenuOpen.value = false
 }
 
 onMounted(() => {
@@ -64,7 +61,6 @@ function navIcon(icon) {
     return icons[icon] || ''
 }
 
-// Bottom nav: first 5 items for mobile
 const bottomNavItems = computed(() => navItems.slice(0, 5))
 </script>
 
@@ -119,7 +115,6 @@ const bottomNavItems = computed(() => navItems.slice(0, 5))
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
-                        <!-- Active indicator dot -->
                         <span v-if="mobileMenuOpen"
                             class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500"></span>
                     </button>
@@ -135,15 +130,15 @@ const bottomNavItems = computed(() => navItems.slice(0, 5))
                         <p v-if="auth.user" class="text-vault-400 text-xs mt-0.5">{{ auth.user.email }}</p>
                     </div>
 
-                    <!-- Wishlist link (not in bottom nav) -->
+                    <!-- Wishlist link — NO @click here, let the watcher close the menu -->
                     <router-link to="/wishlist"
                         class="flex items-center gap-3 px-4 py-3 text-vault-200 hover:text-white hover:bg-vault-700 transition-colors"
-                        :class="currentPath === '/wishlist' ? 'text-amber-400 bg-amber-500/10' : ''"
-                        @click="mobileMenuOpen = false">
+                        :class="currentPath === '/wishlist' ? 'text-amber-400 bg-amber-500/10' : ''">
                         <span class="text-base">{{ navIcon('heart') }}</span>
                         <span class="text-sm font-medium">Wishlist</span>
                     </router-link>
 
+                    <!-- Sign Out — this one CAN have @click because it's a <button>, not a router-link -->
                     <button @click="handleLogout"
                         class="w-full flex items-center gap-3 px-4 py-3 text-rose-400 hover:text-rose-300 hover:bg-vault-700 transition-colors">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

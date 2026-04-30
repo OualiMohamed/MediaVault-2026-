@@ -4,6 +4,16 @@ import { useCollectionStore } from '../stores/collection'
 // ── New imports ──
 import api from '../api'
 import BarcodeScanner from './BarcodeScanner.vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+
+// When the modal opens and we're on the /wishlist page, force status to wishlist
+watch(() => props.item, (item) => {
+    if (!item && route.path === '/wishlist') {
+        form.status = 'wishlist'
+    }
+}, { immediate: true })
 
 const props = defineProps({
     type: { type: String, required: true },
@@ -303,7 +313,7 @@ async function manualLookup() {
                             class="text-rose-300 text-sm flex items-start gap-2">
                             <span class="text-rose-500 mt-0.5">&#8226;</span>
                             <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                                }}</span>
+                            }}</span>
                         </li>
                     </ul>
                 </div>
