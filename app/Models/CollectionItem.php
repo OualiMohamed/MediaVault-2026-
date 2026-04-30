@@ -52,6 +52,12 @@ class CollectionItem extends Model
         return $this->hasOne(Music::class, 'collection_item_id');
     }
 
+    // app/Models/CollectionItem.php — add tv_show relationship
+    public function tvShow(): HasOne
+    {
+        return $this->hasOne(TvShow::class, 'collection_item_id');
+    }
+
     /**
      * Dynamic accessor — returns the correct detail relation
      * based on $this->type. Used by the API formatter.
@@ -63,6 +69,7 @@ class CollectionItem extends Model
             'book' => $this->hasOne(Book::class, 'collection_item_id'),
             'game' => $this->hasOne(Game::class, 'collection_item_id'),
             'music' => $this->hasOne(Music::class, 'collection_item_id'),
+            'tv_show' => $this->hasOne(TvShow::class, 'collection_item_id'),
             default => $this->hasOne(Movie::class, 'collection_item_id'),
         };
     }
