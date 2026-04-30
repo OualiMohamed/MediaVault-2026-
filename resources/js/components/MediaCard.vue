@@ -29,6 +29,7 @@ const subtitle = computed(() => {
     if (props.type === 'book') return [d.author, d.release_year].filter(Boolean).join(' \u00B7 ')
     if (props.type === 'game') return [d.platform, d.format, d.release_year].filter(Boolean).join(' \u00B7 ')
     if (props.type === 'music') return [d.artist, d.format, d.release_year].filter(Boolean).join(' \u00B7 ')
+    if (props.type === 'tv_show') return [d.network, d.format, d.release_year].filter(Boolean).join(' \u00B7 ')
     return ''
 })
 
@@ -72,7 +73,7 @@ async function handleDelete() {
                 class="block w-full h-full flex items-center justify-center bg-gradient-to-br from-vault-700 to-vault-800">
                 <span class="text-4xl opacity-30">
                     {{ type === 'movie' ? '\u{1F3AC}' : type === 'book' ? '\u{1F4D6}' : type === 'game' ? '\u{1F3AE}' :
-                    '\u{1F3B5}' }}
+                        type === 'tv_show' ? '\u{1F4FA}' : '\u{1F3B5}' }}
                 </span>
             </div>
 
