@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\CollectionItem;
-use App\Models\Movie;
 use App\Models\Book;
+use App\Models\CollectionItem;
 use App\Models\Game;
+use App\Models\Movie;
 use App\Models\Music;
+use App\Models\TvShow;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -39,7 +40,7 @@ class CollectionController extends Controller
 
     public function index(Request $request, string $type): JsonResponse
     {
-        $validTypes = ['movie', 'book', 'game', 'music'];
+        $validTypes = ['movie', 'book', 'game', 'music', 'tv_show'];
         if (!in_array($type, $validTypes)) {
             return response()->json(['message' => 'Invalid collection type'], 422);
         }
@@ -141,6 +142,7 @@ class CollectionController extends Controller
                 'book' => Book::class,
                 'game' => Game::class,
                 'music' => Music::class,
+                'tv_show' => TvShow::class,
             };
 
             $modelClass::create([
@@ -240,7 +242,7 @@ class CollectionController extends Controller
     private function getValidationRules(string $type): array
     {
         $base = [
-            'barcode' => 'nullable|string|max:20',   // <-- ADD THIS
+            'barcode' => 'nullable|string|max:20',
             'cover_image' => 'nullable|image|max:2048',
             'purchase_date' => 'nullable|date',
             'purchase_price' => 'nullable|numeric|min:0|max:999999.99',
@@ -289,6 +291,18 @@ class CollectionController extends Controller
                 'personal_rating' => 'nullable|integer|min:1|max:10',
                 'release_year' => 'nullable|integer|min:1887|max:' . (date('Y') + 2),
                 'vinyl_speed' => 'nullable|in:33,45,78',
+            ],
+            'tv_show' => $base + [
+                'format' => 'required|in:Digital,DVD,Blu-ray,4K UHD,VHS',
+                'total_seasons' => 'nullable|integer|min:1',
+                'total_episodes' => 'nullable|integer|min:1',
+                'network' => 'nullable|string|max:255',
+                'genre' => 'nullable|string|max:255',
+                'personal_rating' => 'nullable|integer|min:1|max:10',
+                'release_year' => 'nullable|integer|min:1920|max:' . (date('Y') + 2),
+                'watch_status' => 'nullable|in:watching,completed,dropped,plan_to_watch',
+                'current_season' => 'nullable|integer|min:1',
+                'current_episode' => 'nullable|integer|min:1',
             ],
         };
     }
