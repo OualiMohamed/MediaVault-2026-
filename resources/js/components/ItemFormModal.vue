@@ -62,6 +62,12 @@ const form = reactive({
     track_count: '',
     vinyl_speed: '',
     barcode: '',
+    watch_status: 'plan_to_watch',
+    current_season: '',
+    current_episode: '',
+    total_seasons: '',
+    total_episodes: '',
+    network: '',
 })
 
 const isEditing = computed(() => !!props.item)
@@ -71,6 +77,7 @@ const formatOptions = computed(() => {
         movie: ['DVD', 'Blu-ray', '4K UHD', 'Digital', 'VHS'],
         game: ['Physical', 'Digital'],
         music: ['CD', 'Vinyl', 'Digital', 'Cassette', '8-Track'],
+        tv_show: ['Digital', 'DVD', 'Blu-ray', '4K UHD', 'VHS'],
     }
     return map[props.type] || []
 })
@@ -85,6 +92,7 @@ const typeFieldMap = {
     book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'read', 'date_finished'],
     game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'completed', 'completion_date'],
     music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed'],
+    tv_show: ['format', 'total_seasons', 'total_episodes', 'network', 'genre', 'personal_rating', 'release_year', 'watch_status', 'current_season', 'current_episode'],
 }
 
 const baseFields = ['title', 'barcode', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes']
@@ -124,6 +132,7 @@ watch(() => props.type, (type) => {
         if (type === 'movie') form.format = 'Blu-ray'
         if (type === 'game') { form.platform = 'PS5'; form.format = 'Physical' }
         if (type === 'music') form.format = 'CD'
+        if (type === 'tv_show') { form.format = 'Digital'; form.watch_status = 'plan_to_watch' }
     }
 }, { immediate: true })
 
@@ -292,7 +301,8 @@ async function manualLookup() {
                     class="sticky top-0 bg-vault-800 border-b border-vault-700 px-6 py-4 flex items-center justify-between z-10 rounded-t-2xl">
                     <h2 class="text-lg font-bold text-white">
                         {{ isEditing ? 'Edit' : 'Add' }}
-                        {{ type === 'movie' ? 'Movie' : type === 'book' ? 'Book' : type === 'game' ? 'Game' : 'Album' }}
+                        {{ type === 'movie' ? 'Movie' : type === 'book' ? 'Book' : type === 'game' ? 'Game' : type ===
+                            'tv_show' ? 'TV Show' : 'Album' }}
                     </h2>
                     <button @click="emit('close')"
                         class="w-8 h-8 rounded-lg flex items-center justify-center text-vault-400 hover:text-white hover:bg-vault-700 transition-all">
@@ -313,7 +323,7 @@ async function manualLookup() {
                             class="text-rose-300 text-sm flex items-start gap-2">
                             <span class="text-rose-500 mt-0.5">&#8226;</span>
                             <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                            }}</span>
+                                }}</span>
                         </li>
                     </ul>
                 </div>
@@ -551,7 +561,85 @@ async function manualLookup() {
                                 class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm" />
                         </div>
                     </template>
+                    <!-- ─── TV Show Fields ─── -->
+                    <template v-if="type === 'tv_show'">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Format <span
+                                        class="text-rose-400">*</span></label>
+                                <select v-model="form.format"
+                                    class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                                    <option v-for="f in formatOptions" :key="f" :value="f">{{ f }}</option>
+                                </select>
+                                <p v-if="fieldError('format')" class="text-rose-500 text-xs mt-1">{{
+                                    fieldError('format') }}</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Network</label>
+                                <input v-model="form.network" type="text"
+                                    class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                    placeholder="Netflix, HBO, ABC..." />
+                            </div>
+                        </div>
 
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Total Seasons</label>
+                                <input v-model="form.total_seasons" type="number" min="1"
+                                    class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                    placeholder="5" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Total Episodes</label>
+                                <input v-model="form.total_episodes" type="number" min="1"
+                                    class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                    placeholder="50" />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Year</label>
+                            <input v-model="form.release_year" type="number" min="1920"
+                                :max="new Date().getFullYear() + 2"
+                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                placeholder="2024" />
+                        </div>
+
+                        <!-- Watch Status -->
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Watch Status</label>
+                            <div class="flex flex-wrap gap-2">
+                                <button v-for="s in ['watching', 'completed', 'dropped', 'plan_to_watch']" :key="s"
+                                    type="button" @click="form.watch_status = s"
+                                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all" :class="form.watch_status === s
+                                        ? 'bg-rose-500 text-white'
+                                        : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
+                                    {{ s === 'plan_to_watch' ? 'Plan to Watch' : s.charAt(0).toUpperCase() + s.slice(1)
+                                    }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Current progress — only when watching -->
+                        <div v-if="form.watch_status === 'watching'"
+                            class="bg-vault-700/50 border border-vault-600 rounded-xl p-4">
+                            <p class="text-sm font-medium text-vault-200 mb-3">Current Progress</p>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-medium text-vault-400 mb-1">Season</label>
+                                    <input v-model="form.current_season" type="number" min="1"
+                                        class="w-full px-3 py-2 bg-vault-700 border border-vault-600 rounded-lg text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-rose-500/50 text-sm"
+                                        placeholder="2" />
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-vault-400 mb-1">Episode</label>
+                                    <input v-model="form.current_episode" type="number" min="1"
+                                        class="w-full px-3 py-2 bg-vault-700 border border-vault-600 rounded-lg text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-rose-500/50 text-sm"
+                                        placeholder="5" />
+                                </div>
+                            </div>
+                        </div>
+                    </template>
                     <!-- Music Fields -->
                     <template v-if="type === 'music'">
                         <div>
