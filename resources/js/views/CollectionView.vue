@@ -8,16 +8,15 @@ import ItemFormModal from '../components/ItemFormModal.vue'
 const route = useRoute()
 const store = useCollectionStore()
 
-
 const type = computed(() => route.meta.type)
 const search = ref('')
 const filterFormat = ref('')
 const filterStatus = ref('')
 const filterPlatform = ref('')
+const filterWatchStatus = ref('')
 const showForm = ref(false)
 const editItem = ref(null)
 const currentPage = ref(1)
-const filterWatchStatus = ref('')
 
 const formatOptions = computed(() => {
     const map = {
@@ -25,7 +24,7 @@ const formatOptions = computed(() => {
         book: [],
         game: ['Physical', 'Digital'],
         music: ['CD', 'Vinyl', 'Digital', 'Cassette', '8-Track'],
-        tv_show: ['Digital', 'DVD', 'Blu-ray', '4K UHD', 'VHS'],  // <-- ADD
+        tv_show: ['Digital', 'DVD', 'Blu-ray', '4K UHD', 'VHS'],
     }
     return map[type.value] || []
 })
@@ -40,7 +39,7 @@ const typeConfig = {
     book: { label: 'Books', singular: 'Book', icon: '\u{1F4D6}', color: 'emerald' },
     game: { label: 'Games', singular: 'Game', icon: '\u{1F3AE}', color: 'sky' },
     music: { label: 'Music', singular: 'Album', icon: '\u{1F3B5}', color: 'violet' },
-    tv_show: { label: 'TV Shows', singular: 'TV Show', icon: '\u{1F4FA}', color: 'rose' },  // <-- ADD
+    tv_show: { label: 'TV Shows', singular: 'TV Show', icon: '\u{1F4FA}', color: 'rose' },
 }
 
 const config = computed(() => typeConfig[type.value])
@@ -52,7 +51,7 @@ function loadItems() {
         format: filterFormat.value || undefined,
         status: filterStatus.value || undefined,
         platform: filterPlatform.value || undefined,
-        watch_status: filterWatchStatus.value || undefined,  // <-- ADD
+        watch_status: filterWatchStatus.value || undefined,
     }
     store.fetchItems(type.value, params)
 }
@@ -80,13 +79,12 @@ function handleFormSaved() {
 
 onMounted(loadItems)
 
-// Re-fetch when navigating between /movies, /books, /games, /music
 watch(() => route.path, () => {
     search.value = ''
     filterFormat.value = ''
     filterStatus.value = ''
     filterPlatform.value = ''
-    filterWatchStatus.value = ''  // <-- ADD
+    filterWatchStatus.value = ''
     currentPage.value = 1
     loadItems()
 })
@@ -99,6 +97,7 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus], (
 
 <template>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <!-- Header -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
             <div>
                 <h1 class="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
@@ -118,6 +117,7 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus], (
             </button>
         </div>
 
+        <!-- Filters -->
         <div class="flex flex-wrap gap-3 mb-6">
             <input v-model="search" type="text" :placeholder="`Search ${config.label.toLowerCase()}...`"
                 class="flex-1 min-w-[200px] px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all text-sm" />
@@ -131,6 +131,14 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus], (
                 <option value="">All Platforms</option>
                 <option v-for="p in platformOptions" :key="p" :value="p">{{ p }}</option>
             </select>
+            <select v-if="type === 'tv_show'" v-model="filterWatchStatus"
+                class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                <option value="">All Watch Status</option>
+                <option value="watching">Watching</option>
+                <option value="completed">Completed</option>
+                <option value="dropped">Dropped</option>
+                <option value="plan_to_watch">Plan to Watch</option>
+            </select>
             <select v-model="filterStatus"
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                 <option value="">All Status</option>
@@ -140,31 +148,27 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus], (
                 <option value="sold">Sold</option>
                 <option value="lost">Lost</option>
             </select>
-            <select v-if="type === 'tv_show'" v-model="filterWatchStatus"
-                class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
-                <option value="">All Watch Status</option>
-                <option value="watching">Watching</option>
-                <option value="completed">Completed</option>
-                <option value="dropped">Dropped</option>
-                <option value="plan_to_watch">Plan to Watch</option>
-            </select>
         </div>
 
+        <!-- Loading -->
         <div v-if="store.loading && store.items.length === 0" class="flex justify-center py-20">
             <div class="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
 
+        <!-- Empty -->
         <div v-else-if="store.items.length === 0" class="text-center py-20">
             <p class="text-5xl mb-4">{{ config.icon }}</p>
             <h3 class="text-xl font-semibold text-white mb-2">No {{ config.label.toLowerCase() }} yet</h3>
             <p class="text-vault-400">Click the button above to start building your collection.</p>
         </div>
 
+        <!-- Grid -->
         <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             <MediaCard v-for="item in store.items" :key="item.id" :item="item" :type="type" @edit="openEditForm(item)"
                 @deleted="loadItems" />
         </div>
 
+        <!-- Pagination -->
         <div v-if="store.pagination.last_page > 1" class="flex items-center justify-center gap-2 mt-10">
             <button @click="handlePageChange(currentPage - 1)" :disabled="currentPage <= 1"
                 class="px-3 py-2 bg-vault-800 border border-vault-600 rounded-lg text-vault-300 hover:text-white hover:border-vault-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm">Previous</button>
@@ -183,6 +187,7 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus], (
                 class="px-3 py-2 bg-vault-800 border border-vault-600 rounded-lg text-vault-300 hover:text-white hover:border-vault-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-sm">Next</button>
         </div>
 
+        <!-- Form Modal -->
         <ItemFormModal v-if="showForm" :type="type" :item="editItem" @close="showForm = false"
             @saved="handleFormSaved" />
     </div>

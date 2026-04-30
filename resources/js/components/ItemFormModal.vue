@@ -1,19 +1,9 @@
 <script setup>
 import { ref, reactive, watch, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useCollectionStore } from '../stores/collection'
-// ── New imports ──
 import api from '../api'
 import BarcodeScanner from './BarcodeScanner.vue'
-import { useRoute } from 'vue-router'
-
-const route = useRoute()
-
-// When the modal opens and we're on the /wishlist page, force status to wishlist
-watch(() => props.item, (item) => {
-    if (!item && route.path === '/wishlist') {
-        form.status = 'wishlist'
-    }
-}, { immediate: true })
 
 const props = defineProps({
     type: { type: String, required: true },
@@ -22,16 +12,17 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'saved'])
 const store = useCollectionStore()
+const route = useRoute()
 const submitting = ref(false)
 const errors = ref({})
 const serverError = ref('')
 const coverPreview = ref(null)
-
-// ── New refs ──
 const showScanner = ref(false)
 const lookupLoading = ref(false)
 const lookupMessage = ref('')
-const existingCover = ref('') // path returned from barcode lookup
+const existingCover = ref('')
+
+const isEditing = computed(() => !!props.item)
 
 const form = reactive({
     title: '',
@@ -41,6 +32,7 @@ const form = reactive({
     condition: 'near_mint',
     status: 'owned',
     notes: '',
+    barcode: '',
     format: 'Blu-ray',
     runtime_minutes: '',
     director: '',
@@ -61,7 +53,6 @@ const form = reactive({
     label: '',
     track_count: '',
     vinyl_speed: '',
-    barcode: '',
     watch_status: 'plan_to_watch',
     current_season: '',
     current_episode: '',
@@ -69,8 +60,6 @@ const form = reactive({
     total_episodes: '',
     network: '',
 })
-
-const isEditing = computed(() => !!props.item)
 
 const formatOptions = computed(() => {
     const map = {
@@ -98,7 +87,6 @@ const typeFieldMap = {
 const baseFields = ['title', 'barcode', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes']
 const booleanFields = ['read', 'completed']
 
-// Computed: human-readable list of all validation errors
 const validationErrors = computed(() => {
     const list = []
     if (!errors.value) return list
@@ -118,13 +106,14 @@ watch(() => props.item, (item) => {
         condition: item.condition || 'near_mint',
         status: item.status || 'owned',
         notes: item.notes || '',
+        barcode: item.barcode || '',
     })
+    existingCover.value = item.cover_image || ''
     if (item.details) {
         Object.keys(item.details).forEach(key => {
             if (key in form) form[key] = item.details[key]
         })
     }
-    existingCover.value = item.cover_image || ''
 }, { immediate: true })
 
 watch(() => props.type, (type) => {
@@ -133,6 +122,10 @@ watch(() => props.type, (type) => {
         if (type === 'game') { form.platform = 'PS5'; form.format = 'Physical' }
         if (type === 'music') form.format = 'CD'
         if (type === 'tv_show') { form.format = 'Digital'; form.watch_status = 'plan_to_watch' }
+    }
+    // Force wishlist status when opened from /wishlist
+    if (!isEditing.value && route.path === '/wishlist') {
+        form.status = 'wishlist'
     }
 }, { immediate: true })
 
@@ -144,12 +137,59 @@ function handleCoverChange(e) {
     }
 }
 
+async function handleBarcodeScanned(code) {
+    showScanner.value = false
+    form.barcode = code
+    lookupMessage.value = ''
+    existingCover.value = ''
+
+    if (props.type === 'movie' || props.type === 'game' || props.type === 'tv_show') {
+        lookupMessage.value = 'Barcode saved. Fill in the details manually.'
+        return
+    }
+
+    lookupLoading.value = true
+    try {
+        const { data } = await api.post('/barcode/lookup', {
+            type: props.type,
+            barcode: code,
+        })
+        if (data.auto_filled) {
+            const fieldsToFill = [
+                'title', 'author', 'publisher', 'page_count', 'release_year',
+                'genre', 'notes', 'artist', 'label', 'track_count', 'format', 'vinyl_speed',
+            ]
+            fieldsToFill.forEach(field => {
+                if (data[field] !== null && data[field] !== undefined && data[field] !== '') {
+                    form[field] = data[field]
+                }
+            })
+            if (data.cover_image) {
+                existingCover.value = data.cover_image
+                coverPreview.value = '/storage/' + data.cover_image
+            }
+            lookupMessage.value = props.type === 'book' ? 'Auto-filled from Open Library' : 'Auto-filled from MusicBrainz'
+        } else {
+            lookupMessage.value = data.message || 'No match found.'
+        }
+    } catch (err) {
+        lookupMessage.value = err.response?.data?.message || 'Lookup failed.'
+    } finally {
+        lookupLoading.value = false
+    }
+}
+
+async function manualLookup() {
+    if (!form.barcode) return
+    if (props.type !== 'book' && props.type !== 'music') return
+    await handleBarcodeScanned(form.barcode)
+}
+
 async function handleSubmit() {
     errors.value = {}
     serverError.value = ''
     submitting.value = true
 
-    // Clean up blob URL to prevent stale image references
     if (coverPreview.value) {
         URL.revokeObjectURL(coverPreview.value)
         coverPreview.value = null
@@ -161,30 +201,19 @@ async function handleSubmit() {
 
         activeFields.forEach(field => {
             const value = form[field]
-
             if (booleanFields.includes(field)) {
                 formData.append(field, value ? '1' : '0')
                 return
             }
-
             if (value === '' || value === null || value === undefined) return
-
             formData.append(field, value)
         })
 
-        // In handleSubmit — replace the cover handling section:
         if (existingCover.value) {
             formData.append('existing_cover', existingCover.value)
         } else if (form.cover_image instanceof File) {
             formData.append('cover_image', form.cover_image)
         }
-
-        // ── Debug: log exactly what's being sent ──
-        console.group('FormData being sent to /api/collection/' + props.type)
-        for (const [key, val] of formData.entries()) {
-            console.log(`  ${key}: ${val instanceof File ? '[File: ' + val.name + ']' : val}`)
-        }
-        console.groupEnd()
 
         if (isEditing.value) {
             await store.updateItem(props.type, props.item.id, formData)
@@ -196,14 +225,9 @@ async function handleSubmit() {
     } catch (err) {
         if (err.response?.status === 422) {
             errors.value = err.response.data.errors
-            // Also log so it's impossible to miss
             console.error('Validation failed:', err.response.data.errors)
         } else if (err.response?.status === 401) {
             serverError.value = 'Your session has expired. Please log in again.'
-        } else if (err.response?.status === 403) {
-            serverError.value = 'You do not have permission to do this.'
-        } else if (err.response?.status === 404) {
-            serverError.value = 'This item no longer exists.'
         } else if (err.response?.data?.message) {
             serverError.value = err.response.data.message
         } else {
@@ -219,73 +243,18 @@ function fieldError(field) {
     return errors.value[field] ? errors.value[field][0] : ''
 }
 
-// ── New function: handle scanned barcode ──
-async function handleBarcodeScanned(code) {
-    showScanner.value = false
-    form.barcode = code
-    lookupMessage.value = ''
-    lookupLoading.value = false
-    existingCover.value = ''
-
-    // For movies and games, just save the barcode — no auto-fill available
-    if (props.type === 'movie' || props.type === 'game') {
-        lookupMessage.value = 'Barcode saved. Fill in the details manually.'
-        return
-    }
-
-    // Books and music: call the lookup API
-    lookupLoading.value = true
-
-    try {
-        const { data } = await api.post('/barcode/lookup', {
-            type: props.type,
-            barcode: code,
-        })
-
-        if (data.auto_filled) {
-            // Fill all matching fields — works for both books and music
-            const fieldsToFill = [
-                'title', 'author', 'publisher', 'page_count', 'release_year',
-                'genre', 'notes', 'artist', 'label', 'track_count', 'format', 'vinyl_speed',
-            ]
-
-            fieldsToFill.forEach(field => {
-                if (data[field] !== null && data[field] !== undefined && data[field] !== '') {
-                    form[field] = data[field]
-                }
-            })
-
-            // Handle cover from lookup
-            if (data.cover_image) {
-                existingCover.value = data.cover_image
-                coverPreview.value = '/storage/' + data.cover_image
-            }
-
-            if (props.type === 'book') {
-                lookupMessage.value = 'Auto-filled from Open Library'
-            } else {
-                lookupMessage.value = 'Auto-filled from MusicBrainz'
-            }
-        } else {
-            lookupMessage.value = data.message || 'No match found. Fill in manually.'
-        }
-    } catch (err) {
-        if (err.response?.data?.message) {
-            lookupMessage.value = err.response.data.message
-        } else {
-            lookupMessage.value = 'Lookup failed. Barcode saved for reference.'
-        }
-    } finally {
-        lookupLoading.value = false
-    }
+function formTitle() {
+    if (!isEditing.value) return 'Add'
+    if (props.type === 'movie') return 'Edit Movie'
+    if (props.type === 'book') return 'Edit Book'
+    if (props.type === 'game') return 'Edit Game'
+    if (props.type === 'tv_show') return 'Edit TV Show'
+    return 'Edit Album'
 }
 
-// ── Manual ISBN lookup button (for typed barcodes) ──
-async function manualLookup() {
-    if (!form.barcode) return
-    // Books use Open Library, Music uses MusicBrainz — both support typed barcodes
-    if (props.type !== 'book' && props.type !== 'music') return
-    await handleBarcodeScanned(form.barcode)
+function submitLabel() {
+    if (submitting.value) return 'Saving...'
+    return isEditing.value ? 'Update' : 'Add to Collection'
 }
 </script>
 
@@ -299,11 +268,7 @@ async function manualLookup() {
                 <!-- Header -->
                 <div
                     class="sticky top-0 bg-vault-800 border-b border-vault-700 px-6 py-4 flex items-center justify-between z-10 rounded-t-2xl">
-                    <h2 class="text-lg font-bold text-white">
-                        {{ isEditing ? 'Edit' : 'Add' }}
-                        {{ type === 'movie' ? 'Movie' : type === 'book' ? 'Book' : type === 'game' ? 'Game' : type ===
-                            'tv_show' ? 'TV Show' : 'Album' }}
-                    </h2>
+                    <h2 class="text-lg font-bold text-white">{{ formTitle() }}</h2>
                     <button @click="emit('close')"
                         class="w-8 h-8 rounded-lg flex items-center justify-center text-vault-400 hover:text-white hover:bg-vault-700 transition-all">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -312,12 +277,11 @@ async function manualLookup() {
                     </button>
                 </div>
 
-                <!-- ── VALIDATION ERROR SUMMARY ── -->
+                <!-- Validation errors -->
                 <div v-if="validationErrors.length"
                     class="mx-6 mt-4 p-4 bg-rose-500/15 border border-rose-500/30 rounded-xl">
-                    <p class="text-rose-400 text-sm font-semibold mb-2">
-                        {{ validationErrors.length }} error{{ validationErrors.length > 1 ? 's' : '' }} found:
-                    </p>
+                    <p class="text-rose-400 text-sm font-semibold mb-2">{{ validationErrors.length }} error{{
+                        validationErrors.length > 1 ? 's' : '' }}:</p>
                     <ul class="space-y-1">
                         <li v-for="(err, i) in validationErrors" :key="i"
                             class="text-rose-300 text-sm flex items-start gap-2">
@@ -327,8 +291,6 @@ async function manualLookup() {
                         </li>
                     </ul>
                 </div>
-
-                <!-- Server error (non-validation) -->
                 <div v-else-if="serverError" class="mx-6 mt-4 p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl">
                     <p class="text-rose-400 text-sm font-medium">{{ serverError }}</p>
                 </div>
@@ -342,12 +304,12 @@ async function manualLookup() {
                             <div
                                 class="w-24 h-36 rounded-xl bg-vault-700 overflow-hidden flex-shrink-0 border border-vault-600">
                                 <img v-if="coverPreview" :src="coverPreview" class="block w-full h-full object-cover" />
-                                <img v-else-if="item?.cover_image" :src="'/storage/' + item.cover_image"
+                                <img v-else-if="existingCover" :src="'/storage/' + existingCover"
                                     class="block w-full h-full object-cover" />
                                 <div v-else
                                     class="block w-full h-full flex items-center justify-center text-vault-500 text-2xl">
-                                    {{ type === 'movie' ? '🎬' : type === 'book' ? '📖' : type === 'game' ? '🎮' : '🎵'
-                                    }}
+                                    {{ type === 'movie' ? '🎬' : type === 'book' ? '📖' : type === 'game' ? '🎮' : type
+                                    === 'tv_show' ? '📺' : '🎵' }}
                                 </div>
                             </div>
                             <label class="flex-1 cursor-pointer">
@@ -360,7 +322,8 @@ async function manualLookup() {
                             </label>
                         </div>
                     </div>
-                    <!-- ═══ Barcode Scanner Section ═══ -->
+
+                    <!-- Barcode -->
                     <div>
                         <label class="block text-sm font-medium text-vault-200 mb-1.5">Barcode / ISBN</label>
                         <div class="flex gap-2">
@@ -390,7 +353,6 @@ async function manualLookup() {
                                 Scan
                             </button>
                         </div>
-                        <!-- Lookup status message -->
                         <div v-if="lookupMessage" class="mt-2 flex items-center gap-2">
                             <svg class="w-3.5 h-3.5 flex-shrink-0"
                                 :class="existingCover ? 'text-emerald-400' : 'text-amber-400'" fill="none"
@@ -402,6 +364,7 @@ async function manualLookup() {
                                 lookupMessage }}</span>
                         </div>
                     </div>
+
                     <!-- Title -->
                     <div>
                         <label class="block text-sm font-medium text-vault-200 mb-1.5">Title <span
@@ -434,25 +397,19 @@ async function manualLookup() {
                             </div>
                         </div>
                         <div class="grid grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Runtime (min)</label>
-                                <input v-model="form.runtime_minutes" type="number" min="1"
+                            <div><label class="block text-sm font-medium text-vault-200 mb-1.5">Runtime
+                                    (min)</label><input v-model="form.runtime_minutes" type="number" min="1"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                    placeholder="120" />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Year</label>
-                                <input v-model="form.release_year" type="number" min="1888"
+                                    placeholder="120" /></div>
+                            <div><label class="block text-sm font-medium text-vault-200 mb-1.5">Year</label><input
+                                    v-model="form.release_year" type="number" min="1888"
                                     :max="new Date().getFullYear() + 2"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                    placeholder="2024" />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">IMDb ID</label>
-                                <input v-model="form.imdb_id" type="text"
+                                    placeholder="2024" /></div>
+                            <div><label class="block text-sm font-medium text-vault-200 mb-1.5">IMDb ID</label><input
+                                    v-model="form.imdb_id" type="text"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                    placeholder="tt1234567" />
-                            </div>
+                                    placeholder="tt1234567" /></div>
                         </div>
                     </template>
 
@@ -469,43 +426,32 @@ async function manualLookup() {
                             </p>
                         </div>
                         <div class="grid grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">ISBN</label>
-                                <input v-model="form.isbn" type="text"
+                            <div><label class="block text-sm font-medium text-vault-200 mb-1.5">ISBN</label><input
+                                    v-model="form.isbn" type="text"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                    placeholder="978-..." />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Pages</label>
-                                <input v-model="form.page_count" type="number" min="1"
+                                    placeholder="978-..." /></div>
+                            <div><label class="block text-sm font-medium text-vault-200 mb-1.5">Pages</label><input
+                                    v-model="form.page_count" type="number" min="1"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                    placeholder="320" />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Year</label>
-                                <input v-model="form.release_year" type="number"
+                                    placeholder="320" /></div>
+                            <div><label class="block text-sm font-medium text-vault-200 mb-1.5">Year</label><input
+                                    v-model="form.release_year" type="number"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                    placeholder="2024" />
-                            </div>
+                                    placeholder="2024" /></div>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Publisher</label>
-                                <input v-model="form.publisher" type="text"
+                            <div><label class="block text-sm font-medium text-vault-200 mb-1.5">Publisher</label><input
+                                    v-model="form.publisher" type="text"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                    placeholder="Publisher" />
-                            </div>
-                            <div class="flex items-end pb-2.5">
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input v-model="form.read" type="checkbox"
-                                        class="w-4 h-4 rounded bg-vault-700 border-vault-600 text-amber-500 focus:ring-amber-500/50" />
-                                    <span class="text-sm text-vault-200">Mark as Read</span>
-                                </label>
-                            </div>
+                                    placeholder="Publisher" /></div>
+                            <div class="flex items-end pb-2.5"><label
+                                    class="flex items-center gap-2 cursor-pointer"><input v-model="form.read"
+                                        type="checkbox"
+                                        class="w-4 h-4 rounded bg-vault-700 border-vault-600 text-amber-500 focus:ring-amber-500/50" /><span
+                                        class="text-sm text-vault-200">Mark as Read</span></label></div>
                         </div>
-                        <div v-if="form.read">
-                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Date Finished</label>
-                            <input v-model="form.date_finished" type="date"
+                        <div v-if="form.read"><label class="block text-sm font-medium text-vault-200 mb-1.5">Date
+                                Finished</label><input v-model="form.date_finished" type="date"
                                 class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm" />
                         </div>
                     </template>
@@ -535,33 +481,28 @@ async function manualLookup() {
                             </div>
                         </div>
                         <div class="grid grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Year</label>
-                                <input v-model="form.release_year" type="number"
+                            <div><label class="block text-sm font-medium text-vault-200 mb-1.5">Year</label><input
+                                    v-model="form.release_year" type="number"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                    placeholder="2024" />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Publisher</label>
-                                <input v-model="form.publisher" type="text"
+                                    placeholder="2024" /></div>
+                            <div><label class="block text-sm font-medium text-vault-200 mb-1.5">Publisher</label><input
+                                    v-model="form.publisher" type="text"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                    placeholder="Publisher" />
-                            </div>
-                            <div class="flex items-end pb-2.5">
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input v-model="form.completed" type="checkbox"
-                                        class="w-4 h-4 rounded bg-vault-700 border-vault-600 text-amber-500 focus:ring-amber-500/50" />
-                                    <span class="text-sm text-vault-200">Completed</span>
-                                </label>
-                            </div>
+                                    placeholder="Publisher" /></div>
+                            <div class="flex items-end pb-2.5"><label
+                                    class="flex items-center gap-2 cursor-pointer"><input v-model="form.completed"
+                                        type="checkbox"
+                                        class="w-4 h-4 rounded bg-vault-700 border-vault-600 text-amber-500 focus:ring-amber-500/50" /><span
+                                        class="text-sm text-vault-200">Completed</span></label></div>
                         </div>
-                        <div v-if="form.completed">
-                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Completion Date</label>
-                            <input v-model="form.completion_date" type="date"
+                        <div v-if="form.completed"><label
+                                class="block text-sm font-medium text-vault-200 mb-1.5">Completion Date</label><input
+                                v-model="form.completion_date" type="date"
                                 class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm" />
                         </div>
                     </template>
-                    <!-- ─── TV Show Fields ─── -->
+
+                    <!-- TV Show Fields -->
                     <template v-if="type === 'tv_show'">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
@@ -581,65 +522,47 @@ async function manualLookup() {
                                     placeholder="Netflix, HBO, ABC..." />
                             </div>
                         </div>
-
                         <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Total Seasons</label>
-                                <input v-model="form.total_seasons" type="number" min="1"
+                            <div><label class="block text-sm font-medium text-vault-200 mb-1.5">Total
+                                    Seasons</label><input v-model="form.total_seasons" type="number" min="1"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                    placeholder="5" />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Total Episodes</label>
-                                <input v-model="form.total_episodes" type="number" min="1"
+                                    placeholder="5" /></div>
+                            <div><label class="block text-sm font-medium text-vault-200 mb-1.5">Total
+                                    Episodes</label><input v-model="form.total_episodes" type="number" min="1"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                    placeholder="50" />
-                            </div>
+                                    placeholder="50" /></div>
                         </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Year</label>
-                            <input v-model="form.release_year" type="number" min="1920"
-                                :max="new Date().getFullYear() + 2"
+                        <div><label class="block text-sm font-medium text-vault-200 mb-1.5">Year</label><input
+                                v-model="form.release_year" type="number" min="1920" :max="new Date().getFullYear() + 2"
                                 class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                placeholder="2024" />
-                        </div>
-
-                        <!-- Watch Status -->
+                                placeholder="2024" /></div>
                         <div>
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Watch Status</label>
                             <div class="flex flex-wrap gap-2">
                                 <button v-for="s in ['watching', 'completed', 'dropped', 'plan_to_watch']" :key="s"
                                     type="button" @click="form.watch_status = s"
-                                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all" :class="form.watch_status === s
-                                        ? 'bg-rose-500 text-white'
-                                        : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
-                                    {{ s === 'plan_to_watch' ? 'Plan to Watch' : s.charAt(0).toUpperCase() + s.slice(1)
-                                    }}
-                                </button>
+                                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                                    :class="form.watch_status === s ? 'bg-rose-500 text-white' : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">{{
+                                        s === 'plan_to_watch' ? 'Plan to Watch' : s.charAt(0).toUpperCase() + s.slice(1)
+                                    }}</button>
                             </div>
                         </div>
-
-                        <!-- Current progress — only when watching -->
                         <div v-if="form.watch_status === 'watching'"
                             class="bg-vault-700/50 border border-vault-600 rounded-xl p-4">
                             <p class="text-sm font-medium text-vault-200 mb-3">Current Progress</p>
                             <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-medium text-vault-400 mb-1">Season</label>
-                                    <input v-model="form.current_season" type="number" min="1"
+                                <div><label class="block text-xs font-medium text-vault-400 mb-1">Season</label><input
+                                        v-model="form.current_season" type="number" min="1"
                                         class="w-full px-3 py-2 bg-vault-700 border border-vault-600 rounded-lg text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-rose-500/50 text-sm"
-                                        placeholder="2" />
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-vault-400 mb-1">Episode</label>
-                                    <input v-model="form.current_episode" type="number" min="1"
+                                        placeholder="2" /></div>
+                                <div><label class="block text-xs font-medium text-vault-400 mb-1">Episode</label><input
+                                        v-model="form.current_episode" type="number" min="1"
                                         class="w-full px-3 py-2 bg-vault-700 border border-vault-600 rounded-lg text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-rose-500/50 text-sm"
-                                        placeholder="5" />
-                                </div>
+                                        placeholder="5" /></div>
                             </div>
                         </div>
                     </template>
+
                     <!-- Music Fields -->
                     <template v-if="type === 'music'">
                         <div>
@@ -663,24 +586,18 @@ async function manualLookup() {
                                 <p v-if="fieldError('format')" class="text-rose-500 text-xs mt-1">{{
                                     fieldError('format') }}</p>
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Tracks</label>
-                                <input v-model="form.track_count" type="number" min="1"
+                            <div><label class="block text-sm font-medium text-vault-200 mb-1.5">Tracks</label><input
+                                    v-model="form.track_count" type="number" min="1"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                    placeholder="12" />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Year</label>
-                                <input v-model="form.release_year" type="number"
+                                    placeholder="12" /></div>
+                            <div><label class="block text-sm font-medium text-vault-200 mb-1.5">Year</label><input
+                                    v-model="form.release_year" type="number"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                    placeholder="2024" />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Label</label>
-                                <input v-model="form.label" type="text"
+                                    placeholder="2024" /></div>
+                            <div><label class="block text-sm font-medium text-vault-200 mb-1.5">Label</label><input
+                                    v-model="form.label" type="text"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                    placeholder="Label" />
-                            </div>
+                                    placeholder="Label" /></div>
                         </div>
                         <div v-if="form.format === 'Vinyl'">
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Vinyl Speed (RPM)</label>
@@ -710,7 +627,7 @@ async function manualLookup() {
                                 @click="form.personal_rating = form.personal_rating === n ? '' : n"
                                 class="star w-7 h-7 rounded flex items-center justify-center text-sm font-bold transition-all"
                                 :class="n <= form.personal_rating ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-400 hover:bg-vault-600'">{{
-                                    n }}</button>
+                                n }}</button>
                             <span class="text-vault-400 text-sm ml-2">/ 10</span>
                         </div>
                     </div>
@@ -719,17 +636,14 @@ async function manualLookup() {
                     <div class="border-t border-vault-700 pt-5">
                         <h3 class="text-sm font-semibold text-vault-200 mb-3">Purchase Details</h3>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Purchase Date</label>
-                                <input v-model="form.purchase_date" type="date"
+                            <div><label class="block text-sm font-medium text-vault-200 mb-1.5">Purchase
+                                    Date</label><input v-model="form.purchase_date" type="date"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm" />
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Price Paid</label>
-                                <input v-model="form.purchase_price" type="number" step="0.01" min="0"
+                            <div><label class="block text-sm font-medium text-vault-200 mb-1.5">Price Paid</label><input
+                                    v-model="form.purchase_price" type="number" step="0.01" min="0"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                    placeholder="29.99" />
-                            </div>
+                                    placeholder="29.99" /></div>
                             <div>
                                 <label class="block text-sm font-medium text-vault-200 mb-1.5">Condition</label>
                                 <select v-model="form.condition"
@@ -769,14 +683,13 @@ async function manualLookup() {
                         <button type="button" @click="emit('close')"
                             class="px-5 py-2.5 rounded-xl text-sm font-medium text-vault-300 hover:text-white hover:bg-vault-700 transition-all">Cancel</button>
                         <button type="submit" :disabled="submitting"
-                            class="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-ember-500 text-white font-semibold rounded-xl hover:from-amber-400 hover:to-ember-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm">
-                            {{ submitting ? 'Saving...' : (isEditing ? 'Update' : 'Add to Collection') }}
-                        </button>
+                            class="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-ember-500 text-white font-semibold rounded-xl hover:from-amber-400 hover:to-ember-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm">{{
+                            submitLabel() }}</button>
                     </div>
                 </form>
-                <!-- Barcode Scanner Modal -->
-                <BarcodeScanner v-if="showScanner" @scanned="handleBarcodeScanned" @close="showScanner = false" />
             </div>
         </div>
     </transition>
+
+    <BarcodeScanner v-if="showScanner" @scanned="handleBarcodeScanned" @close="showScanner = false" />
 </template>
