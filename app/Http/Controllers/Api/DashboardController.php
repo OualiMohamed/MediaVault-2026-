@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\CollectionItem;
-use App\Models\Movie;
 use App\Models\Book;
+use App\Models\CollectionItem;
 use App\Models\Game;
+use App\Models\Movie;
 use App\Models\Music;
+use App\Models\TvShow;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
@@ -70,9 +71,14 @@ class DashboardController extends Controller
         $gamesCompleted = Game::whereHas('collectionItem', fn($q) => $q->where('user_id', $userId))
             ->where('completed', true)->count();
 
+        $tvShowsWatching = TvShow::whereHas('collectionItem', fn($q) => $q->where('user_id', $userId))
+            ->where('watch_status', 'watching')->count();
+        $tvShowsCompleted = TvShow::whereHas('collectionItem', fn($q) => $q->where('user_id', $userId))
+            ->where('watch_status', 'completed')->count();
+
         // Recent additions (last 10)
         $recent = CollectionItem::where('user_id', $userId)
-            ->with(['movie', 'book', 'game', 'music'])
+            ->with(['movie', 'book', 'game', 'music', 'tv_show'])
             ->latest()
             ->limit(10)
             ->get()
@@ -93,6 +99,8 @@ class DashboardController extends Controller
             'books_read' => $booksRead,
             'books_unread' => $booksUnread,
             'games_completed' => $gamesCompleted,
+            'tv_shows_watching' => $tvShowsWatching,
+            'tv_shows_completed' => $tvShowsCompleted,
             'recent_additions' => $recent,
             'wishlist_count' => $wishlistCount,
         ]);
