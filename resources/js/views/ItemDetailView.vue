@@ -13,12 +13,17 @@ const loading = ref(true)
 const error = ref('')
 const showEditModal = ref(false)
 
-const type = computed(() => route.params.type)
+const type = computed(() => {
+    const raw = route.params.type
+    return raw === 'tv-shows' ? 'tv_show' : raw
+})
+
 const typeConfig = {
     movie: { label: 'Movie', icon: '\u{1F3AC}', color: 'amber' },
     book: { label: 'Book', icon: '\u{1F4D6}', color: 'emerald' },
     game: { label: 'Game', icon: '\u{1F3AE}', color: 'sky' },
     music: { label: 'Album', icon: '\u{1F3B5}', color: 'violet' },
+    tv_show: { label: 'TV Show', icon: '\u{1F4FA}', color: 'rose' },
 }
 const config = computed(() => typeConfig[type.value] || typeConfig.movie)
 
@@ -28,6 +33,13 @@ const statusColors = {
     borrowed: 'text-sky-400 bg-sky-500/15 border-sky-500/20',
     sold: 'text-vault-300 bg-vault-600/20 border-vault-500/20',
     lost: 'text-rose-400 bg-rose-500/15 border-rose-500/20',
+}
+
+const watchStatusColors = {
+    watching: 'text-rose-400 bg-rose-500/15 border-rose-500/20',
+    completed: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/20',
+    dropped: 'text-vault-300 bg-vault-600/20 border-vault-500/20',
+    plan_to_watch: 'text-sky-400 bg-sky-500/15 border-sky-500/20',
 }
 
 const conditionLabels = {
@@ -102,6 +114,20 @@ const metadata = computed(() => {
         if (d.vinyl_speed) rows.push({ label: 'Vinyl Speed', value: `${d.vinyl_speed} RPM` })
     }
 
+    if (type.value === 'tv_show') {
+        if (item.value.barcode) rows.push({ label: 'Barcode', value: item.value.barcode, copyable: true })
+        if (d.network) rows.push({ label: 'Network', value: d.network })
+        if (d.total_seasons) rows.push({ label: 'Seasons', value: d.total_seasons })
+        if (d.total_episodes) rows.push({ label: 'Episodes', value: d.total_episodes })
+        if (d.release_year) rows.push({ label: 'Year', value: d.release_year })
+        if (d.watch_status) {
+            const label = d.watch_status === 'plan_to_watch' ? 'Plan to Watch' : d.watch_status.charAt(0).toUpperCase() + d.watch_status.slice(1)
+            rows.push({ label: 'Status', value: label })
+        }
+        if (d.current_season && d.current_episode) {
+            rows.push({ label: 'Currently At', value: `S${String(d.current_season).padStart(2, '0')}E${String(d.current_episode).padStart(2, '0')}` })
+        }
+    }
     return rows
 })
 
@@ -126,7 +152,14 @@ const coverUrl = computed(() => {
 })
 
 function goBack() {
-    router.push('/' + type.value + 's')
+    const pathMap = {
+        movie: '/movies',
+        book: '/books',
+        game: '/games',
+        music: '/music',
+        tv_show: '/tv-shows',
+    }
+    router.push(pathMap[type.value] || '/')
 }
 
 async function fetchItem() {
@@ -219,11 +252,12 @@ watch(() => route.params.id, fetchItem)
                                     class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight">
                                     {{ item.title }}
                                 </h1>
-                                <p v-if="item.details?.director || item.details?.author || item.details?.artist"
+                                <p v-if="item.details?.director || item.details?.author || item.details?.artist || item.details?.network"
                                     class="text-vault-300 text-lg mt-2">
                                     <template v-if="item.details.director">{{ item.details.director }}</template>
                                     <template v-if="item.details.author">{{ item.details.author }}</template>
                                     <template v-if="item.details.artist">{{ item.details.artist }}</template>
+                                    <template v-if="item.details.network">{{ item.details.network }}</template>
                                 </p>
                             </div>
 
@@ -256,6 +290,12 @@ watch(() => route.params.id, fetchItem)
                             <span v-if="item.status"
                                 :class="['px-3 py-1 rounded-full text-xs font-medium border', statusColors[item.status] || '']">
                                 {{ item.status.charAt(0).toUpperCase() + item.status.slice(1) }}
+                            </span>
+                            <span v-if="type === 'tv_show' && item.details?.watch_status"
+                                :class="['px-3 py-1 rounded-full text-xs font-medium border', watchStatusColors[item.details.watch_status] || '']">
+                                {{ item.details.watch_status === 'plan_to_watch' ? 'Plan to Watch' :
+                                    item.details.watch_status.charAt(0).toUpperCase() + item.details.watch_status.slice(1)
+                                }}
                             </span>
                         </div>
 
