@@ -14,7 +14,7 @@ class BarcodeLookupController extends Controller
     public function lookup(Request $request): JsonResponse
     {
         $request->validate([
-            'type' => 'required|in:movie,book,game,music',
+            'type' => 'required|in:movie,book,game,music,tv_show',
             'barcode' => 'required|string|max:20',
         ]);
 
@@ -26,6 +26,7 @@ class BarcodeLookupController extends Controller
             'music' => $this->lookupMusic($barcode),
             'movie' => $this->lookupGeneric($barcode, 'movie'),
             'game' => $this->lookupGeneric($barcode, 'game'),
+            'tv_show' => $this->lookupGeneric($barcode, 'TV show'),
         };
     }
 
