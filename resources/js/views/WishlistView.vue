@@ -18,7 +18,9 @@ const typeConfig = {
     book: { label: 'Book', icon: '\u{1F4D6}', path: '/books' },
     game: { label: 'Game', icon: '\u{1F3AE}', path: '/games' },
     music: { label: 'Album', icon: '\u{1F3B5}', path: '/music' },
+    tv_show: { label: 'TV Show', icon: '\u{1F4FA}', path: '/tv-shows' },
 }
+
 
 const typeColors = {
     movie: 'text-amber-400 bg-amber-500/15',
@@ -31,7 +33,7 @@ async function fetchWishlist() {
     loading.value = true
     errorMsg.value = ''
     try {
-        const types = ['movie', 'book', 'game', 'music']
+        const types = ['movie', 'book', 'game', 'music', 'tv_show']
         const results = await Promise.all(
             types.map(async (type) => {
                 try {
@@ -130,7 +132,7 @@ onMounted(fetchWishlist)
                         class="block w-full h-full object-cover" />
                     <div v-else class="block w-full h-full flex items-center justify-center text-vault-500 text-lg">
                         {{ item._type === 'movie' ? '\u{1F3AC}' : item._type === 'book' ? '\u{1F4D6}' : item._type ===
-                            'game' ? '\u{1F3AE}' : '\u{1F3B5}' }}
+                            'game' ? '\u{1F3AE}' : item._type === 'tv_show' ? '\u{1F4FA}' : '\u{1F3B5}' }}
                     </div>
                 </div>
 
@@ -142,6 +144,7 @@ onMounted(fetchWishlist)
                         <span v-if="item.details?.director"> &middot; {{ item.details.director }}</span>
                         <span v-if="item.details?.author"> &middot; {{ item.details.author }}</span>
                         <span v-if="item.details?.artist"> &middot; {{ item.details.artist }}</span>
+                        <span v-if="item.details?.network"> &middot; {{ item.details.network }}</span>
                     </p>
                 </div>
 
