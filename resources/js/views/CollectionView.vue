@@ -8,6 +8,7 @@ import ItemFormModal from '../components/ItemFormModal.vue'
 const route = useRoute()
 const store = useCollectionStore()
 
+
 const type = computed(() => route.meta.type)
 const search = ref('')
 const filterFormat = ref('')
@@ -16,6 +17,7 @@ const filterPlatform = ref('')
 const showForm = ref(false)
 const editItem = ref(null)
 const currentPage = ref(1)
+const filterWatchStatus = ref('')
 
 const formatOptions = computed(() => {
     const map = {
@@ -23,6 +25,7 @@ const formatOptions = computed(() => {
         book: [],
         game: ['Physical', 'Digital'],
         music: ['CD', 'Vinyl', 'Digital', 'Cassette', '8-Track'],
+        tv_show: ['Digital', 'DVD', 'Blu-ray', '4K UHD', 'VHS'],  // <-- ADD
     }
     return map[type.value] || []
 })
@@ -37,6 +40,7 @@ const typeConfig = {
     book: { label: 'Books', singular: 'Book', icon: '\u{1F4D6}', color: 'emerald' },
     game: { label: 'Games', singular: 'Game', icon: '\u{1F3AE}', color: 'sky' },
     music: { label: 'Music', singular: 'Album', icon: '\u{1F3B5}', color: 'violet' },
+    tv_show: { label: 'TV Shows', singular: 'TV Show', icon: '\u{1F4FA}', color: 'rose' },  // <-- ADD
 }
 
 const config = computed(() => typeConfig[type.value])
@@ -48,6 +52,7 @@ function loadItems() {
         format: filterFormat.value || undefined,
         status: filterStatus.value || undefined,
         platform: filterPlatform.value || undefined,
+        watch_status: filterWatchStatus.value || undefined,  // <-- ADD
     }
     store.fetchItems(type.value, params)
 }
@@ -81,11 +86,12 @@ watch(() => route.path, () => {
     filterFormat.value = ''
     filterStatus.value = ''
     filterPlatform.value = ''
+    filterWatchStatus.value = ''  // <-- ADD
     currentPage.value = 1
     loadItems()
 })
 
-watch([search, filterFormat, filterStatus, filterPlatform], () => {
+watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus], () => {
     currentPage.value = 1
     loadItems()
 })
@@ -133,6 +139,14 @@ watch([search, filterFormat, filterStatus, filterPlatform], () => {
                 <option value="borrowed">Borrowed</option>
                 <option value="sold">Sold</option>
                 <option value="lost">Lost</option>
+            </select>
+            <select v-if="type === 'tv_show'" v-model="filterWatchStatus"
+                class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                <option value="">All Watch Status</option>
+                <option value="watching">Watching</option>
+                <option value="completed">Completed</option>
+                <option value="dropped">Dropped</option>
+                <option value="plan_to_watch">Plan to Watch</option>
             </select>
         </div>
 

@@ -62,6 +62,10 @@ class CollectionController extends Controller
             $query->whereHas('game', fn($q) => $q->where('platform', $request->platform));
         }
 
+        if ($type === 'tv_show' && $request->filled('watch_status')) {
+            $query->whereHas('tvShow', fn($q) => $q->where('watch_status', $request->watch_status));
+        }
+
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search, $type) {
