@@ -44,7 +44,13 @@ const routes = [
         component: () => import("../views/WishlistView.vue"),
         meta: { auth: true },
     },
-    // ── Item detail — MUST come after static routes ──
+    {
+        path: "/tv-shows",
+        name: "tv-shows",
+        component: () => import("../views/CollectionView.vue"),
+        meta: { auth: true, type: "tv_show" },
+    },
+    // item-detail route MUST come after this
     {
         path: "/:type/:id",
         name: "item-detail",
