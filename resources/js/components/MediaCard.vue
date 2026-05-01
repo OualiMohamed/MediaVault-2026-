@@ -101,6 +101,14 @@ async function handleDelete() {
                 </span>
             </div>
 
+            <!-- Trailer indicator -->
+            <div v-if="(type === 'movie' || type === 'tv_show') && item.details?.trailer_url"
+                class="absolute bottom-2 right-2 w-8 h-8 rounded-lg bg-red-600/90 backdrop-blur-sm flex items-center justify-center text-white opacity-80 group-hover:opacity-0 transition-opacity">
+                <svg class="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                </svg>
+            </div>
+
             <!-- Hover overlay with action buttons -->
             <div
                 class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
