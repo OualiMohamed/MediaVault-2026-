@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import ItemFormModal from '../components/ItemFormModal.vue'
 import TrailerModal from '../components/TrailerModal.vue'
+import { useNetworkLogo } from '../composables/useNetworkLogo'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,6 +15,7 @@ const loading = ref(true)
 const error = ref('')
 const showEditModal = ref(false)
 const showTrailer = ref(false)
+const { logoUrl: networkLogo, loading: logoLoading, fetchLogo: fetchNetworkLogo } = useNetworkLogo()
 
 const type = computed(() => {
     const raw = route.params.type
@@ -183,6 +185,18 @@ function handleEditSaved() {
 
 onMounted(fetchItem)
 watch(() => route.params.id, fetchItem)
+
+watch(
+    () => [item.value?.title, item.value?.details?.network],
+    ([title, network]) => {
+        if (type.value === 'tv_show' && title && network) {
+            fetchNetworkLogo(title, network)
+        } else {
+            fetchNetworkLogo.clear()
+        }
+    },
+    { immediate: true }
+)
 </script>
 
 <template>
@@ -246,12 +260,16 @@ watch(() => route.params.id, fetchItem)
                                     class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight">
                                     {{ item.title }}</h1>
                                 <p v-if="item.details?.director || item.details?.author || item.details?.artist || item.details?.network"
-                                    class="text-vault-300 text-lg mt-2">
+                                    class="text-vault-300 text-lg mt-2 flex items-center gap-2">
+                                    <img v-if="type === 'tv_show' && item.details?.network && networkLogo"
+                                        :src="networkLogo" :alt="item.details.network"
+                                        class="w-6 h-6 object-contain rounded opacity-80"
+                                        @error="fetchNetworkLogo.clear()" />
                                     <template v-if="item.details.director">{{ item.details.director }}</template>
                                     <template v-if="item.details.author">{{ item.details.author }}</template>
                                     <template v-if="item.details.artist">{{ item.details.artist }}</template>
                                     <template v-if="item.details.network">{{ item.details.network }}</template>
-                                </p>
+                                </p>>
                             </div>
                             <div v-if="item.details?.personal_rating"
                                 class="flex-shrink-0 flex items-center justify-center"
@@ -275,7 +293,7 @@ watch(() => route.params.id, fetchItem)
                         <div v-if="tags.length" class="flex flex-wrap gap-2 mb-6">
                             <span v-for="(tag, i) in tags" :key="i"
                                 :class="['px-3 py-1 rounded-full text-xs font-medium', tag.color]">{{
-                                tag.label }}</span>
+                                    tag.label }}</span>
                             <span v-if="item.status"
                                 :class="['px-3 py-1 rounded-full text-xs font-medium border', statusColors[item.status] || '']">
                                 {{ item.status.charAt(0).toUpperCase() + item.status.slice(1) }}
@@ -317,6 +335,17 @@ watch(() => route.params.id, fetchItem)
                                             d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                     </svg>
                                 </button>
+                                <template v-else-if="row.label === 'Network' && type === 'tv_show' && networkLogo"
+                                    class="flex items-center gap-2">
+                                    <img :src="networkLogo" :alt="row.value" class="w-8 h-8 object-contain rounded"
+                                        @error="fetchNetworkLogo.clear()" />
+                                    <span class="text-white text-sm font-medium">{{ row.value }}</span>
+                                </template>
+                                <template v-else-if="row.label === 'Network' && type === 'tv_show' && logoLoading"
+                                    class="flex items-center gap-2">
+                                    <div class="w-8 h-8 rounded bg-vault-700 animate-pulse"></div>
+                                    <span class="text-white text-sm font-medium">{{ row.value }}</span>
+                                </template>
                                 <span v-else class="text-white text-sm font-medium">{{ row.value }}</span>
                             </div>
                         </div>
