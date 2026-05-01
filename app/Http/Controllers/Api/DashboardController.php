@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Book;
 use App\Models\CollectionItem;
-use App\Models\Game;
 use App\Models\Movie;
+use App\Models\Book;
+use App\Models\Game;
 use App\Models\Music;
 use App\Models\TvShow;
 use Illuminate\Http\JsonResponse;
@@ -14,77 +14,127 @@ use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
-    // GET /api/dashboard/stats
-
-    /**
-     * The function `stats` retrieves various statistics related to a user's collection items including
-     * total count, total value, distribution by type, counts by format/platform, books read vs unread,
-     * games completed, recent additions, and wishlist count.
-     * 
-     * @return JsonResponse The `stats()` function returns a JSON response containing various statistics
-     * related to a user's collection items. The returned data includes:
-     * - Total number of items in the collection
-     * - Total value of all items in the collection
-     * - Breakdown of items by type (count and total value for each type)
-     * - Number of movies by format
-     * - Number of games by platform
-     * - Number of music items by
-     */
     public function stats(): JsonResponse
     {
         $userId = Auth::id();
 
+        // 1. Base stats
         $totalItems = CollectionItem::where('user_id', $userId)->count();
         $totalValue = CollectionItem::where('user_id', $userId)->sum('purchase_price');
 
+        // 2. Count and value by type
         $byType = CollectionItem::where('user_id', $userId)
             ->selectRaw('type, count(*) as count, sum(purchase_price) as value')
             ->groupBy('type')
             ->get()
             ->keyBy('type');
 
-        // Movies by format
-        $moviesByFormat = Movie::whereHas('collectionItem', fn($q) => $q->where('user_id', $userId))
-            ->selectRaw('format, count(*) as count')
-            ->groupBy('format')
-            ->get();
+        // 3. Movies by format
+        $movieIds = CollectionItem::where('user_id', $userId)->where('type', 'movie')->pluck('id');
+        $moviesByFormat = [];
+        if ($movieIds->isNotEmpty()) {
+            $moviesByFormat = Movie::whereIn('collection_item_id', $movieIds)
+                ->selectRaw('format, count(*) as count')
+                ->groupBy('format')
+                ->get();
+        }
 
-        // Games by platform
-        $gamesByPlatform = Game::whereHas('collectionItem', fn($q) => $q->where('user_id', $userId))
-            ->selectRaw('platform, count(*) as count')
-            ->groupBy('platform')
-            ->get();
+        // 4. Games by platform
+        $gameIds = CollectionItem::where('user_id', $userId)->where('type', 'game')->pluck('id');
+        $gamesByPlatform = [];
+        if ($gameIds->isNotEmpty()) {
+            $gamesByPlatform = Game::whereIn('collection_item_id', $gameIds)
+                ->selectRaw('platform, count(*) as count')
+                ->groupBy('platform')
+                ->get();
+        }
 
-        // Music by format
-        $musicByFormat = Music::whereHas('collectionItem', fn($q) => $q->where('user_id', $userId))
-            ->selectRaw('format, count(*) as count')
-            ->groupBy('format')
-            ->get();
+        // 5. Music by format
+        $musicIds = CollectionItem::where('user_id', $userId)->where('type', 'music')->pluck('id');
+        $musicByFormat = [];
+        if ($musicIds->isNotEmpty()) {
+            $musicByFormat = Music::whereIn('collection_item_id', $musicIds)
+                ->selectRaw('format, count(*) as count')
+                ->groupBy('format')
+                ->get();
+        }
 
-        // Books read vs unread
-        $booksRead = Book::whereHas('collectionItem', fn($q) => $q->where('user_id', $userId))
-            ->where('read', true)->count();
-        $booksUnread = Book::whereHas('collectionItem', fn($q) => $q->where('user_id', $userId))
-            ->where('read', false)->count();
+        // 6. Books read/unread
+        $bookIds = CollectionItem::where('user_id', $userId)->where('type', 'book')->pluck('id');
+        $booksRead = 0;
+        $booksUnread = 0;
+        if ($bookIds->isNotEmpty()) {
+            $booksRead = Book::whereIn('collection_item_id', $bookIds)->where('read', true)->count();
+            $booksUnread = Book::whereIn('collection_item_id', $bookIds)->where('read', false)->count();
+        }
 
-        // Games completed
-        $gamesCompleted = Game::whereHas('collectionItem', fn($q) => $q->where('user_id', $userId))
-            ->where('completed', true)->count();
+        // 7. Games completed
+        $gamesCompleted = 0;
+        if ($gameIds->isNotEmpty()) {
+            $gamesCompleted = Game::whereIn('collection_item_id', $gameIds)->where('completed', true)->count();
+        }
 
-        $tvShowsWatching = TvShow::whereHas('collectionItem', fn($q) => $q->where('user_id', $userId))
-            ->where('watch_status', 'watching')->count();
-        $tvShowsCompleted = TvShow::whereHas('collectionItem', fn($q) => $q->where('user_id', $userId))
-            ->where('watch_status', 'completed')->count();
+        // 8. TV Shows watching/completed
+        $tvShowIds = CollectionItem::where('user_id', $userId)->where('type', 'tv_show')->pluck('id');
+        $tvShowsWatching = 0;
+        $tvShowsCompleted = 0;
+        if ($tvShowIds->isNotEmpty()) {
+            $tvShowsWatching = TvShow::whereIn('collection_item_id', $tvShowIds)->where('watch_status', 'watching')->count();
+            $tvShowsCompleted = TvShow::whereIn('collection_item_id', $tvShowIds)->where('watch_status', 'completed')->count();
+        }
 
-        // Recent additions (last 10)
-        $recent = CollectionItem::where('user_id', $userId)
-            ->with(['movie', 'book', 'game', 'music', 'tv_show'])
+        // 9. Recent additions — manual detail loading
+        $recentItems = CollectionItem::where('user_id', $userId)
             ->latest()
             ->limit(10)
-            ->get()
-            ->map(fn($item) => $this->formatItem($item));
+            ->get();
 
-        // Wishlist count
+        $recent = [];
+        if ($recentItems->isNotEmpty()) {
+            // Group IDs by type
+            $idsByType = $recentItems->groupBy('type')->map(fn($items) => $items->pluck('id'));
+
+            $detailsByType = [];
+
+            foreach ($idsByType as $type => $ids) {
+                $modelClass = match ($type) {
+                    'movie' => Movie::class,
+                    'book' => Book::class,
+                    'game' => Game::class,
+                    'music' => Music::class,
+                    'tv_show' => TvShow::class,
+                    default => null,
+                };
+
+                if ($modelClass) {
+                    $detailsByType[$type] = $modelClass::whereIn('collection_item_id', $ids)
+                        ->get()
+                        ->keyBy('collection_item_id');
+                }
+            }
+
+            foreach ($recentItems as $item) {
+                $typeKey = $item->type;
+                $details = $detailsByType[$typeKey][$item->id] ?? null;
+
+                $recent[] = [
+                    'id' => $item->id,
+                    'type' => $item->type,
+                    'title' => $item->title,
+                    'cover_image' => $item->cover_image,
+                    'barcode' => $item->barcode,
+                    'purchase_date' => $item->purchase_date?->format('Y-m-d'),
+                    'purchase_price' => $item->purchase_price,
+                    'condition' => $item->condition,
+                    'status' => $item->status,
+                    'notes' => $item->notes,
+                    'details' => $details,
+                    'created_at' => $item->created_at->format('Y-m-d H:i:s'),
+                ];
+            }
+        }
+
+        // 10. Wishlist count
         $wishlistCount = CollectionItem::where('user_id', $userId)
             ->where('status', 'wishlist')
             ->count();
@@ -104,26 +154,5 @@ class DashboardController extends Controller
             'recent_additions' => $recent,
             'wishlist_count' => $wishlistCount,
         ]);
-    }
-
-    // Helper function to format collection item with its details
-    private function formatItem(CollectionItem $item): array
-    {
-        $typeKey = $item->type;
-        $details = $item->$typeKey ?? null;
-
-        return [
-            'id' => $item->id,
-            'type' => $item->type,
-            'title' => $item->title,
-            'cover_image' => $item->cover_image,
-            'purchase_date' => $item->purchase_date?->format('Y-m-d'),
-            'purchase_price' => $item->purchase_price,
-            'condition' => $item->condition,
-            'status' => $item->status,
-            'notes' => $item->notes,
-            'details' => $details,
-            'created_at' => $item->created_at->format('Y-m-d H:i:s'),
-        ];
     }
 }
