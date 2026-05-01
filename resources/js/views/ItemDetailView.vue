@@ -4,6 +4,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import ItemFormModal from '../components/ItemFormModal.vue'
+import TrailerModal from '../components/TrailerModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -12,6 +13,7 @@ const item = ref(null)
 const loading = ref(true)
 const error = ref('')
 const showEditModal = ref(false)
+const showTrailer = ref(false)
 
 const type = computed(() => {
     const raw = route.params.type
@@ -86,6 +88,7 @@ const metadata = computed(() => {
         }
         if (d.release_year) rows.push({ label: 'Year', value: d.release_year })
         if (d.imdb_id) rows.push({ label: 'IMDb', value: d.imdb_id, link: `https://www.imdb.com/title/${d.imdb_id}` })
+        if (d.trailer_url) rows.push({ label: 'Trailer', value: 'YouTube', link: d.trailer_url })
     }
 
     if (type.value === 'book') {
@@ -127,6 +130,7 @@ const metadata = computed(() => {
         if (d.current_season && d.current_episode) {
             rows.push({ label: 'Currently At', value: `S${String(d.current_season).padStart(2, '0')}E${String(d.current_episode).padStart(2, '0')}` })
         }
+        if (d.trailer_url) rows.push({ label: 'Trailer', value: 'YouTube', link: d.trailer_url })
     }
     return rows
 })
@@ -382,6 +386,14 @@ watch(() => route.params.id, fetchItem)
 
                         <!-- ── Action Buttons ── -->
                         <div class="flex flex-wrap gap-3">
+                            <button v-if="(type === 'movie' || type === 'tv_show') && item.details?.trailer_url"
+                                @click="showTrailer = true"
+                                class="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-500 transition-all shadow-lg shadow-red-600/20 text-sm">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z" />
+                                </svg>
+                                Play Trailer
+                            </button>
                             <button @click="showEditModal = true"
                                 class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-ember-500 text-white font-semibold rounded-xl hover:from-amber-400 hover:to-ember-400 transition-all shadow-lg shadow-amber-500/20 text-sm">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
@@ -409,5 +421,9 @@ watch(() => route.params.id, fetchItem)
         <!-- Edit Modal -->
         <ItemFormModal v-if="showEditModal && item" :type="type" :item="item" @close="showEditModal = false"
             @saved="handleEditSaved" />
+
+        <!-- Trailer Modal -->
+        <TrailerModal v-if="item" :url="item.details?.trailer_url || ''" :open="showTrailer"
+            @close="showTrailer = false" />
     </div>
 </template>
