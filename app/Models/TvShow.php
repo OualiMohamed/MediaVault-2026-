@@ -10,6 +10,7 @@ class TvShow extends Model
     protected $fillable = [
         'collection_item_id',
         'format',
+        'seasons',
         'total_seasons',
         'total_episodes',
         'network',
@@ -23,6 +24,7 @@ class TvShow extends Model
 
     protected $casts = [
         'release_year' => 'integer',
+        'seasons' => 'array',
     ];
 
     public function collectionItem(): BelongsTo
