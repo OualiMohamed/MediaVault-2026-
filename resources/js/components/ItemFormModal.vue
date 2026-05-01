@@ -428,27 +428,28 @@ function removeSeason(index) {
                                     :max="new Date().getFullYear() + 2"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
                                     placeholder="2024" /></div>
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Trailer URL</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                        <svg class="w-4 h-4 text-vault-500" fill="none" viewBox="0 0 24 24"
-                                            stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                        </svg>
-                                    </div>
-                                    <input v-model="form.trailer_url" type="url"
-                                        class="w-full pl-10 pr-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                        placeholder="https://www.youtube.com/watch?v=..." />
-                                </div>
-                                <p v-if="fieldError('trailer_url')" class="text-rose-500 text-xs mt-1">{{
-                                    fieldError('trailer_url') }}</p>
-                            </div>
+
                             <div><label class="block text-sm font-medium text-vault-200 mb-1.5">IMDb ID</label><input
                                     v-model="form.imdb_id" type="text"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
                                     placeholder="tt1234567" /></div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Trailer URL</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                    <svg class="w-4 h-4 text-vault-500" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                    </svg>
+                                </div>
+                                <input v-model="form.trailer_url" type="url"
+                                    class="w-full pl-10 pr-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                    placeholder="https://www.youtube.com/watch?v=..." />
+                            </div>
+                            <p v-if="fieldError('trailer_url')" class="text-rose-500 text-xs mt-1">{{
+                                fieldError('trailer_url') }}</p>
                         </div>
                     </template>
 
@@ -806,7 +807,7 @@ function removeSeason(index) {
                                 class="text-rose-300 text-sm flex items-start gap-2">
                                 <span class="text-rose-500 mt-0.5">&#8226;</span>
                                 <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                                }}</span>
+                                    }}</span>
                             </li>
                         </ul>
                     </div>
