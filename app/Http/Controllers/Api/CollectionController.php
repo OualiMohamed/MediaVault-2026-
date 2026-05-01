@@ -319,6 +319,7 @@ class CollectionController extends Controller
                 'personal_rating' => 'nullable|integer|min:1|max:10',
                 'release_year' => 'nullable|integer|min:1888|max:' . (date('Y') + 2),
                 'imdb_id' => 'nullable|string|max:20',
+                'trailer_url' => 'nullable|url|max:500',
             ],
             'book' => $base + [
                 'author' => 'required|string|max:255',
@@ -362,6 +363,7 @@ class CollectionController extends Controller
                 'current_season' => 'nullable|integer|min:1',
                 'current_episode' => 'nullable|integer|min:1',
                 'seasons' => 'nullable|json',
+                'trailer_url' => 'nullable|url|max:500',
             ],
         };
     }
