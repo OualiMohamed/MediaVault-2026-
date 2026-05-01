@@ -157,6 +157,19 @@ class CollectionController extends Controller
                 ARRAY_FILTER_USE_KEY
             );
 
+            $detailData = array_filter(
+                $validated,
+                fn($key) => !in_array($key, $baseFields),
+                ARRAY_FILTER_USE_KEY
+            );
+
+            // DECODE SEASONS JSON — ADD THESE LINES:
+            if (isset($validated['seasons'])) {
+                $decoded = json_decode($validated['seasons'], true);
+                if (is_array($decoded)) {
+                    $detailData['seasons'] = $decoded;
+                }
+            }
             $modelClass = $this->getModelClass($type);
             $detail = $modelClass::create([
                 'collection_item_id' => $item->id,
@@ -233,6 +246,20 @@ class CollectionController extends Controller
                 fn($key) => !in_array($key, $baseFields),
                 ARRAY_FILTER_USE_KEY
             );
+
+            $detailData = array_filter(
+                $validated,
+                fn($key) => !in_array($key, $baseFields),
+                ARRAY_FILTER_USE_KEY
+            );
+
+            // DECODE SEASONS JSON — ADD THESE LINES:
+            if (isset($validated['seasons'])) {
+                $decoded = json_decode($validated['seasons'], true);
+                if (is_array($decoded)) {
+                    $detailData['seasons'] = $decoded;
+                }
+            }
 
             if (!empty($detailData)) {
                 $modelClass = $this->getModelClass($type);
@@ -325,7 +352,6 @@ class CollectionController extends Controller
                 'vinyl_speed' => 'nullable|in:33,45,78',
             ],
             'tv_show' => $base + [
-                'format' => 'required|in:Digital,DVD,Blu-ray,4K UHD,VHS',
                 'total_seasons' => 'nullable|integer|min:1',
                 'total_episodes' => 'nullable|integer|min:1',
                 'network' => 'nullable|string|max:255',
@@ -335,6 +361,7 @@ class CollectionController extends Controller
                 'watch_status' => 'nullable|in:watching,completed,dropped,plan_to_watch',
                 'current_season' => 'nullable|integer|min:1',
                 'current_episode' => 'nullable|integer|min:1',
+                'seasons' => 'nullable|json',
             ],
         };
     }

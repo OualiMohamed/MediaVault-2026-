@@ -117,8 +117,8 @@ const metadata = computed(() => {
     if (type.value === 'tv_show') {
         if (item.value.barcode) rows.push({ label: 'Barcode', value: item.value.barcode, copyable: true })
         if (d.network) rows.push({ label: 'Network', value: d.network })
-        if (d.total_seasons) rows.push({ label: 'Seasons', value: d.total_seasons })
-        if (d.total_episodes) rows.push({ label: 'Episodes', value: d.total_episodes })
+        if (d.total_seasons) rows.push({ label: 'Total Seasons', value: d.total_seasons })
+        if (d.total_episodes) rows.push({ label: 'Total Episodes', value: d.total_episodes })
         if (d.release_year) rows.push({ label: 'Year', value: d.release_year })
         if (d.watch_status) {
             const label = d.watch_status === 'plan_to_watch' ? 'Plan to Watch' : d.watch_status.charAt(0).toUpperCase() + d.watch_status.slice(1)
@@ -332,7 +332,23 @@ watch(() => route.params.id, fetchItem)
                                 <span v-else class="text-white text-sm font-medium">{{ row.value }}</span>
                             </div>
                         </div>
-
+                        <!-- Owned Seasons List -->
+                        <div v-if="type === 'tv_show' && item.details?.seasons && item.details.seasons.length > 0"
+                            class="mb-8">
+                            <h3 class="text-sm font-semibold text-vault-300 uppercase tracking-wider mb-4">
+                                Owned Seasons ({{ item.details.seasons.length }} of {{ item.details.total_seasons || '?'
+                                }})
+                            </h3>
+                            <div class="flex flex-wrap gap-2">
+                                <div v-for="s in item.details.seasons" :key="s.season"
+                                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-vault-800 border border-vault-600 rounded-xl">
+                                    <span class="text-white font-bold text-sm">S{{ String(s.season).padStart(2, '0')
+                                        }}</span>
+                                    <span class="w-px h-4 bg-vault-600"></span>
+                                    <span class="text-vault-300 text-sm">{{ s.format }}</span>
+                                </div>
+                            </div>
+                        </div>
                         <!-- ── Purchase Info Card ── -->
                         <div class="bg-vault-800/70 backdrop-blur-sm border border-vault-700 rounded-2xl p-6 mb-8">
                             <h3 class="text-sm font-semibold text-vault-300 uppercase tracking-wider mb-4">Collection
