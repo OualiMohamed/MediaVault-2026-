@@ -27,6 +27,7 @@ const typeConfig = {
     music: { label: 'Album', icon: '\u{1F3B5}', color: 'violet' },
     tv_show: { label: 'TV Show', icon: '\u{1F4FA}', color: 'rose' },
 }
+
 const config = computed(() => typeConfig[type.value] || typeConfig.movie)
 
 const statusColors = {
@@ -44,22 +45,16 @@ const watchStatusColors = {
     plan_to_watch: 'text-sky-400 bg-sky-500/15 border-sky-500/20',
 }
 
-const conditionLabels = {
-    mint: 'Mint',
-    near_mint: 'Near Mint',
-    good: 'Good',
-    fair: 'Fair',
-    poor: 'Poor',
-}
+const hasTrailer = computed(() => {
+    return (type.value === 'movie' || type.value === 'tv_show') && !!item.value?.details?.trailer_url
+})
 
-// Rating as percentage for the circle
 const ratingPercent = computed(() => {
     const r = item.value?.details?.personal_rating
     if (!r) return 0
     return Math.round((r / 10) * 100)
 })
 
-// Circle SVG dash offset
 const ratingOffset = computed(() => {
     const circumference = 2 * Math.PI * 38
     return circumference - (ratingPercent.value / 100) * circumference
@@ -67,12 +62,11 @@ const ratingOffset = computed(() => {
 
 const ratingColor = computed(() => {
     const r = ratingPercent.value
-    if (r >= 70) return '#10b981' // emerald
-    if (r >= 40) return '#f59e0b' // amber
-    return '#f43f5e' // rose
+    if (r >= 70) return '#10b981'
+    if (r >= 40) return '#f59e0b'
+    return '#f43f5e'
 })
 
-// Build metadata rows based on type
 const metadata = computed(() => {
     const d = item.value?.details
     if (!d) return []
@@ -88,7 +82,6 @@ const metadata = computed(() => {
         }
         if (d.release_year) rows.push({ label: 'Year', value: d.release_year })
         if (d.imdb_id) rows.push({ label: 'IMDb', value: d.imdb_id, link: `https://www.imdb.com/title/${d.imdb_id}` })
-        if (d.trailer_url) rows.push({ label: 'Trailer', value: 'YouTube', link: d.trailer_url })
     }
 
     if (type.value === 'book') {
@@ -108,15 +101,6 @@ const metadata = computed(() => {
         if (d.completed) rows.push({ label: 'Completed', value: d.completion_date ? `Finished ${d.completion_date}` : 'Yes' })
     }
 
-    if (type.value === 'music') {
-        if (item.value.barcode) rows.push({ label: 'Barcode', value: item.value.barcode, copyable: true })
-        if (d.artist) rows.push({ label: 'Artist', value: d.artist })
-        if (d.label) rows.push({ label: 'Label', value: d.label })
-        if (d.track_count) rows.push({ label: 'Tracks', value: d.track_count })
-        if (d.release_year) rows.push({ label: 'Year', value: d.release_year })
-        if (d.vinyl_speed) rows.push({ label: 'Vinyl Speed', value: `${d.vinyl_speed} RPM` })
-    }
-
     if (type.value === 'tv_show') {
         if (item.value.barcode) rows.push({ label: 'Barcode', value: item.value.barcode, copyable: true })
         if (d.network) rows.push({ label: 'Network', value: d.network })
@@ -130,12 +114,20 @@ const metadata = computed(() => {
         if (d.current_season && d.current_episode) {
             rows.push({ label: 'Currently At', value: `S${String(d.current_season).padStart(2, '0')}E${String(d.current_episode).padStart(2, '0')}` })
         }
-        if (d.trailer_url) rows.push({ label: 'Trailer', value: 'YouTube', link: d.trailer_url })
     }
+
+    if (type.value === 'music') {
+        if (item.value.barcode) rows.push({ label: 'Barcode', value: item.value.barcode, copyable: true })
+        if (d.artist) rows.push({ label: 'Artist', value: d.artist })
+        if (d.label) rows.push({ label: 'Label', value: d.label })
+        if (d.track_count) rows.push({ label: 'Tracks', value: d.track_count })
+        if (d.release_year) rows.push({ label: 'Year', value: d.release_year })
+        if (d.vinyl_speed) rows.push({ label: 'Vinyl Speed', value: `${d.vinyl_speed} RPM` })
+    }
+
     return rows
 })
 
-// Tags: format, genre
 const tags = computed(() => {
     const d = item.value?.details
     if (!d) return []
@@ -169,6 +161,7 @@ function goBack() {
 async function fetchItem() {
     loading.value = true
     error.value = ''
+    showTrailer.value = false
     try {
         const { data } = await api.get(`/collection/${type.value}/${route.params.id}`)
         item.value = data
@@ -203,14 +196,13 @@ watch(() => route.params.id, fetchItem)
         <div v-else-if="error" class="max-w-lg mx-auto px-4 py-20 text-center">
             <p class="text-rose-400 text-lg mb-4">{{ error }}</p>
             <button @click="goBack"
-                class="px-5 py-2.5 rounded-xl bg-vault-700 text-white hover:bg-vault-600 transition-all text-sm font-medium">
-                Go Back
-            </button>
+                class="px-5 py-2.5 rounded-xl bg-vault-700 text-white text-sm font-medium hover:bg-vault-600 transition-all">Go
+                Back</button>
         </div>
 
         <!-- Detail Page -->
         <div v-else-if="item" class="relative">
-            <!-- ═══ Blurred Background Hero ═══ -->
+            <!-- Blurred Background -->
             <div class="absolute inset-0 h-[500px] overflow-hidden">
                 <div v-if="coverUrl" class="absolute inset-0">
                     <img :src="coverUrl" class="w-full h-full object-cover scale-110 blur-2xl opacity-30" />
@@ -218,7 +210,7 @@ watch(() => route.params.id, fetchItem)
                 <div class="absolute inset-0 bg-gradient-to-b from-vault-950/60 via-vault-950/80 to-vault-950"></div>
             </div>
 
-            <!-- ═══ Back Button ═══ -->
+            <!-- Back Button -->
             <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-6">
                 <button @click="goBack"
                     class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-vault-800/60 backdrop-blur-sm border border-vault-600/50 text-vault-300 hover:text-white hover:bg-vault-700/60 transition-all text-sm">
@@ -229,11 +221,11 @@ watch(() => route.params.id, fetchItem)
                 </button>
             </div>
 
-            <!-- ═══ Main Content ═══ -->
+            <!-- Main Content -->
             <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-16">
                 <div class="flex flex-col lg:flex-row gap-8 lg:gap-12">
 
-                    <!-- ── Left: Poster ── -->
+                    <!-- Poster -->
                     <div class="flex-shrink-0 mx-auto lg:mx-0">
                         <div
                             class="w-64 sm:w-72 lg:w-80 rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-vault-600/30">
@@ -246,16 +238,13 @@ watch(() => route.params.id, fetchItem)
                         </div>
                     </div>
 
-                    <!-- ── Right: Info ── -->
+                    <!-- Info -->
                     <div class="flex-1 min-w-0">
-
-                        <!-- Title row -->
                         <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
                             <div>
                                 <h1
                                     class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight">
-                                    {{ item.title }}
-                                </h1>
+                                    {{ item.title }}</h1>
                                 <p v-if="item.details?.director || item.details?.author || item.details?.artist || item.details?.network"
                                     class="text-vault-300 text-lg mt-2">
                                     <template v-if="item.details.director">{{ item.details.director }}</template>
@@ -264,8 +253,6 @@ watch(() => route.params.id, fetchItem)
                                     <template v-if="item.details.network">{{ item.details.network }}</template>
                                 </p>
                             </div>
-
-                            <!-- Rating Circle -->
                             <div v-if="item.details?.personal_rating"
                                 class="flex-shrink-0 flex items-center justify-center"
                                 :title="`${item.details.personal_rating}/10`">
@@ -277,9 +264,8 @@ watch(() => route.params.id, fetchItem)
                                             :stroke-dashoffset="ratingOffset" class="transition-all duration-700" />
                                     </svg>
                                     <div class="absolute inset-0 flex items-center justify-center">
-                                        <span class="text-lg font-bold" :style="{ color: ratingColor }">
-                                            {{ ratingPercent }}%
-                                        </span>
+                                        <span class="text-lg font-bold" :style="{ color: ratingColor }">{{ ratingPercent
+                                            }}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -288,9 +274,8 @@ watch(() => route.params.id, fetchItem)
                         <!-- Tags -->
                         <div v-if="tags.length" class="flex flex-wrap gap-2 mb-6">
                             <span v-for="(tag, i) in tags" :key="i"
-                                :class="['px-3 py-1 rounded-full text-xs font-medium', tag.color]">
-                                {{ tag.label }}
-                            </span>
+                                :class="['px-3 py-1 rounded-full text-xs font-medium', tag.color]">{{
+                                tag.label }}</span>
                             <span v-if="item.status"
                                 :class="['px-3 py-1 rounded-full text-xs font-medium border', statusColors[item.status] || '']">
                                 {{ item.status.charAt(0).toUpperCase() + item.status.slice(1) }}
@@ -303,13 +288,12 @@ watch(() => route.params.id, fetchItem)
                             </span>
                         </div>
 
-                        <!-- Notes / Synopsis -->
+                        <!-- Notes -->
                         <div v-if="item.notes" class="mb-8">
                             <p class="text-vault-200 text-base leading-relaxed">{{ item.notes }}</p>
                         </div>
 
                         <!-- Metadata Grid -->
-                        <!-- Replace the metadata grid rendering -->
                         <div v-if="metadata.length" class="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-4 mb-8">
                             <div v-for="row in metadata" :key="row.label" class="flex flex-col">
                                 <span class="text-vault-500 text-xs font-medium uppercase tracking-wider mb-0.5">{{
@@ -336,7 +320,8 @@ watch(() => route.params.id, fetchItem)
                                 <span v-else class="text-white text-sm font-medium">{{ row.value }}</span>
                             </div>
                         </div>
-                        <!-- Owned Seasons List -->
+
+                        <!-- Owned Seasons -->
                         <div v-if="type === 'tv_show' && item.details?.seasons && item.details.seasons.length > 0"
                             class="mb-8">
                             <h3 class="text-sm font-semibold text-vault-300 uppercase tracking-wider mb-4">
@@ -353,7 +338,8 @@ watch(() => route.params.id, fetchItem)
                                 </div>
                             </div>
                         </div>
-                        <!-- ── Purchase Info Card ── -->
+
+                        <!-- Collection Details -->
                         <div class="bg-vault-800/70 backdrop-blur-sm border border-vault-700 rounded-2xl p-6 mb-8">
                             <h3 class="text-sm font-semibold text-vault-300 uppercase tracking-wider mb-4">Collection
                                 Details</h3>
@@ -373,8 +359,9 @@ watch(() => route.params.id, fetchItem)
                                 <div>
                                     <span
                                         class="text-vault-500 text-xs font-medium uppercase tracking-wider block mb-1">Condition</span>
-                                    <span class="text-white text-sm font-medium">{{ conditionLabels[item.condition] ||
-                                        item.condition }}</span>
+                                    <span class="text-white text-sm font-medium">{{ item.condition === 'near_mint' ?
+                                        'Near Mint' :
+                                        item.condition?.charAt(0).toUpperCase() + item.condition?.slice(1) }}</span>
                                 </div>
                                 <div>
                                     <span
@@ -384,10 +371,9 @@ watch(() => route.params.id, fetchItem)
                             </div>
                         </div>
 
-                        <!-- ── Action Buttons ── -->
+                        <!-- Action Buttons -->
                         <div class="flex flex-wrap gap-3">
-                            <button v-if="(type === 'movie' || type === 'tv_show') && item.details?.trailer_url"
-                                @click="showTrailer = true"
+                            <button v-if="hasTrailer" @click.prevent="showTrailer = true"
                                 class="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-500 transition-all shadow-lg shadow-red-600/20 text-sm">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M8 5v14l11-7z" />
@@ -412,18 +398,16 @@ watch(() => route.params.id, fetchItem)
                                 Back
                             </button>
                         </div>
-
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- Trailers — outside the v-else-if block so it persists -->
+        <TrailerModal :url="item?.details?.trailer_url || ''" :open="showTrailer" @close="showTrailer = false" />
+
         <!-- Edit Modal -->
         <ItemFormModal v-if="showEditModal && item" :type="type" :item="item" @close="showEditModal = false"
             @saved="handleEditSaved" />
-
-        <!-- Trailer Modal -->
-        <TrailerModal v-if="item" :url="item.details?.trailer_url || ''" :open="showTrailer"
-            @close="showTrailer = false" />
     </div>
 </template>
