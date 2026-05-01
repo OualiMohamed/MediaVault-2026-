@@ -31,7 +31,6 @@ class CollectionItem extends Model
         return $this->belongsTo(User::class);
     }
 
-    // ── hasOne, NOT morphOne ──
     public function movie(): HasOne
     {
         return $this->hasOne(Movie::class, 'collection_item_id');
@@ -52,16 +51,11 @@ class CollectionItem extends Model
         return $this->hasOne(Music::class, 'collection_item_id');
     }
 
-    // app/Models/CollectionItem.php — add tv_show relationship
     public function tvShow(): HasOne
     {
         return $this->hasOne(TvShow::class, 'collection_item_id');
     }
 
-    /**
-     * Dynamic accessor — returns the correct detail relation
-     * based on $this->type. Used by the API formatter.
-     */
     public function details(): HasOne
     {
         return match ($this->type) {

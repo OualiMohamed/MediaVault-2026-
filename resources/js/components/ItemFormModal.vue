@@ -89,9 +89,12 @@ const booleanFields = ['read', 'completed']
 
 const validationErrors = computed(() => {
     const list = []
-    if (!errors.value) return list
-    for (const [field, messages] of Object.entries(errors.value)) {
-        messages.forEach(msg => list.push({ field, message: msg }))
+    const errs = errors?.value
+    if (!errs || typeof errs !== 'object') return list
+    for (const [field, messages] of Object.entries(errs)) {
+        if (!Array.isArray(messages)) continue
+        const label = field === '_general' ? 'Error' : field
+        messages.forEach(msg => list.push({ field: label, message: msg }))
     }
     return list
 })
@@ -223,16 +226,26 @@ async function handleSubmit() {
 
         emit('saved')
     } catch (err) {
+        console.error('Full error response:', err.response?.data)
+
         if (err.response?.status === 422) {
-            errors.value = err.response.data.errors
-            console.error('Validation failed:', err.response.data.errors)
+            // Defensive: data.errors might not exist
+            const validationErrors = err.response?.data?.errors
+
+            if (validationErrors && typeof validationErrors === 'object') {
+                errors.value = validationErrors
+            } else {
+                // Laravel returned 422 but not in standard format — show raw message
+                errors.value = {
+                    _general: [err.response?.data?.message || 'Validation failed. Check the console for details.'],
+                }
+            }
         } else if (err.response?.status === 401) {
             serverError.value = 'Your session has expired. Please log in again.'
         } else if (err.response?.data?.message) {
             serverError.value = err.response.data.message
         } else {
-            serverError.value = 'Something went wrong. Please try again.'
-            console.error('Save failed:', err)
+            serverError.value = 'Something went wrong. Check the browser console.'
         }
     } finally {
         submitting.value = false
@@ -240,7 +253,8 @@ async function handleSubmit() {
 }
 
 function fieldError(field) {
-    return errors.value[field] ? errors.value[field][0] : ''
+    if (!errors?.value?.[field]) return ''
+    return errors.value[field][0]
 }
 
 function formTitle() {
@@ -277,24 +291,6 @@ function submitLabel() {
                     </button>
                 </div>
 
-                <!-- Validation errors -->
-                <div v-if="validationErrors.length"
-                    class="mx-6 mt-4 p-4 bg-rose-500/15 border border-rose-500/30 rounded-xl">
-                    <p class="text-rose-400 text-sm font-semibold mb-2">{{ validationErrors.length }} error{{
-                        validationErrors.length > 1 ? 's' : '' }}:</p>
-                    <ul class="space-y-1">
-                        <li v-for="(err, i) in validationErrors" :key="i"
-                            class="text-rose-300 text-sm flex items-start gap-2">
-                            <span class="text-rose-500 mt-0.5">&#8226;</span>
-                            <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                                }}</span>
-                        </li>
-                    </ul>
-                </div>
-                <div v-else-if="serverError" class="mx-6 mt-4 p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl">
-                    <p class="text-rose-400 text-sm font-medium">{{ serverError }}</p>
-                </div>
-
                 <form @submit.prevent="handleSubmit" class="p-6 space-y-5">
 
                     <!-- Cover Image -->
@@ -309,7 +305,7 @@ function submitLabel() {
                                 <div v-else
                                     class="block w-full h-full flex items-center justify-center text-vault-500 text-2xl">
                                     {{ type === 'movie' ? '🎬' : type === 'book' ? '📖' : type === 'game' ? '🎮' : type
-                                    === 'tv_show' ? '📺' : '🎵' }}
+                                        === 'tv_show' ? '📺' : '🎵' }}
                                 </div>
                             </div>
                             <label class="flex-1 cursor-pointer">
@@ -627,7 +623,7 @@ function submitLabel() {
                                 @click="form.personal_rating = form.personal_rating === n ? '' : n"
                                 class="star w-7 h-7 rounded flex items-center justify-center text-sm font-bold transition-all"
                                 :class="n <= form.personal_rating ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-400 hover:bg-vault-600'">{{
-                                n }}</button>
+                                    n }}</button>
                             <span class="text-vault-400 text-sm ml-2">/ 10</span>
                         </div>
                     </div>
@@ -678,13 +674,31 @@ function submitLabel() {
                             placeholder="Any additional notes..."></textarea>
                     </div>
 
+                    <!-- Validation errors -->
+                    <div v-if="validationErrors.length"
+                        class="mx-6 mt-4 p-4 bg-rose-500/15 border border-rose-500/30 rounded-xl">
+                        <p class="text-rose-400 text-sm font-semibold mb-2">{{ validationErrors.length }} error{{
+                            validationErrors.length > 1 ? 's' : '' }}:</p>
+                        <ul class="space-y-1">
+                            <li v-for="(err, i) in validationErrors" :key="i"
+                                class="text-rose-300 text-sm flex items-start gap-2">
+                                <span class="text-rose-500 mt-0.5">&#8226;</span>
+                                <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
+                                    }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div v-else-if="serverError"
+                        class="mx-6 mt-4 p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl">
+                        <p class="text-rose-400 text-sm font-medium">{{ serverError }}</p>
+                    </div>
                     <!-- Submit -->
                     <div class="flex items-center justify-end gap-3 pt-2">
                         <button type="button" @click="emit('close')"
                             class="px-5 py-2.5 rounded-xl text-sm font-medium text-vault-300 hover:text-white hover:bg-vault-700 transition-all">Cancel</button>
                         <button type="submit" :disabled="submitting"
                             class="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-ember-500 text-white font-semibold rounded-xl hover:from-amber-400 hover:to-ember-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm">{{
-                            submitLabel() }}</button>
+                                submitLabel() }}</button>
                     </div>
                 </form>
             </div>

@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Book;
 use App\Models\CollectionItem;
-use App\Models\Game;
 use App\Models\Movie;
+use App\Models\Book;
+use App\Models\Game;
 use App\Models\Music;
 use App\Models\TvShow;
 use Illuminate\Http\JsonResponse;
@@ -17,17 +17,34 @@ use Illuminate\Support\Facades\Storage;
 
 class CollectionController extends Controller
 {
+    private function getModelClass(string $type): string
+    {
+        return match ($type) {
+            'movie' => Movie::class,
+            'book' => Book::class,
+            'game' => Game::class,
+            'music' => Music::class,
+            'tv_show' => TvShow::class,
+            default => Movie::class,
+        };
+    }
+
     private function formatItem(CollectionItem $item): array
     {
         $typeKey = $item->type;
-        $details = $item->$typeKey ?? null;
+        $details = null;
+
+        // Get detail from the manually attached relation
+        if ($item->relationLoaded($typeKey)) {
+            $details = $item->getRelation($typeKey);
+        }
 
         return [
             'id' => $item->id,
             'type' => $item->type,
             'title' => $item->title,
             'cover_image' => $item->cover_image,
-            'barcode' => $item->barcode,              // <-- ADD THIS
+            'barcode' => $item->barcode,
             'purchase_date' => $item->purchase_date?->format('Y-m-d'),
             'purchase_price' => $item->purchase_price,
             'condition' => $item->condition,
@@ -46,24 +63,24 @@ class CollectionController extends Controller
         }
 
         $query = CollectionItem::where('user_id', Auth::id())
-            ->where('type', $type)
-            ->with($type);
+            ->where('type', $type);
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
+        $modelClass = $this->getModelClass($type);
+
         if ($request->filled('format')) {
-            // $query->whereHas($type, fn($q) => $q->where('format', $request->format));
-            $query->whereHas($type, fn($q) => $q->where('format', $request->input('format')));
+            $query->whereHas('details', fn($q) => $q->where('format', $request->format));
         }
 
         if ($type === 'game' && $request->filled('platform')) {
-            $query->whereHas('game', fn($q) => $q->where('platform', $request->platform));
+            $query->whereHas('details', fn($q) => $q->where('platform', $request->platform));
         }
 
         if ($type === 'tv_show' && $request->filled('watch_status')) {
-            $query->whereHas('tvShow', fn($q) => $q->where('watch_status', $request->watch_status));
+            $query->whereHas('details', fn($q) => $q->where('watch_status', $request->watch_status));
         }
 
         if ($request->filled('search')) {
@@ -71,33 +88,39 @@ class CollectionController extends Controller
             $query->where(function ($q) use ($search, $type) {
                 $q->where('title', 'LIKE', "%{$search}%");
                 if ($type === 'book') {
-                    $q->orWhereHas('book', fn($sq) => $sq->where('author', 'LIKE', "%{$search}%"));
+                    $q->orWhereHas('details', fn($sq) => $sq->where('author', 'LIKE', "%{$search}%"));
                 }
                 if ($type === 'movie') {
-                    $q->orWhereHas('movie', fn($sq) => $sq->where('director', 'LIKE', "%{$search}%"));
+                    $q->orWhereHas('details', fn($sq) => $sq->where('director', 'LIKE', "%{$search}%"));
                 }
                 if ($type === 'music') {
-                    $q->orWhereHas('music', fn($sq) => $sq->where('artist', 'LIKE', "%{$search}%"));
+                    $q->orWhereHas('details', fn($sq) => $sq->where('artist', 'LIKE', "%{$search}%"));
                 }
             });
         }
 
-        // $sortBy = $request->get('sort_by', 'created_at');
-        $sortBy = $request->input('sort_by', 'created_at');
-        $sortDir = $request->input('sort_dir', 'desc');
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortDir = $request->get('sort_dir', 'desc');
         if (in_array($sortBy, ['title', 'purchase_date', 'purchase_price', 'created_at'])) {
             $query->orderBy($sortBy, $sortDir);
         }
 
-        $items = $query->paginate($request->input('per_page', 24));
-        $items->getCollection()->transform(fn($item) => $this->formatItem($item));
+        $items = $query->paginate($request->get('per_page', 24));
+
+        // Manually load details — NO ->load() or ->with()
+        if ($items->isNotEmpty()) {
+            $ids = $items->pluck('id');
+            $details = $modelClass::whereIn('collection_item_id', $ids)->get()->keyBy('collection_item_id');
+            $items->each(fn($item) => $item->setRelation($type, $details->get($item->id)));
+            $items->getCollection()->transform(fn($item) => $this->formatItem($item));
+        }
 
         return response()->json($items);
     }
 
     public function store(Request $request, string $type): JsonResponse
     {
-        $validTypes = ['movie', 'book', 'game', 'music'];
+        $validTypes = ['movie', 'book', 'game', 'music', 'tv_show'];
         if (!in_array($type, $validTypes)) {
             return response()->json(['message' => 'Invalid collection type'], 422);
         }
@@ -107,25 +130,19 @@ class CollectionController extends Controller
         $validated = $request->validate($rules);
 
         return DB::transaction(function () use ($validated, $type, $request) {
-            // Handle cover upload
             $coverImage = null;
-
-            // Priority 1: cover already downloaded during barcode lookup
             if ($request->filled('existing_cover')) {
                 $coverImage = $request->input('existing_cover');
-            }
-            // Priority 2: user uploaded a new file
-            elseif ($request->hasFile('cover_image')) {
+            } elseif ($request->hasFile('cover_image')) {
                 $coverImage = $request->file('cover_image')->store('covers', 'public');
             }
-            // Priority 3: editing and no new cover — keep existing (handled by not setting $coverImage)
 
             $item = CollectionItem::create([
                 'user_id' => Auth::id(),
                 'type' => $type,
                 'title' => $validated['title'],
                 'cover_image' => $coverImage,
-                'barcode' => $validated['barcode'] ?? null,  // <-- ADD THIS
+                'barcode' => $validated['barcode'] ?? null,
                 'purchase_date' => $validated['purchase_date'] ?? null,
                 'purchase_price' => $validated['purchase_price'] ?? null,
                 'condition' => $validated['condition'] ?? 'near_mint',
@@ -133,29 +150,21 @@ class CollectionController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            // Extract type-specific fields (everything NOT in the base list)
-            $baseFields = ['title', 'cover_image', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes'];
+            $baseFields = ['title', 'barcode', 'cover_image', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes'];
             $detailData = array_filter(
                 $validated,
                 fn($key) => !in_array($key, $baseFields),
                 ARRAY_FILTER_USE_KEY
             );
 
-            $modelClass = match ($type) {
-                'movie' => Movie::class,
-                'book' => Book::class,
-                'game' => Game::class,
-                'music' => Music::class,
-                'tv_show' => TvShow::class,
-            };
-
-            $modelClass::create([
+            $modelClass = $this->getModelClass($type);
+            $detail = $modelClass::create([
                 'collection_item_id' => $item->id,
                 ...$detailData,
             ]);
 
-            // Reload with the detail relation
-            $item->load($type);
+            // Attach detail manually — NO ->load()
+            $item->setRelation($type, $detail);
 
             return response()->json($this->formatItem($item), 201);
         });
@@ -163,19 +172,32 @@ class CollectionController extends Controller
 
     public function show(string $type, int $id): JsonResponse
     {
+        $validTypes = ['movie', 'book', 'game', 'music', 'tv_show'];
+        if (!in_array($type, $validTypes)) {
+            return response()->json(['message' => 'Invalid collection type'], 422);
+        }
+
         $item = CollectionItem::where('user_id', Auth::id())
             ->where('type', $type)
-            ->with($type)
             ->findOrFail($id);
+
+        // Fetch detail manually — NO ->load()
+        $modelClass = $this->getModelClass($type);
+        $detail = $modelClass::where('collection_item_id', $item->id)->first();
+        $item->setRelation($type, $detail);
 
         return response()->json($this->formatItem($item));
     }
 
     public function update(Request $request, string $type, int $id): JsonResponse
     {
+        $validTypes = ['movie', 'book', 'game', 'music', 'tv_show'];
+        if (!in_array($type, $validTypes)) {
+            return response()->json(['message' => 'Invalid collection type'], 422);
+        }
+
         $item = CollectionItem::where('user_id', Auth::id())
             ->where('type', $type)
-            ->with($type)
             ->findOrFail($id);
 
         $rules = $this->getValidationRules($type);
@@ -183,7 +205,6 @@ class CollectionController extends Controller
         $validated = $request->validate($rules);
 
         return DB::transaction(function () use ($item, $validated, $type, $request) {
-            // Handle cover replacement
             $coverImage = $item->cover_image;
 
             if ($request->filled('existing_cover')) {
@@ -195,11 +216,10 @@ class CollectionController extends Controller
                 $coverImage = $request->file('cover_image')->store('covers', 'public');
             }
 
-            // Single update — no double-save
             $item->update([
                 'title' => $validated['title'] ?? $item->title,
                 'cover_image' => $coverImage,
-                'barcode' => $validated['barcode'] ?? $item->barcode,  // <-- ADD THIS
+                'barcode' => $validated['barcode'] ?? $item->barcode,
                 'purchase_date' => $validated['purchase_date'] ?? $item->purchase_date,
                 'purchase_price' => $validated['purchase_price'] ?? $item->purchase_price,
                 'condition' => $validated['condition'] ?? $item->condition,
@@ -207,8 +227,7 @@ class CollectionController extends Controller
                 'notes' => $validated['notes'] ?? $item->notes,
             ]);
 
-            // Update type-specific detail
-            $baseFields = ['title', 'cover_image', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes'];
+            $baseFields = ['title', 'barcode', 'cover_image', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes'];
             $detailData = array_filter(
                 $validated,
                 fn($key) => !in_array($key, $baseFields),
@@ -216,11 +235,14 @@ class CollectionController extends Controller
             );
 
             if (!empty($detailData)) {
-                $item->$type->update($detailData);
+                $modelClass = $this->getModelClass($type);
+                $modelClass::where('collection_item_id', $item->id)->update($detailData);
             }
 
-            // Reload fresh
-            $item->load($type);
+            // Fetch detail manually — NO ->load()
+            $modelClass = $this->getModelClass($type);
+            $detail = $modelClass::where('collection_item_id', $item->id)->first();
+            $item->setRelation($type, $detail);
 
             return response()->json($this->formatItem($item));
         });
@@ -228,6 +250,11 @@ class CollectionController extends Controller
 
     public function destroy(string $type, int $id): JsonResponse
     {
+        $validTypes = ['movie', 'book', 'game', 'music', 'tv_show'];
+        if (!in_array($type, $validTypes)) {
+            return response()->json(['message' => 'Invalid collection type'], 422);
+        }
+
         $item = CollectionItem::where('user_id', Auth::id())
             ->where('type', $type)
             ->findOrFail($id);
@@ -236,8 +263,9 @@ class CollectionController extends Controller
             Storage::disk('public')->delete($item->cover_image);
         }
 
-        // hasOne cascade: delete the detail row first, then the base row
-        $item->$type()->delete();
+        // Delete detail manually — NO ->load()
+        $modelClass = $this->getModelClass($type);
+        $modelClass::where('collection_item_id', $item->id)->delete();
         $item->delete();
 
         return response()->json(['message' => 'Item deleted successfully']);

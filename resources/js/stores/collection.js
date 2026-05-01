@@ -1,3 +1,4 @@
+// resources/js/stores/collection.js
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import api from "../api";
@@ -15,7 +16,10 @@ export const useCollectionStore = defineStore("collection", () => {
     async function fetchItems(type, params = {}) {
         loading.value = true;
         try {
-            const { data } = await api.get(`/collection/${type}`, { params });
+            const { data } = await api.get(`/collection/${type}`, {
+                params,
+                timeout: 15000,
+            });
             items.value = data.data;
             pagination.value = {
                 current_page: data.current_page,
@@ -31,23 +35,25 @@ export const useCollectionStore = defineStore("collection", () => {
     }
 
     async function createItem(type, formData) {
-        // Do NOT set Content-Type — let axios handle the boundary
-        const { data } = await api.post(`/collection/${type}`, formData);
+        const { data } = await api.post(`/collection/${type}`, formData, {
+            timeout: 15000,
+        });
         items.value.unshift(data);
         return data;
     }
 
     async function updateItem(type, id, formData) {
         formData.append("_method", "PUT");
-        // Do NOT set Content-Type — let axios handle the boundary
-        const { data } = await api.post(`/collection/${type}/${id}`, formData);
+        const { data } = await api.post(`/collection/${type}/${id}`, formData, {
+            timeout: 15000,
+        });
         const idx = items.value.findIndex((i) => i.id === id);
         if (idx !== -1) items.value[idx] = data;
         return data;
     }
 
     async function deleteItem(type, id) {
-        await api.delete(`/collection/${type}/${id}`);
+        await api.delete(`/collection/${type}/${id}`, { timeout: 15000 });
         items.value = items.value.filter((i) => i.id !== id);
     }
 
