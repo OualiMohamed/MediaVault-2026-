@@ -1,5 +1,7 @@
 // resources/js/composables/useNetworkLogo.js
 import { ref } from "vue";
+import api from "../api";
+
 const cache = new Map();
 
 export function useNetworkLogo() {
@@ -14,7 +16,6 @@ export function useNetworkLogo() {
 
         const cacheKey = networkName.toLowerCase().trim();
 
-        // Return cached result immediately
         if (cache.has(cacheKey)) {
             logoUrl.value = cache.get(cacheKey);
             return;
@@ -23,34 +24,15 @@ export function useNetworkLogo() {
         loading.value = true;
 
         try {
-            const res = await fetch(
-                `https://api.tvmaze.com/search/shows?q=${encodeURIComponent(showTitle)}`,
-            );
-            const data = await res.json();
+            const { data } = await api.get("/network-logo", {
+                params: {
+                    show: showTitle,
+                    network: networkName,
+                },
+            });
 
-            // Find the best match — prefer exact network name match
-            const match =
-                data.find((item) => {
-                    const netName = item.show?.network?.name;
-                    if (!netName) return false;
-                    return netName.toLowerCase() === cacheKey;
-                }) ||
-                data.find((item) => {
-                    const netName = item.show?.network?.name;
-                    if (!netName) return false;
-                    return (
-                        netName.toLowerCase().includes(cacheKey) ||
-                        cacheKey.includes(netName.toLowerCase())
-                    );
-                });
-
-            const url =
-                match?.show?.network?.image?.medium ||
-                match?.show?.network?.image?.original ||
-                null;
-
-            logoUrl.value = url;
-            cache.set(cacheKey, url);
+            logoUrl.value = data.logo || null;
+            cache.set(cacheKey, data.logo || null);
         } catch (e) {
             logoUrl.value = null;
         } finally {
