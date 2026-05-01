@@ -33,7 +33,6 @@ const subtitle = computed(() => {
         const d = props.item.details
         if (!d) return ''
         const parts = []
-        if (d.network) parts.push(d.network)
         if (d.seasons && d.seasons.length > 0) {
             parts.push(`${d.seasons.length} season${d.seasons.length > 1 ? 's' : ''}`)
         } else if (d.release_year) {

@@ -15,7 +15,7 @@ const loading = ref(true)
 const error = ref('')
 const showEditModal = ref(false)
 const showTrailer = ref(false)
-const { logoUrl: networkLogo, loading: logoLoading, fetchLogo: fetchNetworkLogo } = useNetworkLogo()
+const { logoUrl: networkLogo, loading: logoLoading, fetchLogo: fetchNetworkLogo, clear: clearNetworkLogo } = useNetworkLogo()
 
 const type = computed(() => {
     const raw = route.params.type
@@ -192,7 +192,7 @@ watch(
         if (type.value === 'tv_show' && title && network) {
             fetchNetworkLogo(title, network)
         } else {
-            fetchNetworkLogo.clear()
+            clearNetworkLogo()
         }
     },
     { immediate: true }
@@ -263,8 +263,7 @@ watch(
                                     class="text-vault-300 text-lg mt-2 flex items-center gap-2">
                                     <img v-if="type === 'tv_show' && item.details?.network && networkLogo"
                                         :src="networkLogo" :alt="item.details.network"
-                                        class="w-6 h-6 object-contain rounded opacity-80"
-                                        @error="fetchNetworkLogo.clear()" />
+                                        class="w-6 h-6 object-contain rounded opacity-80" @error="clearNetworkLogo()" />
                                     <template v-if="item.details.director">{{ item.details.director }}</template>
                                     <template v-if="item.details.author">{{ item.details.author }}</template>
                                     <template v-if="item.details.artist">{{ item.details.artist }}</template>
@@ -338,7 +337,7 @@ watch(
                                 <template v-else-if="row.label === 'Network' && type === 'tv_show' && networkLogo"
                                     class="flex items-center gap-2">
                                     <img :src="networkLogo" :alt="row.value" class="w-8 h-8 object-contain rounded"
-                                        @error="fetchNetworkLogo.clear()" />
+                                        @error="clearNetworkLogo()" />
                                     <span class="text-white text-sm font-medium">{{ row.value }}</span>
                                 </template>
                                 <template v-else-if="row.label === 'Network' && type === 'tv_show' && logoLoading"
