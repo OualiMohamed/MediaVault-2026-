@@ -17,6 +17,7 @@ class Movie extends Model
         'personal_rating',
         'release_year',
         'imdb_id',
+        'trailer_url',
     ];
 
     // cast attributes to appropriate data types

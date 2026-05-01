@@ -20,6 +20,7 @@ class TvShow extends Model
         'watch_status',
         'current_season',
         'current_episode',
+        'trailer_url',
     ];
 
     protected $casts = [
