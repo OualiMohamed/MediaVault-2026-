@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\BarcodeLookupController;
 use App\Http\Controllers\Api\CollectionController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\NetworkLogoController;
+use App\Http\Controllers\Api\TmdbController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -26,4 +27,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // routes/api.php — add inside the auth:sanctum group
     Route::post('/barcode/lookup', [BarcodeLookupController::class, 'lookup']);
     Route::get('/network-logo', [NetworkLogoController::class, 'lookup']);
+
+    Route::post('/tmdb/search', [TmdbController::class, 'search']);
+    Route::post('/tmdb/details', [TmdbController::class, 'details']);
 });
