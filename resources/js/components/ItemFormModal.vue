@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { useCollectionStore } from '../stores/collection'
 import api from '../api'
 import BarcodeScanner from './BarcodeScanner.vue'
+import TmdbSearchModal from './TmdbSearchModal.vue'
 
 const props = defineProps({
     type: { type: String, required: true },
@@ -22,6 +23,8 @@ const lookupLoading = ref(false)
 const lookupMessage = ref('')
 const existingCover = ref('')
 const seasons = ref([{ season: 1, format: 'Digital' }])
+const showTmdbSearch = ref(false)
+const tmdbMessage = ref('')
 
 const isEditing = computed(() => !!props.item)
 
@@ -196,6 +199,31 @@ async function manualLookup() {
     if (!form.barcode) return
     if (props.type !== 'book' && props.type !== 'music') return
     await handleBarcodeScanned(form.barcode)
+}
+
+async function applyTmdbData(data) {
+    showTmdbSearch.value = false
+    tmdbMessage.value = ''
+    existingCover.value = ''
+
+    if (data.title) form.title = data.title
+    if (data.director) form.director = data.director
+    if (data.network) form.network = data.network
+    if (data.genre) form.genre = data.genre
+    if (data.release_year) form.release_year = data.release_year
+    if (data.runtime_minutes) form.runtime_minutes = data.runtime_minutes
+    if (data.total_seasons) form.total_seasons = data.total_seasons
+    if (data.overview) form.notes = data.overview
+    if (data.trailer_url) form.trailer_url = data.trailer_url
+    if (data.imdb_id) form.imdb_id = data.imdb_id
+
+    if (data.cover_image) {
+        existingCover.value = data.cover_image
+        coverPreview.value = '/storage/' + data.cover_image
+        tmdbMessage.value = 'Auto-filled from TMDB — poster downloaded'
+    } else {
+        tmdbMessage.value = 'Auto-filled from TMDB'
+    }
 }
 
 async function handleSubmit() {
@@ -385,6 +413,32 @@ function removeSeason(index) {
                             <span class="text-xs" :class="existingCover ? 'text-emerald-400' : 'text-amber-400'">{{
                                 lookupMessage }}</span>
                         </div>
+                    </div>
+
+                    <!-- ═══ TMDB Auto-fill ═══ -->
+                    <div class="mt-4">
+                        <button v-if="type === 'movie' || type === 'tv_show'" @click="showTmdbSearch = true"
+                            type="button"
+                            class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-sky-500/15 border border-sky-500/30 text-sky-400 rounded-xl text-sm font-medium hover:bg-sky-500/25 hover:border-sky-500/50 transition-all">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                    d="M4 4a2 2 0 012-2V4m0 16a2 2 0 01-2 2H6a2 2 0 01-2-2V6m0-16a2 2 0 012-2H4m6 16h10a2 2 0 002 2v4a2 2 0 002 2H6a2 2 0 002-2V6a2 2 0 00-2-2H4" />
+                            </svg>
+                            Auto-fill from TMDB
+                        </button>
+                        <p class="text-vault-500 text-xs mt-1.5 text-center">Search by title to auto-fill details and
+                            poster</p>
+                    </div>
+
+                    <!-- TMDB success message — add right after the barcode lookup message block -->
+                    <div v-if="tmdbMessage" class="mt-2 flex items-center gap-2">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0 text-sky-400" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 12l2 2 4-4m6 2a2 2 0 012-2H4m6 0h8a2 2 0 002 2v4a2 2 0 002-2H6a2 2 0 00-2-2H4" />
+                        </svg>
+                        <span class="text-xs" :class="existingCover ? 'text-sky-400' : 'text-amber-400'">{{ tmdbMessage
+                        }}</span>
                     </div>
 
                     <!-- Title -->
@@ -828,5 +882,9 @@ function removeSeason(index) {
         </div>
     </transition>
 
+    <!-- Barcode Scanner Modal -->
     <BarcodeScanner v-if="showScanner" @scanned="handleBarcodeScanned" @close="showScanner = false" />
+
+    <!-- TMDB Search Modal -->
+    <TmdbSearchModal :open="showTmdbSearch" @close="showTmdbSearch = false" @selected="applyTmdbData" />
 </template>

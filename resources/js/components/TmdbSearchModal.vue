@@ -1,4 +1,3 @@
-<!-- resources/js/components/TmdbSearchModal.vue -->
 <script setup>
 import { ref, watch } from 'vue'
 import api from '../api'
@@ -69,7 +68,6 @@ function onOverlayClick(e) {
     if (e.target === e.currentTarget) handleClose()
 }
 
-// Auto-focus search input when opened
 watch(() => props.open, (val) => {
     if (val) {
         setTimeout(() => searchInput.value?.focus(), 100)
@@ -124,77 +122,88 @@ watch(() => props.open, (val) => {
                             </svg>
                         </button>
                     </div>
-                    <p class="text-vault-500 text-xs mt-1.5">Type at least 2 characters. Results come from The Movie
+                    <p class="text-vault-500 text-xs mt-1.5">Type at least 2 characters. Results from The Movie
                         Database.</p>
                 </div>
 
-                <!-- Error -->
-                <div v-if="error" class="mx-5 mt-3">
-                    <div class="p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl">
-                        <p class="text-rose-400 text-sm">{{ error }}</p>
+                <!-- Scrollable body -->
+                <div class="flex-1 overflow-y-auto px-5 py-4">
+
+                    <!-- Error -->
+                    <div v-if="error" class="mb-4">
+                        <div class="p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl">
+                            <p class="text-rose-400 text-sm">{{ error }}</p>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Loading -->
-                <div v-else-if="loading" class="flex items-center justify-center py-16">
-                    <div class="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
-                    <span class="ml-3 text-vault-300 text-sm">Searching...</span>
-                </div>
-
-                <!-- No results -->
-                <div v-else-if="query.length >= 2 && !results.length" class="text-center py-12 px-5">
-                    <p class="text-vault-300 text-sm">No results found for "{{ query }}"</p>
-                    <p class="text-vault-500 text-xs mt-1">Try a different title or check the spelling</p>
-                </div>
-
-                <!-- Waiting for input -->
-                <div v-else class="text-center py-12 px-5">
-                    <div class="w-14 h-14 rounded-2xl bg-vault-700 flex items-center justify-center mx-auto mb-3">
-                        <svg class="w-7 h-7 text-vault-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                            stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 4v16M17 4v16M3 12h18M7 8h10" />
-                        </svg>
+                    <!-- Loading -->
+                    <div v-else-if="loading" class="flex items-center justify-center py-16">
+                        <div class="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin">
+                        </div>
+                        <span class="ml-3 text-vault-300 text-sm">Searching...</span>
                     </div>
-                    <p class="text-vault-400 text-sm">Search for a movie or TV show to auto-fill details</p>
-                </div>
 
-                <!-- Results list -->
-                <div v-else class="flex-1 overflow-y-auto px-3 pb-3">
-                    <p class="text-vault-400 text-xs font-medium px-2 pt-2 pb-2 border-b border-vault-700 mb-2">
-                        {{ results.length }} result{{ results.length !== 1 ? 's' : '' }} found
-                    </p>
+                    <!-- No results -->
+                    <div v-else-if="query.length >= 2 && !results.length" class="text-center py-12">
+                        <p class="text-vault-300 text-sm">No results found for "{{ query }}"</p>
+                        <p class="text-vault-500 text-xs mt-1">Try a different title or check the spelling</p>
+                    </div>
 
-                    <button v-for="item in results" :key="item.id" @click="selectItem(item)"
-                        class="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-vault-700/70 transition-colors text-left cursor-pointer group">
-                        <!-- Poster thumbnail -->
-                        <div
-                            class="w-12 h-[72px] rounded-lg bg-vault-700 overflow-hidden flex-shrink-0 border border-vault-600">
-                            <img v-if="item.poster_url" :src="item.poster_url" :alt="item.title"
-                                class="w-full h-full object-cover" loading="lazy" />
-                            <div v-else class="w-full h-full flex items-center justify-center text-vault-600 text-lg">
-                                {{ type === 'tv_show' ? '📺' : '🎬' }}
-                            </div>
+                    <!-- Results OR empty — single v-else -->
+                    <div v-else>
+                        <!-- Show result count when we have results -->
+                        <p v-if="results.length > 0"
+                            class="text-vault-400 text-xs font-medium px-2 pb-2 mb-3 border-b border-vault-700">
+                            {{ results.length }} result{{ results.length !== 1 ? 's' : '' }} found
+                        </p>
+
+                        <!-- Results list -->
+                        <div class="space-y-1">
+                            <button v-for="item in results" :key="item.id" @click="selectItem(item)"
+                                class="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-vault-700/70 transition-colors text-left cursor-pointer group">
+                                <div
+                                    class="w-12 h-[72px] rounded-lg bg-vault-700 overflow-hidden flex-shrink-0 border border-vault-600">
+                                    <img v-if="item.poster_url" :src="item.poster_url" :alt="item.title"
+                                        class="w-full h-full object-cover" loading="lazy" />
+                                    <div v-else
+                                        class="w-full h-full flex items-center justify-center text-vault-600 text-lg">
+                                        {{ props.open === 'tv_show' ? '📺' : '🎬' }}
+                                    </div>
+                                </div>
+
+                                <div class="flex-1 min-w-0">
+                                    <p
+                                        class="text-white text-sm font-medium truncate group-hover:text-sky-400 transition-colors">
+                                        {{ item.title }}</p>
+                                    <div class="flex items-center gap-2 mt-0.5">
+                                        <span v-if="item.year" class="text-vault-500 text-xs">{{ item.year }}</span>
+                                        <span v-if="item.year && item.overview" class="text-vault-600">&middot;</span>
+                                        <span v-if="item.overview" class="text-vault-500 text-xs truncate">{{
+                                            item.overview.substring(0, 60) }}...</span>
+                                    </div>
+                                </div>
+
+                                <svg class="w-4 h-4 text-vault-600 group-hover:text-sky-400 transition-colors flex-shrink-0"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
                         </div>
 
-                        <!-- Info -->
-                        <div class="flex-1 min-w-0">
-                            <p
-                                class="text-white text-sm font-medium truncate group-hover:text-sky-400 transition-colors">
-                                {{ item.title }}</p>
-                            <div class="flex items-center gap-2 mt-0.5">
-                                <span v-if="item.year" class="text-vault-500 text-xs">{{ item.year }}</span>
-                                <span v-if="item.year && item.overview" class="text-vault-600">&middot;</span>
-                                <span v-if="item.overview" class="text-vault-500 text-xs truncate">{{
-                                    item.overview.substring(0, 60) }}...</span>
+                        <!-- Empty state (less than 2 chars typed) -->
+                        <div v-if="query.length < 2" class="text-center py-12">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-vault-700 flex items-center justify-center mx-auto mb-3">
+                                <svg class="w-7 h-7 text-vault-500" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="1.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M7 4v16M17 4v16M3 12h18M7 8h10" />
+                                </svg>
                             </div>
+                            <p class="text-vault-400 text-sm">Search for a movie or TV show to auto-fill details</p>
                         </div>
+                    </div>
 
-                        <!-- Arrow -->
-                        <svg class="w-4 h-4 text-vault-600 group-hover:text-sky-400 transition-colors flex-shrink-0"
-                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </button>
                 </div>
             </div>
         </div>
@@ -209,7 +218,7 @@ watch(() => props.open, (val) => {
 }
 
 .tmdb-modal-enter-from,
-.tmdb-modal-leave-to {
+.tmdb-leave-to {
     opacity: 0;
     transform: scaleY(0.95) translateY(-8px);
 }
