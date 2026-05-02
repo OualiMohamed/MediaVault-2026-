@@ -1,6 +1,5 @@
-<!-- resources/js/views/ItemDetailView.vue -->
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import ItemFormModal from '../components/ItemFormModal.vue'
@@ -15,7 +14,7 @@ const loading = ref(true)
 const error = ref('')
 const showEditModal = ref(false)
 const showTrailer = ref(false)
-const { logoUrl: networkLogo, loading: logoLoading, fetchLogo: fetchNetworkLogo, clear: clearNetworkLogo } = useNetworkLogo()
+const { logoUrl: networkLogo, loading: logoLoading, fetchLogo: fetchNetworkLogo, clear: clearNetworkLogo, dispose: disposeNetworkLogo } = useNetworkLogo()
 
 const type = computed(() => {
     const raw = route.params.type
@@ -58,8 +57,7 @@ const ratingPercent = computed(() => {
 })
 
 const ratingOffset = computed(() => {
-    const circumference = 2 * Math.PI * 38
-    return circumference - (ratingPercent.value / 100) * circumference
+    return 2 * Math.PI * 38 - (ratingPercent.value / 100) * 2 * Math.PI * 38
 })
 
 const ratingColor = computed(() => {
@@ -150,13 +148,7 @@ const coverUrl = computed(() => {
 })
 
 function goBack() {
-    const pathMap = {
-        movie: '/movies',
-        book: '/books',
-        game: '/games',
-        music: '/music',
-        tv_show: '/tv-shows',
-    }
+    const pathMap = { movie: '/movies', book: '/books', game: '/games', music: '/music', tv_show: '/tv-shows' }
     router.push(pathMap[type.value] || '/')
 }
 
@@ -183,6 +175,8 @@ function handleEditSaved() {
     fetchItem()
 }
 
+onBeforeUnmount(() => disposeNetworkLogo())
+
 onMounted(fetchItem)
 watch(() => route.params.id, fetchItem)
 
@@ -201,12 +195,10 @@ watch(
 
 <template>
     <div class="min-h-screen">
-        <!-- Loading -->
         <div v-if="loading" class="flex items-center justify-center py-40">
             <div class="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
 
-        <!-- Error -->
         <div v-else-if="error" class="max-w-lg mx-auto px-4 py-20 text-center">
             <p class="text-rose-400 text-lg mb-4">{{ error }}</p>
             <button @click="goBack"
@@ -214,9 +206,7 @@ watch(
                 Back</button>
         </div>
 
-        <!-- Detail Page -->
         <div v-else-if="item" class="relative">
-            <!-- Blurred Background -->
             <div class="absolute inset-0 h-[500px] overflow-hidden">
                 <div v-if="coverUrl" class="absolute inset-0">
                     <img :src="coverUrl" class="w-full h-full object-cover scale-110 blur-2xl opacity-30" />
@@ -224,7 +214,6 @@ watch(
                 <div class="absolute inset-0 bg-gradient-to-b from-vault-950/60 via-vault-950/80 to-vault-950"></div>
             </div>
 
-            <!-- Back Button -->
             <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-6">
                 <button @click="goBack"
                     class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-vault-800/60 backdrop-blur-sm border border-vault-600/50 text-vault-300 hover:text-white hover:bg-vault-700/60 transition-all text-sm">
@@ -235,11 +224,8 @@ watch(
                 </button>
             </div>
 
-            <!-- Main Content -->
             <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-16">
                 <div class="flex flex-col lg:flex-row gap-8 lg:gap-12">
-
-                    <!-- Poster -->
                     <div class="flex-shrink-0 mx-auto lg:mx-0">
                         <div
                             class="w-64 sm:w-72 lg:w-80 rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-vault-600/30">
@@ -252,23 +238,21 @@ watch(
                         </div>
                     </div>
 
-                    <!-- Info -->
                     <div class="flex-1 min-w-0">
                         <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
                             <div>
                                 <h1
                                     class="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight">
                                     {{ item.title }}</h1>
-                                <p v-if="item.details?.director || item.details?.author || item.details?.artist || item.details?.network"
-                                    class="text-vault-300 text-lg mt-2 flex items-center gap-2">
+                                <p class="text-vault-300 text-lg mt-2 flex items-center gap-2">
                                     <img v-if="type === 'tv_show' && item.details?.network && networkLogo"
                                         :src="networkLogo" :alt="item.details.network"
-                                        class="w-6 h-6 object-contain rounded opacity-80" @error="clearNetworkLogo()" />
-                                    <template v-if="item.details.director">{{ item.details.director }}</template>
-                                    <template v-if="item.details.author">{{ item.details.author }}</template>
-                                    <template v-if="item.details.artist">{{ item.details.artist }}</template>
-                                    <template v-if="item.details.network">{{ item.details.network }}</template>
-                                </p>>
+                                        class="w-6 h-6 object-contain rounded opacity-80 flex-shrink-0" />
+                                    <span v-if="item.details?.director">{{ item.details.director }}</span>
+                                    <span v-if="item.details?.author">{{ item.details.author }}</span>
+                                    <span v-if="item.details?.artist">{{ item.details.artist }}</span>
+                                    <span v-if="item.details?.network">{{ item.details.network }}</span>
+                                </p>
                             </div>
                             <div v-if="item.details?.personal_rating"
                                 class="flex-shrink-0 flex items-center justify-center"
@@ -282,39 +266,37 @@ watch(
                                     </svg>
                                     <div class="absolute inset-0 flex items-center justify-center">
                                         <span class="text-lg font-bold" :style="{ color: ratingColor }">{{ ratingPercent
-                                            }}%</span>
+                                        }}%</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Tags -->
                         <div v-if="tags.length" class="flex flex-wrap gap-2 mb-6">
                             <span v-for="(tag, i) in tags" :key="i"
-                                :class="['px-3 py-1 rounded-full text-xs font-medium', tag.color]">{{
-                                    tag.label }}</span>
+                                :class="['px-3 py-1 rounded-full text-xs font-medium', tag.color]">{{ tag.label
+                                }}</span>
                             <span v-if="item.status"
-                                :class="['px-3 py-1 rounded-full text-xs font-medium border', statusColors[item.status] || '']">
-                                {{ item.status.charAt(0).toUpperCase() + item.status.slice(1) }}
-                            </span>
+                                :class="['px-3 py-1 rounded-full text-xs font-medium border', statusColors[item.status] || '']">{{
+                                    item.status.charAt(0).toUpperCase() + item.status.slice(1) }}</span>
                             <span v-if="type === 'tv_show' && item.details?.watch_status"
-                                :class="['px-3 py-1 rounded-full text-xs font-medium border', watchStatusColors[item.details.watch_status] || '']">
-                                {{ item.details.watch_status === 'plan_to_watch' ? 'Plan to Watch' :
-                                    item.details.watch_status.charAt(0).toUpperCase() + item.details.watch_status.slice(1)
-                                }}
-                            </span>
+                                :class="['px-3 py-1 rounded-full text-xs font-medium border', watchStatusColors[item.details.watch_status] || '']">{{
+                                    item.details.watch_status === 'plan_to_watch' ? 'Plan to Watch' :
+                                        item.details.watch_status.charAt(0).toUpperCase() + item.details.watch_status.slice(1)
+                                }}</span>
                         </div>
 
-                        <!-- Notes -->
                         <div v-if="item.notes" class="mb-8">
                             <p class="text-vault-200 text-base leading-relaxed">{{ item.notes }}</p>
                         </div>
 
+                        <!-- Metadata Grid — NO <template> wrappers, uses v-if/v-else-if on real elements -->
                         <!-- Metadata Grid -->
                         <div v-if="metadata.length" class="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-4 mb-8">
                             <div v-for="row in metadata" :key="row.label" class="flex flex-col">
                                 <span class="text-vault-500 text-xs font-medium uppercase tracking-wider mb-0.5">{{
                                     row.label }}</span>
+
                                 <a v-if="row.link" :href="row.link" target="_blank" rel="noopener"
                                     class="text-amber-400 hover:text-amber-300 text-sm font-medium transition-colors">
                                     {{ row.value }}
@@ -324,6 +306,7 @@ watch(
                                             d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                     </svg>
                                 </a>
+
                                 <button v-else-if="row.copyable" @click="navigator.clipboard.writeText(row.value)"
                                     class="text-left text-white text-sm font-mono hover:text-amber-400 transition-colors group flex items-center gap-1.5"
                                     title="Click to copy">
@@ -334,40 +317,35 @@ watch(
                                             d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                     </svg>
                                 </button>
-                                <template v-else-if="row.label === 'Network' && type === 'tv_show' && networkLogo"
-                                    class="flex items-center gap-2">
-                                    <img :src="networkLogo" :alt="row.value" class="w-8 h-8 object-contain rounded"
-                                        @error="clearNetworkLogo()" />
+
+                                <!-- Network row: completely separate branch, no nested v-if -->
+                                <div v-else-if="row.label === 'Network' && type === 'tv_show'"
+                                    class="flex items-center gap-2.5">
+                                    <img v-if="networkLogo" :src="networkLogo" :alt="row.value"
+                                        class="w-8 h-8 object-contain rounded flex-shrink-0" />
                                     <span class="text-white text-sm font-medium">{{ row.value }}</span>
-                                </template>
-                                <template v-else-if="row.label === 'Network' && type === 'tv_show' && logoLoading"
-                                    class="flex items-center gap-2">
-                                    <div class="w-8 h-8 rounded bg-vault-700 animate-pulse"></div>
-                                    <span class="text-white text-sm font-medium">{{ row.value }}</span>
-                                </template>
+                                </div>
+
+                                <!-- Default fallback -->
                                 <span v-else class="text-white text-sm font-medium">{{ row.value }}</span>
                             </div>
                         </div>
 
-                        <!-- Owned Seasons -->
                         <div v-if="type === 'tv_show' && item.details?.seasons && item.details.seasons.length > 0"
                             class="mb-8">
-                            <h3 class="text-sm font-semibold text-vault-300 uppercase tracking-wider mb-4">
-                                Owned Seasons ({{ item.details.seasons.length }} of {{ item.details.total_seasons || '?'
-                                }})
-                            </h3>
+                            <h3 class="text-sm font-semibold text-vault-300 uppercase tracking-wider mb-4">Owned Seasons
+                                ({{ item.details.seasons.length }} of {{ item.details.total_seasons || '?' }})</h3>
                             <div class="flex flex-wrap gap-2">
                                 <div v-for="s in item.details.seasons" :key="s.season"
                                     class="inline-flex items-center gap-2 px-4 py-2.5 bg-vault-800 border border-vault-600 rounded-xl">
                                     <span class="text-white font-bold text-sm">S{{ String(s.season).padStart(2, '0')
-                                        }}</span>
+                                    }}</span>
                                     <span class="w-px h-4 bg-vault-600"></span>
                                     <span class="text-vault-300 text-sm">{{ s.format }}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Collection Details -->
                         <div class="bg-vault-800/70 backdrop-blur-sm border border-vault-700 rounded-2xl p-6 mb-8">
                             <h3 class="text-sm font-semibold text-vault-300 uppercase tracking-wider mb-4">Collection
                                 Details</h3>
@@ -388,8 +366,8 @@ watch(
                                     <span
                                         class="text-vault-500 text-xs font-medium uppercase tracking-wider block mb-1">Condition</span>
                                     <span class="text-white text-sm font-medium">{{ item.condition === 'near_mint' ?
-                                        'Near Mint' :
-                                        item.condition?.charAt(0).toUpperCase() + item.condition?.slice(1) }}</span>
+                                        'Near Mint' : item.condition?.charAt(0).toUpperCase() + item.condition?.slice(1)
+                                    }}</span>
                                 </div>
                                 <div>
                                     <span
@@ -399,7 +377,6 @@ watch(
                             </div>
                         </div>
 
-                        <!-- Action Buttons -->
                         <div class="flex flex-wrap gap-3">
                             <button v-if="hasTrailer" @click.prevent="showTrailer = true"
                                 class="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-500 transition-all shadow-lg shadow-red-600/20 text-sm">
@@ -431,10 +408,8 @@ watch(
             </div>
         </div>
 
-        <!-- Trailers — outside the v-else-if block so it persists -->
         <TrailerModal :url="item?.details?.trailer_url || ''" :open="showTrailer" @close="showTrailer = false" />
 
-        <!-- Edit Modal -->
         <ItemFormModal v-if="showEditModal && item" :type="type" :item="item" @close="showEditModal = false"
             @saved="handleEditSaved" />
     </div>
