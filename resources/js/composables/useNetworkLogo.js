@@ -49,5 +49,17 @@ export function useNetworkLogo() {
         disposed = true;
     }
 
-    return { logoUrl, loading, fetchLogo, clear, dispose };
+    function proxyUrl(url) {
+        if (!url) return null;
+        try {
+            const u = new URL(url);
+            // Only proxy TMDB image URLs
+            if (!u.hostname.includes("tmdb.org")) return url;
+            return `/api/tmdb/poster?size=w185&path=${u.pathname}`;
+        } catch (e) {
+            return url;
+        }
+    }
+
+    return { logoUrl, loading, fetchLogo, clear, proxyUrl };
 }
