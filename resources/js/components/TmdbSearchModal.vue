@@ -8,6 +8,7 @@ const emit = defineEmits(['close', 'selected'])
 const query = ref('')
 const results = ref([])
 const loading = ref(false)
+const fetchingDetails = ref(false)
 const error = ref('')
 const searchInput = ref(null)
 
@@ -53,8 +54,33 @@ async function doSearch() {
     }
 }
 
-function selectItem(item) {
-    emit('selected', item)
+async function selectItem(item) {
+    fetchingDetails.value = true
+
+    try {
+        const type = props.open === 'tv_show' ? 'tv_show' : 'movie'
+        const { data } = await api.post('/tmdb/details', {
+            type,
+            tmdb_id: item.id,
+        })
+
+        if (data.error) {
+            error.value = data.error
+            fetchingDetails.value = false
+            return
+        }
+
+        // Merge the search-level poster_url as fallback
+        // (details downloads a local copy via cover_image)
+        data.poster_url = item.poster_url
+        data.tmdb_id = item.id
+
+        emit('selected', data)
+    } catch (err) {
+        error.value = 'Failed to load details. Try again.'
+    } finally {
+        fetchingDetails.value = false
+    }
 }
 
 function handleClose() {
@@ -88,8 +114,7 @@ watch(() => props.open, (val) => {
                     <div class="flex items-center gap-2.5">
                         <div class="w-8 h-8 rounded-lg bg-sky-500/15 flex items-center justify-center">
                             <svg class="w-4 h-4 text-sky-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path
-                                    d="M4 4a2 2 0 012-2V4m0 16a2 2 0 01-2 2H6a2 2 0 01-2-2V6m0-16a2 2 0 012-2H4m6 16h10a2 2 0 002 2v4a2 2 0 002 2H6a2 2 0 002-2V6a2 2 0 00-2-2H4" />
+                                <path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
                             </svg>
                         </div>
                         <h2 class="text-white font-semibold">Search TMDB</h2>
@@ -122,8 +147,8 @@ watch(() => props.open, (val) => {
                             </svg>
                         </button>
                     </div>
-                    <p class="text-vault-500 text-xs mt-1.5">Type at least 2 characters. Results from The Movie
-                        Database.</p>
+                    <p class="text-vault-500 text-xs mt-1.5">Type at least 2 characters. Select a result to auto-fill.
+                    </p>
                 </div>
 
                 <!-- Scrollable body -->
@@ -136,7 +161,7 @@ watch(() => props.open, (val) => {
                         </div>
                     </div>
 
-                    <!-- Loading -->
+                    <!-- Loading search -->
                     <div v-else-if="loading" class="flex items-center justify-center py-16">
                         <div class="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin">
                         </div>
@@ -149,18 +174,18 @@ watch(() => props.open, (val) => {
                         <p class="text-vault-500 text-xs mt-1">Try a different title or check the spelling</p>
                     </div>
 
-                    <!-- Results OR empty — single v-else -->
+                    <!-- Results -->
                     <div v-else>
-                        <!-- Show result count when we have results -->
                         <p v-if="results.length > 0"
                             class="text-vault-400 text-xs font-medium px-2 pb-2 mb-3 border-b border-vault-700">
                             {{ results.length }} result{{ results.length !== 1 ? 's' : '' }} found
                         </p>
 
-                        <!-- Results list -->
                         <div class="space-y-1">
                             <button v-for="item in results" :key="item.id" @click="selectItem(item)"
-                                class="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-vault-700/70 transition-colors text-left cursor-pointer group">
+                                :disabled="fetchingDetails"
+                                class="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-vault-700/70 transition-colors text-left cursor-pointer group disabled:opacity-50 disabled:cursor-wait">
+
                                 <div
                                     class="w-12 h-[72px] rounded-lg bg-vault-700 overflow-hidden flex-shrink-0 border border-vault-600">
                                     <img v-if="item.poster_url" :src="item.poster_url" :alt="item.title"
@@ -178,19 +203,24 @@ watch(() => props.open, (val) => {
                                     <div class="flex items-center gap-2 mt-0.5">
                                         <span v-if="item.year" class="text-vault-500 text-xs">{{ item.year }}</span>
                                         <span v-if="item.year && item.overview" class="text-vault-600">&middot;</span>
-                                        <span v-if="item.overview" class="text-vault-500 text-xs truncate">{{
-                                            item.overview.substring(0, 60) }}...</span>
+                                        <span v-if="item.overview" class="text-vault-500 text-xs truncate">
+                                            {{ item.overview.substring(0, 60) }}...
+                                        </span>
                                     </div>
                                 </div>
 
-                                <svg class="w-4 h-4 text-vault-600 group-hover:text-sky-400 transition-colors flex-shrink-0"
+                                <!-- Show spinner on the clicked item, or chevron otherwise -->
+                                <div v-if="fetchingDetails"
+                                    class="w-4 h-4 border-2 border-sky-500 border-t-transparent rounded-full animate-spin flex-shrink-0">
+                                </div>
+                                <svg v-else
+                                    class="w-4 h-4 text-vault-600 group-hover:text-sky-400 transition-colors flex-shrink-0"
                                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                                 </svg>
                             </button>
                         </div>
 
-                        <!-- Empty state (less than 2 chars typed) -->
                         <div v-if="query.length < 2" class="text-center py-12">
                             <div
                                 class="w-14 h-14 rounded-2xl bg-vault-700 flex items-center justify-center mx-auto mb-3">
@@ -204,6 +234,15 @@ watch(() => props.open, (val) => {
                         </div>
                     </div>
 
+                </div>
+
+                <!-- Fetching details footer indicator -->
+                <div v-if="fetchingDetails" class="px-5 py-3 border-t border-vault-700 flex-shrink-0 bg-vault-800">
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 border-2 border-sky-500 border-t-transparent rounded-full animate-spin">
+                        </div>
+                        <span class="text-vault-300 text-xs">Loading full details...</span>
+                    </div>
                 </div>
             </div>
         </div>

@@ -31,6 +31,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tmdb/search', [TmdbController::class, 'search']);
     Route::post('/tmdb/details', [TmdbController::class, 'details']);
 
+    Route::get('/tmdb/poster', [TmdbController::class, 'proxyPoster']);
     Route::post('/tmdb/poster', [TmdbController::class, 'poster']);
-    Route::get('/tmdb/poster', [TmdbController::class, 'poster']);
 });
