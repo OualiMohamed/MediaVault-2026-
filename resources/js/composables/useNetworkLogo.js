@@ -61,5 +61,5 @@ export function useNetworkLogo() {
         }
     }
 
-    return { logoUrl, loading, fetchLogo, clear, proxyUrl };
+    return { logoUrl, loading, fetchLogo, clear, dispose, proxyUrl };
 }
