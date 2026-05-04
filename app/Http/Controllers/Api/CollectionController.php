@@ -320,6 +320,8 @@ class CollectionController extends Controller
                 'release_year' => 'nullable|integer|min:1888|max:' . (date('Y') + 2),
                 'imdb_id' => 'nullable|string|max:20',
                 'trailer_url' => 'nullable|url|max:500',
+                'seen' => 'nullable|boolean',          // add
+                'date_seen' => 'nullable|date',         // add
             ],
             'book' => $base + [
                 'author' => 'required|string|max:255',

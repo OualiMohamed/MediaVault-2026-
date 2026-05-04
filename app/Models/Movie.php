@@ -18,6 +18,8 @@ class Movie extends Model
         'release_year',
         'imdb_id',
         'trailer_url',
+        'seen',
+        'date_seen',
     ];
 
     // cast attributes to appropriate data types
