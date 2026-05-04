@@ -14,6 +14,19 @@ const store = useCollectionStore()
 const router = useRouter()
 const confirmingDelete = ref(false)
 
+const consumedBadge = computed(() => {
+    const d = props.item.details
+    if (!d) return null
+
+    if (props.type === 'book' && d.read) {
+        return { label: 'Read', classes: 'text-emerald-200 bg-emerald-600/85 backdrop-blur-sm' }
+    }
+    if (props.type === 'tv_show' && d.watch_status === 'completed') {
+        return { label: 'Completed', classes: 'text-emerald-200 bg-emerald-600/85 backdrop-blur-sm' }
+    }
+    return null
+})
+
 const statusColors = {
     owned: 'text-emerald-400 bg-emerald-500/15',
     wishlist: 'text-amber-400 bg-amber-500/15',
@@ -106,6 +119,16 @@ async function handleDelete() {
                 <svg class="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z" />
                 </svg>
+            </div>
+
+            <!-- Consumed badge (read / completed) -->
+            <div v-if="consumedBadge"
+                class="absolute bottom-2 left-2 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide opacity-90 group-hover:opacity-0 transition-opacity"
+                :class="consumedBadge.classes">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                {{ consumedBadge.label }}
             </div>
 
             <!-- Hover overlay with action buttons -->
