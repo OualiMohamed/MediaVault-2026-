@@ -2,7 +2,10 @@
 import { ref, watch } from 'vue'
 import api from '../api'
 
-const props = defineProps({ open: Boolean })
+const props = defineProps({
+    open: Boolean,
+    type: { type: String, default: 'movie' },
+})
 const emit = defineEmits(['close', 'selected'])
 
 const query = ref('')
@@ -38,7 +41,7 @@ async function doSearch() {
     results.value = []
 
     try {
-        const type = props.open === 'tv_show' ? 'tv_show' : 'movie'
+        const type = props.type === 'tv_show' ? 'tv_show' : 'movie'
         const { data } = await api.post('/tmdb/search', { type, query: query.value })
 
         if (data.error) {
@@ -58,7 +61,7 @@ async function selectItem(item) {
     fetchingDetails.value = true
 
     try {
-        const type = props.open === 'tv_show' ? 'tv_show' : 'movie'
+        const type = props.type === 'tv_show' ? 'tv_show' : 'movie'
         const { data } = await api.post('/tmdb/details', {
             type,
             tmdb_id: item.id,
@@ -192,7 +195,7 @@ watch(() => props.open, (val) => {
                                         class="w-full h-full object-cover" loading="lazy" />
                                     <div v-else
                                         class="w-full h-full flex items-center justify-center text-vault-600 text-lg">
-                                        {{ props.open === 'tv_show' ? '📺' : '🎬' }}
+                                        {{ props.type === 'tv_show' ? '📺' : '🎬' }}
                                     </div>
                                 </div>
 
