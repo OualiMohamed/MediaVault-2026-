@@ -21,6 +21,9 @@ const consumedBadge = computed(() => {
     if (props.type === 'book' && d.read) {
         return { label: 'Read', classes: 'text-emerald-200 bg-emerald-600/85 backdrop-blur-sm' }
     }
+    if (props.type === 'movie' && d.seen) {
+        return { label: 'Seen', classes: 'text-emerald-200 bg-emerald-600/85 backdrop-blur-sm' }
+    }
     if (props.type === 'tv_show' && d.watch_status === 'completed') {
         return { label: 'Completed', classes: 'text-emerald-200 bg-emerald-600/85 backdrop-blur-sm' }
     }

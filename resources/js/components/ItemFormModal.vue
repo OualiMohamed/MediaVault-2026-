@@ -64,6 +64,8 @@ const form = reactive({
     total_episodes: '',
     network: '',
     trailer_url: '',
+    seen: false,       // add these two
+    date_seen: '',
 })
 
 const formatOptions = computed(() => {
@@ -82,7 +84,7 @@ const platformOptions = [
 ]
 
 const typeFieldMap = {
-    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url'],
+    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'seen', 'date_seen'],
     book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'read', 'date_finished'],
     game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'completed', 'completion_date'],
     music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed'],
@@ -90,7 +92,7 @@ const typeFieldMap = {
 }
 
 const baseFields = ['title', 'barcode', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes']
-const booleanFields = ['read', 'completed']
+const booleanFields = ['read', 'completed', 'seen']
 
 const validationErrors = computed(() => {
     const list = []
@@ -506,6 +508,19 @@ function removeSeason(index) {
                             </div>
                             <p v-if="fieldError('trailer_url')" class="text-rose-500 text-xs mt-1">{{
                                 fieldError('trailer_url') }}</p>
+                        </div>
+                        <!-- Seen toggle + date -->
+                        <div class="flex items-end pb-2.5">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input v-model="form.seen" type="checkbox"
+                                    class="w-4 h-4 rounded bg-vault-700 border-vault-600 text-amber-500 focus:ring-amber-500/50" />
+                                <span class="text-sm text-vault-200">Mark as Seen</span>
+                            </label>
+                        </div>
+                        <div v-if="form.seen">
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Date Seen</label>
+                            <input v-model="form.date_seen" type="date"
+                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm" />
                         </div>
                     </template>
 
