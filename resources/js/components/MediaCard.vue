@@ -92,7 +92,10 @@ async function handleDelete() {
     <div @click="goToDetail"
         class="media-card bg-vault-800 border border-vault-700 rounded-xl overflow-hidden group relative flex flex-col cursor-pointer">
         <!-- Cover container -->
-        <div class="aspect-2/3 bg-vault-700 relative overflow-hidden min-h-0 flex-shrink-0">
+        <div :class="[
+            'bg-vault-700 relative overflow-hidden min-h-0 flex-shrink-0',
+            type === 'music' ? 'aspect-square' : 'aspect-2/3'
+        ]">
             <img v-if="item.cover_image" :src="'/storage/' + item.cover_image" :alt="item.title"
                 class="block w-full h-full object-cover" loading="lazy" />
             <div v-else
