@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Carbon;
 
 class CollectionController extends Controller
 {
@@ -45,7 +46,8 @@ class CollectionController extends Controller
             'title' => $item->title,
             'cover_image' => $item->cover_image,
             'barcode' => $item->barcode,
-            'purchase_date' => $item->purchase_date?->format('Y-m-d'),
+            // 'purchase_date' => $item->purchase_date?->format('Y-m-d'),
+            'purchase_date' => $item->purchase_date ? \Carbon\Carbon::parse($item->purchase_date)->format('Y-m-d') : null,
             'purchase_price' => $item->purchase_price,
             'condition' => $item->condition,
             'status' => $item->status,
@@ -88,7 +90,8 @@ class CollectionController extends Controller
                 $q->selectRaw(1)
                     ->from($detailTable)
                     ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
-                    ->where('format', $request->format)
+                    // ->where('format', $request->format)
+                    ->where('format', $request->input('format'))
             );
         }
 
