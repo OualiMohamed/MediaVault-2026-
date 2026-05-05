@@ -322,6 +322,9 @@ class CollectionController extends Controller
                 'trailer_url' => 'nullable|url|max:500',
                 'seen' => 'nullable|boolean',          // add
                 'date_seen' => 'nullable|date',         // add
+                'video_quality' => 'nullable|string|max:50',   // add
+                'audio_format' => 'nullable|string|max:50',     // add
+                'language' => 'nullable|string|max:50',         // add
             ],
             'book' => $base + [
                 'author' => 'required|string|max:255',

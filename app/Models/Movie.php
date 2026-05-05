@@ -20,6 +20,9 @@ class Movie extends Model
         'trailer_url',
         'seen',
         'date_seen',
+        'video_quality',
+        'audio_format',
+        'language',
     ];
 
     // cast attributes to appropriate data types
