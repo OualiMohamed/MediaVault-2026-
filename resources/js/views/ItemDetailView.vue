@@ -82,6 +82,9 @@ const metadata = computed(() => {
         }
         if (d.release_year) rows.push({ label: 'Year', value: d.release_year })
         if (d.imdb_id) rows.push({ label: 'IMDb', value: d.imdb_id, link: `https://www.imdb.com/title/${d.imdb_id}` })
+        if (d.video_quality) rows.push({ label: 'Video Quality', value: d.video_quality })
+        if (d.audio_format) rows.push({ label: 'Audio', value: d.audio_format })
+        if (d.language) rows.push({ label: 'Language', value: d.language })
         if (d.seen) rows.push({ label: 'Seen', value: d.date_seen ? `Seen on ${d.date_seen}` : 'Yes' })
     }
 
@@ -114,6 +117,17 @@ const metadata = computed(() => {
         }
         if (d.current_season && d.current_episode) {
             rows.push({ label: 'Currently At', value: `S${String(d.current_season).padStart(2, '0')}E${String(d.current_episode).padStart(2, '0')}` })
+        }
+
+        // Per-season tech details
+        if (d.seasons && Array.isArray(d.seasons)) {
+            d.seasons.forEach(s => {
+                const tag = `S${String(s.season).padStart(2, '0')}`
+                const parts = [s.video_quality, s.audio_format, s.language].filter(Boolean)
+                if (parts.length) {
+                    rows.push({ label: tag, value: parts.join(' · ') })
+                }
+            })
         }
     }
 

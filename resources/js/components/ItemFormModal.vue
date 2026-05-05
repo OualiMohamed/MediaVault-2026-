@@ -22,7 +22,7 @@ const showScanner = ref(false)
 const lookupLoading = ref(false)
 const lookupMessage = ref('')
 const existingCover = ref('')
-const seasons = ref([{ season: 1, format: 'Digital' }])
+const seasons = ref([{ season: 1, format: 'Digital', video_quality: '', audio_format: '', language: '' }])
 const showTmdbSearch = ref(false)
 const tmdbMessage = ref('')
 
@@ -66,6 +66,9 @@ const form = reactive({
     trailer_url: '',
     seen: false,       // add these two
     date_seen: '',
+    video_quality: '',
+    audio_format: '',
+    language: '',
 })
 
 const formatOptions = computed(() => {
@@ -83,8 +86,21 @@ const platformOptions = [
     'Xbox Series X', 'Xbox One', 'PC', 'Steam', 'Other',
 ]
 
+const videoQualityOptions = [
+    'UltraHD Light', 'HDLight 1080p', 'HDLight 1080p(x265)', 'HDLight 720p', 'HDLight 720p(x265)',
+    'SD', 'dvdrip', '720p', '1080p', 'TVrip', 'Full HD', 'Blu-Ray 3D', '4k',
+]
+
+const audioFormatOptions = [
+    'DTS', 'DTS-HD', 'Dolby Digital 5.1', 'Dolby Digital 2.1', 'Dolby Digital 2.0', 'Stereo', 'Mono', 'Dolby Atmos',
+]
+
+const languageOptions = [
+    'MULTI', 'VO', 'English', 'French', 'Arabic',
+]
+
 const typeFieldMap = {
-    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'seen', 'date_seen'],
+    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'seen', 'date_seen', 'video_quality', 'audio_format', 'language'],
     book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'read', 'date_finished'],
     game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'completed', 'completion_date'],
     music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed'],
@@ -125,9 +141,15 @@ watch(() => props.item, (item) => {
         })
     }
     if (item.details?.seasons && Array.isArray(item.details.seasons)) {
-        seasons.value = item.details.seasons.map(s => ({ ...s }))
+        seasons.value = item.details.seasons.map(s => ({
+            season: s.season,
+            format: s.format || 'Digital',
+            video_quality: s.video_quality || '',
+            audio_format: s.audio_format || '',
+            language: s.language || '',
+        }))
     } else {
-        seasons.value = [{ season: 1, format: 'Digital' }]
+        seasons.value = [{ season: 1, format: 'Digital', video_quality: '', audio_format: '', language: '' }]
     }
 }, { immediate: true })
 
@@ -143,7 +165,7 @@ watch(() => props.type, (type) => {
         form.status = 'wishlist'
     }
     if (type !== 'tv_show') {
-        seasons.value = [{ season: 1, format: 'Digital' }]
+        seasons.value = [{ season: 1, format: 'Digital', video_quality: '', audio_format: '', language: '' }]
     }
 }, { immediate: true })
 
@@ -442,7 +464,7 @@ function removeSeason(index) {
                                 d="M9 12l2 2 4-4m6 2a2 2 0 012-2H4m6 0h8a2 2 0 002 2v4a2 2 0 002-2H6a2 2 0 00-2-2H4" />
                         </svg>
                         <span class="text-xs" :class="existingCover ? 'text-sky-400' : 'text-amber-400'">{{ tmdbMessage
-                        }}</span>
+                            }}</span>
                     </div>
 
                     <!-- Title -->
@@ -521,6 +543,35 @@ function removeSeason(index) {
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Date Seen</label>
                             <input v-model="form.date_seen" type="date"
                                 class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm" />
+                        </div>
+                        <!-- Video Quality -->
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Video Quality</label>
+                            <select v-model="form.video_quality"
+                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                                <option value="">Not specified</option>
+                                <option v-for="q in videoQualityOptions" :key="q" :value="q">{{ q }}</option>
+                            </select>
+                        </div>
+
+                        <!-- Audio Format -->
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Audio Format</label>
+                            <select v-model="form.audio_format"
+                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                                <option value="">Not specified</option>
+                                <option v-for="a in audioFormatOptions" :key="a" :value="a">{{ a }}</option>
+                            </select>
+                        </div>
+
+                        <!-- Language -->
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Language</label>
+                            <select v-model="form.language"
+                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                                <option value="">Not specified</option>
+                                <option v-for="l in languageOptions" :key="l" :value="l">{{ l }}</option>
+                            </select>
                         </div>
                     </template>
 
@@ -688,31 +739,55 @@ function removeSeason(index) {
 
                             <div v-else class="space-y-2">
                                 <div v-for="(s, index) in seasons" :key="index"
-                                    class="flex items-center gap-3 bg-vault-700/50 border border-vault-600 rounded-xl px-4 py-3">
-                                    <span class="text-vault-400 text-sm font-medium w-12 flex-shrink-0">S{{
-                                        String(s.season).padStart(2, '0') }}</span>
+                                    class="bg-vault-700/50 border border-vault-600 rounded-xl p-4 space-y-3">
 
-                                    <input v-model.number="s.season" type="number" min="1"
-                                        class="w-20 px-2 py-1.5 bg-vault-700 border border-vault-600 rounded-lg text-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-amber-500/50" />
+                                    <!-- Row 1: Season number, format, remove -->
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-vault-400 text-sm font-medium w-12 flex-shrink-0">S{{
+                                            String(s.season).padStart(2, '0') }}</span>
 
-                                    <select v-model="s.format"
-                                        class="flex-1 px-3 py-1.5 bg-vault-700 border border-vault-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
-                                        <option value="Digital">Digital</option>
-                                        <option value="DVD">DVD</option>
-                                        <option value="Blu-ray">Blu-ray</option>
-                                        <option value="4K UHD">4K UHD</option>
-                                        <option value="VHS">VHS</option>
-                                    </select>
+                                        <input v-model.number="s.season" type="number" min="1"
+                                            class="w-20 px-2 py-1.5 bg-vault-700 border border-vault-600 rounded-lg text-white text-sm text-center focus:outline-none focus:ring-2 focus:ring-amber-500/50" />
 
-                                    <button type="button" @click="removeSeason(index)"
-                                        class="w-8 h-8 rounded-lg flex items-center justify-center text-vault-400 hover:text-rose-400 hover:bg-rose-500/15 transition-all flex-shrink-0"
-                                        title="Remove season">
-                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                            stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </button>
+                                        <select v-model="s.format"
+                                            class="flex-1 px-3 py-1.5 bg-vault-700 border border-vault-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+                                            <option value="Digital">Digital</option>
+                                            <option value="DVD">DVD</option>
+                                            <option value="Blu-ray">Blu-ray</option>
+                                            <option value="4K UHD">4K UHD</option>
+                                            <option value="VHS">VHS</option>
+                                        </select>
+
+                                        <button type="button" @click="removeSeason(index)"
+                                            class="w-8 h-8 rounded-lg flex items-center justify-center text-vault-400 hover:text-rose-400 hover:bg-rose-500/15 transition-all flex-shrink-0"
+                                            title="Remove season">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </div>
+
+                                    <!-- Row 2: Video quality, Audio format, Language -->
+                                    <div class="grid grid-cols-3 gap-2 pl-12">
+                                        <select v-model="s.video_quality"
+                                            class="px-2 py-1.5 bg-vault-700 border border-vault-600 rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+                                            <option value="">Video quality</option>
+                                            <option v-for="q in videoQualityOptions" :key="q" :value="q">{{ q }}
+                                            </option>
+                                        </select>
+                                        <select v-model="s.audio_format"
+                                            class="px-2 py-1.5 bg-vault-700 border border-vault-600 rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+                                            <option value="">Audio format</option>
+                                            <option v-for="a in audioFormatOptions" :key="a" :value="a">{{ a }}</option>
+                                        </select>
+                                        <select v-model="s.language"
+                                            class="px-2 py-1.5 bg-vault-700 border border-vault-600 rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+                                            <option value="">Language</option>
+                                            <option v-for="l in languageOptions" :key="l" :value="l">{{ l }}</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -878,7 +953,7 @@ function removeSeason(index) {
                                 class="text-rose-300 text-sm flex items-start gap-2">
                                 <span class="text-rose-500 mt-0.5">&#8226;</span>
                                 <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                                    }}</span>
+                                }}</span>
                             </li>
                         </ul>
                     </div>
