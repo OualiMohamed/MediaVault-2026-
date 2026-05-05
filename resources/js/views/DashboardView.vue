@@ -1,11 +1,22 @@
 <script setup>
 import { onMounted, computed } from 'vue'
 import { useDashboardStore } from '../stores/dashboard'
+import { useExport } from '../composables/useExport'
 import FormatBreakdown from '../components/FormatBreakdown.vue'
 import RecentItems from '../components/RecentItems.vue'
 
 const dashboard = useDashboardStore()
+const { exporting, exportCollection } = useExport()
+
 onMounted(() => dashboard.fetchStats())
+
+const exportTypes = [
+    { type: 'movie', label: 'Movies', icon: '\u{1F3AC}', format: 'CSV', color: 'amber' },
+    { type: 'book', label: 'Books', icon: '\u{1F4D6}', format: 'CSV', color: 'emerald' },
+    { type: 'game', label: 'Games', icon: '\u{1F3AE}', format: 'CSV', color: 'sky' },
+    { type: 'tv_show', label: 'TV Shows', icon: '\u{1F4FA}', format: 'JSON', color: 'rose' },
+    { type: 'music', label: 'Music', icon: '\u{1F3B5}', format: 'CSV', color: 'violet' },
+]
 
 const typeCards = computed(() => {
     if (!dashboard.stats) return []
@@ -96,11 +107,57 @@ const typeCards = computed(() => {
             </div>
 
             <!-- Bottom Row: Format Breakdowns + Recent Items -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
                 <FormatBreakdown title="Movies by Format" :data="dashboard.stats.movies_by_format" color="amber" />
                 <FormatBreakdown title="Games by Platform" :data="dashboard.stats.games_by_platform" color="sky" />
                 <FormatBreakdown title="Music by Format" :data="dashboard.stats.music_by_format" color="violet" />
                 <RecentItems :items="dashboard.stats.recent_additions" />
+            </div>
+
+            <!-- Export Section -->
+            <div class="bg-vault-800 border border-vault-700 rounded-2xl p-6">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-10 h-10 rounded-xl bg-vault-700 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-vault-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-white font-semibold">Export Collection</h2>
+                        <p class="text-vault-400 text-sm">Download your data as CSV or JSON</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                    <button v-for="exp in exportTypes" :key="exp.type" @click="exportCollection(exp.type)"
+                        :disabled="!!exporting"
+                        class="flex items-center gap-3 px-4 py-3 bg-vault-700/50 border border-vault-600 rounded-xl hover:border-vault-500 hover:bg-vault-700 transition-all disabled:opacity-50 disabled:cursor-wait group text-left">
+                        <span class="text-lg flex-shrink-0">{{ exp.icon }}</span>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-white text-sm font-medium truncate">{{ exp.label }}</p>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                <span class="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded"
+                                    :class="exp.format === 'JSON' ? 'bg-amber-500/15 text-amber-400' : 'bg-vault-600 text-vault-300'">
+                                    {{ exp.format }}
+                                </span>
+                                <template v-if="exporting === exp.type">
+                                    <div
+                                        class="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin text-vault-400">
+                                    </div>
+                                </template>
+                                <template v-else>
+                                    <svg class="w-3 h-3 text-vault-500 group-hover:text-vault-300 transition-colors"
+                                        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    </svg>
+                                </template>
+                            </div>
+                        </div>
+                    </button>
+                </div>
             </div>
         </template>
     </div>
