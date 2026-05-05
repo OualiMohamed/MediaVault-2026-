@@ -72,6 +72,16 @@ class CollectionController extends Controller
             $query->where('status', $request->status);
         }
 
+        // A-Z letter filter
+        if ($request->filled('letter')) {
+            $letter = $request->letter;
+            if ($letter === '#') {
+                $query->whereRaw("title NOT REGEXP '^[A-Za-z]'");
+            } else {
+                $query->where('title', 'LIKE', $letter . '%');
+            }
+        }
+
         if ($request->filled('format')) {
             $query->whereExists(
                 fn($q) =>
@@ -169,7 +179,9 @@ class CollectionController extends Controller
         // $sortBy = $request->get('sort_by', 'created_at');
         $sortBy = $request->input('sort_by', 'created_at');
         $sortDir = $request->input('sort_dir', 'desc');
-        if (in_array($sortBy, ['title', 'purchase_date', 'purchase_price', 'created_at'])) {
+        if ($sortBy === 'title') {
+            $query->orderByRaw('LOWER(title) ' . ($sortDir === 'desc' ? 'DESC' : 'ASC'));
+        } elseif (in_array($sortBy, ['purchase_date', 'purchase_price', 'created_at'])) {
             $query->orderBy($sortBy, $sortDir);
         }
 

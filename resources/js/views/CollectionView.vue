@@ -14,6 +14,9 @@ const filterFormat = ref('')
 const filterStatus = ref('')
 const filterPlatform = ref('')
 const filterWatchStatus = ref('')
+const filterLetter = ref('')
+const sortBy = ref('created_at')
+const sortDir = ref('desc')
 const showForm = ref(false)
 const editItem = ref(null)
 const currentPage = ref(1)
@@ -50,6 +53,28 @@ const platformOptions = [
     'Xbox Series X', 'Xbox One', 'PC', 'Steam', 'Other',
 ]
 
+const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '#']
+
+const sortOptions = [
+    { value: 'created_at', dir: 'desc', label: 'Recently Added' },
+    { value: 'created_at', dir: 'asc', label: 'Oldest First' },
+    { value: 'title', dir: 'asc', label: 'Title A → Z' },
+    { value: 'title', dir: 'desc', label: 'Title Z → A' },
+    { value: 'purchase_price', dir: 'desc', label: 'Price High → Low' },
+    { value: 'purchase_price', dir: 'asc', label: 'Price Low → High' },
+    { value: 'purchase_date', dir: 'desc', label: 'Newest Purchase' },
+    { value: 'purchase_date', dir: 'asc', label: 'Oldest Purchase' },
+]
+
+const sortValue = computed({
+    get: () => sortBy.value + '|' + sortDir.value,
+    set: (val) => {
+        const [by, dir] = val.split('|')
+        sortBy.value = by
+        sortDir.value = dir
+    },
+})
+
 const typeConfig = {
     movie: { label: 'Movies', singular: 'Movie', icon: '\u{1F3AC}', color: 'amber' },
     book: { label: 'Books', singular: 'Book', icon: '\u{1F4D6}', color: 'emerald' },
@@ -71,6 +96,9 @@ function loadItems() {
         video_quality: filterVideoQuality.value || undefined,
         audio_format: filterAudioFormat.value || undefined,
         language: filterLanguage.value || undefined,
+        letter: filterLetter.value || undefined,
+        sort_by: sortBy.value,
+        sort_dir: sortDir.value,
     }
     store.fetchItems(type.value, params)
 }
@@ -107,11 +135,14 @@ watch(() => route.path, () => {
     filterVideoQuality.value = ''
     filterAudioFormat.value = ''
     filterLanguage.value = ''
+    filterLetter.value = ''
+    sortBy.value = 'created_at'
+    sortDir.value = 'desc'
     currentPage.value = 1
     loadItems()
 })
 
-watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, filterVideoQuality, filterAudioFormat, filterLanguage], () => {
+watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, filterVideoQuality, filterAudioFormat, filterLanguage, filterLetter, sortValue], () => {
     currentPage.value = 1
     loadItems()
 })
@@ -140,9 +171,17 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
         </div>
 
         <!-- Filters -->
-        <div class="flex flex-wrap gap-3 mb-6">
+        <!-- Filters -->
+        <div class="flex flex-wrap items-center gap-3 mb-4">
             <input v-model="search" type="text" :placeholder="`Search ${config.label.toLowerCase()}...`"
                 class="flex-1 min-w-[200px] px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all text-sm" />
+
+            <select v-model="sortValue"
+                class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                <option v-for="s in sortOptions" :key="s.value + s.dir" :value="s.value + '|' + s.dir">{{ s.label }}
+                </option>
+            </select>
+
             <select v-if="formatOptions.length" v-model="filterFormat"
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                 <option value="">All Formats</option>
@@ -161,6 +200,7 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
                 <option value="dropped">Dropped</option>
                 <option value="plan_to_watch">Plan to Watch</option>
             </select>
+
             <!-- Movie tech filters -->
             <select v-if="type === 'movie'" v-model="filterVideoQuality"
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
@@ -177,6 +217,7 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
                 <option value="">All Languages</option>
                 <option v-for="l in languageOptions" :key="l" :value="l">{{ l }}</option>
             </select>
+
             <select v-model="filterStatus"
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                 <option value="">All Status</option>
@@ -186,6 +227,23 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
                 <option value="sold">Sold</option>
                 <option value="lost">Lost</option>
             </select>
+        </div>
+
+        <!-- A-Z Jump Bar -->
+        <div class="flex items-center gap-1 mb-6 overflow-x-auto pb-1 scrollbar-none">
+            <button @click="filterLetter = ''" :class="[
+                'w-8 h-8 rounded-lg text-xs font-bold flex-shrink-0 transition-all',
+                filterLetter === ''
+                    ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'
+                    : 'text-vault-500 hover:text-white hover:bg-vault-700'
+            ]">All</button>
+            <div class="w-px h-5 bg-vault-700 mx-1 flex-shrink-0"></div>
+            <button v-for="l in letters" :key="l" @click="filterLetter = filterLetter === l ? '' : l" :class="[
+                'w-8 h-8 rounded-lg text-xs font-bold flex-shrink-0 transition-all',
+                filterLetter === l
+                    ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'
+                    : 'text-vault-500 hover:text-white hover:bg-vault-700'
+            ]">{{ l }}</button>
         </div>
 
         <!-- Loading -->
