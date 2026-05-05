@@ -1,6 +1,8 @@
 <script setup>
 import { onMounted, computed } from 'vue'
 import { useDashboardStore } from '../stores/dashboard'
+import { ref } from 'vue'
+import { useImport } from '../composables/useImport'
 import { useExport } from '../composables/useExport'
 import FormatBreakdown from '../components/FormatBreakdown.vue'
 import RecentItems from '../components/RecentItems.vue'
@@ -51,7 +53,46 @@ const typeCards = computed(() => {
             icon: 'music', color: 'violet', glow: 'stat-glow-violet', path: '/music',
         },
     ]
+
 })
+
+const { validating, importing, preview, error: importError, validateFile, executeImport, resetState } = useImport()
+
+const showImportModal = ref(false)
+const importType = ref('movie')
+const importFile = ref(null)
+
+const importTypes = [
+    { type: 'movie', label: 'Movies', icon: '\u{1F3AC}', format: 'CSV' },
+    { type: 'book', label: 'Books', icon: '\u{1F4D6}', format: 'CSV' },
+    { type: 'game', label: 'Games', icon: '\u{1F3AE}', format: 'CSV' },
+    { type: 'tv_show', label: 'TV Shows', icon: '\u{1F4FA}', format: 'JSON' },
+    { type: 'music', label: 'Music', icon: '\u{1F3B5}', format: 'CSV' },
+]
+
+function openImportModal(type) {
+    importType.value = type
+    importFile.value = null
+    resetState()
+    showImportModal.value = true
+}
+
+function handleFileChange(e) {
+    importFile.value = e.target.files[0] || null
+}
+
+async function handleValidate() {
+    if (!importFile.value) return
+    await validateFile(importType.value, importFile.value)
+}
+
+async function handleConfirmImport() {
+    const result = await executeImport(importType.value)
+    if (result) {
+        showImportModal.value = false
+        dashboard.fetchStats() // Refresh dashboard counts
+    }
+}
 </script>
 
 <template>
@@ -159,6 +200,127 @@ const typeCards = computed(() => {
                     </button>
                 </div>
             </div>
+            <!-- Import Section -->
+            <div class="bg-vault-800 border border-vault-700 rounded-2xl p-6 mt-6">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-10 h-10 rounded-xl bg-vault-700 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-vault-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-white font-semibold">Import Collection</h2>
+                        <p class="text-vault-400 text-sm">CSV for media, JSON for TV Shows</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                    <button v-for="imp in importTypes" :key="imp.type" @click="openImportModal(imp.type)"
+                        class="flex items-center gap-3 px-4 py-3 bg-vault-700/50 border border-vault-600 rounded-xl hover:border-vault-500 hover:bg-vault-700 transition-all group text-left">
+                        <span class="text-lg flex-shrink-0">{{ imp.icon }}</span>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-white text-sm font-medium truncate">{{ imp.label }}</p>
+                            <span class="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded mt-0.5 inline-block"
+                                :class="imp.format === 'JSON' ? 'bg-amber-500/15 text-amber-400' : 'bg-vault-600 text-vault-300'">
+                                {{ imp.format }}
+                            </span>
+                        </div>
+                        <svg class="w-4 h-4 text-vault-500 group-hover:text-vault-300 transition-colors flex-shrink-0"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </template>
+        <!-- Import Modal -->
+        <transition name="tmdb-modal">
+            <div v-if="showImportModal"
+                class="fixed inset-0 z-[80] flex items-center justify-center px-4 modal-backdrop"
+                @click.self="showImportModal = false">
+                <div
+                    class="bg-vault-800 border border-vault-600 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+
+                    <!-- Header -->
+                    <div class="flex items-center justify-between px-6 py-4 border-b border-vault-700">
+                        <h2 class="text-white font-semibold">Import {{importTypes.find(t => t.type ===
+                            importType)?.label}}
+                        </h2>
+                        <button @click="showImportModal = false"
+                            class="w-8 h-8 rounded-lg flex items-center justify-center text-vault-400 hover:text-white hover:bg-vault-700 transition-all">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="p-6 space-y-5">
+                        <!-- File Input -->
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-2">
+                                Upload {{importTypes.find(t => t.type === importType)?.format}} file
+                            </label>
+                            <input type="file" @change="handleFileChange"
+                                :accept="importType === 'tv_show' ? '.json' : '.csv'"
+                                class="block w-full text-sm text-vault-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-vault-600 file:text-white hover:file:bg-vault-500 cursor-pointer" />
+                        </div>
+
+                        <!-- Error -->
+                        <div v-if="importError" class="p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl">
+                            <p class="text-rose-400 text-sm">{{ importError }}</p>
+                        </div>
+
+                        <!-- Validate Button -->
+                        <button @click="handleValidate" :disabled="!importFile || validating"
+                            class="w-full px-4 py-2.5 bg-vault-600 text-white rounded-xl text-sm font-medium hover:bg-vault-500 transition-all disabled:opacity-50 disabled:cursor-wait flex items-center justify-center gap-2">
+                            <div v-if="validating"
+                                class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin">
+                            </div>
+                            {{ validating ? 'Validating...' : 'Validate File' }}
+                        </button>
+
+                        <!-- Preview Results -->
+                        <div v-if="preview" class="bg-vault-700/50 border border-vault-600 rounded-xl p-4 space-y-3">
+                            <h3 class="text-white font-medium text-sm">Validation Result</h3>
+                            <div class="grid grid-cols-3 gap-3 text-center">
+                                <div>
+                                    <p class="text-2xl font-bold text-white">{{ preview.total }}</p>
+                                    <p class="text-vault-400 text-xs">Total</p>
+                                </div>
+                                <div>
+                                    <p class="text-2xl font-bold text-emerald-400">{{ preview.valid }}</p>
+                                    <p class="text-vault-400 text-xs">Valid</p>
+                                </div>
+                                <div>
+                                    <p class="text-2xl font-bold text-amber-400">{{ preview.duplicates }}</p>
+                                    <p class="text-vault-400 text-xs">Duplicates</p>
+                                </div>
+                            </div>
+
+                            <div v-if="preview.errors > 0" class="pt-2 border-t border-vault-600">
+                                <p class="text-rose-400 text-xs font-medium mb-1">{{ preview.errors }} row(s) skipped
+                                    due to
+                                    errors:</p>
+                                <ul class="text-vault-400 text-xs space-y-0.5 max-h-24 overflow-y-auto">
+                                    <li v-for="(msg, i) in preview.error_messages" :key="i">• {{ msg }}</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Confirm Button -->
+                        <button v-if="preview && preview.valid > 0" @click="handleConfirmImport" :disabled="importing"
+                            class="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold rounded-xl hover:from-emerald-400 hover:to-teal-400 transition-all disabled:opacity-50 disabled:cursor-wait flex items-center justify-center gap-2">
+                            <div v-if="importing"
+                                class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin">
+                            </div>
+                            {{ importing ? 'Importing...' : `Confirm Import (${preview.valid} items)` }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </transition>
     </div>
 </template>
