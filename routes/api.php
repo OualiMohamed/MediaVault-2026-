@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\BarcodeLookupController;
 use App\Http\Controllers\Api\CollectionController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ExportController;
+use App\Http\Controllers\Api\ImportController;
 use App\Http\Controllers\Api\NetworkLogoController;
 use App\Http\Controllers\Api\TmdbController;
 use Illuminate\Support\Facades\Route;
@@ -36,4 +37,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tmdb/poster', [TmdbController::class, 'poster']);
 
     Route::get('/export/{type}', [ExportController::class, 'export']);
+
+    Route::post('/import/validate/{type}', [ImportController::class, 'validate']);
+    Route::post('/import/execute/{type}', [ImportController::class, 'execute']);
 });
