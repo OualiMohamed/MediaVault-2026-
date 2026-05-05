@@ -17,6 +17,22 @@ const filterWatchStatus = ref('')
 const showForm = ref(false)
 const editItem = ref(null)
 const currentPage = ref(1)
+const filterVideoQuality = ref('')
+const filterAudioFormat = ref('')
+const filterLanguage = ref('')
+
+const videoQualityOptions = [
+    'UltraHD Light', 'HDLight 1080p', 'HDLight 1080p(x265)', 'HDLight 720p', 'HDLight 720p(x265)',
+    'SD', 'dvdrip', '720p', '1080p', 'TVrip', 'Full HD', 'Blu-Ray 3D', '4k',
+]
+
+const audioFormatOptions = [
+    'DTS', 'DTS-HD', 'Dolby Digital 5.1', 'Dolby Digital 2.1', 'Dolby Digital 2.0', 'Stereo', 'Mono', 'Dolby Atmos',
+]
+
+const languageOptions = [
+    'MULTI', 'VO', 'English', 'French', 'Arabic',
+]
 
 const formatOptions = computed(() => {
     const map = {
@@ -52,6 +68,9 @@ function loadItems() {
         status: filterStatus.value || undefined,
         platform: filterPlatform.value || undefined,
         watch_status: filterWatchStatus.value || undefined,
+        video_quality: filterVideoQuality.value || undefined,
+        audio_format: filterAudioFormat.value || undefined,
+        language: filterLanguage.value || undefined,
     }
     store.fetchItems(type.value, params)
 }
@@ -85,11 +104,14 @@ watch(() => route.path, () => {
     filterStatus.value = ''
     filterPlatform.value = ''
     filterWatchStatus.value = ''
+    filterVideoQuality.value = ''
+    filterAudioFormat.value = ''
+    filterLanguage.value = ''
     currentPage.value = 1
     loadItems()
 })
 
-watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus], () => {
+watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, filterVideoQuality, filterAudioFormat, filterLanguage], () => {
     currentPage.value = 1
     loadItems()
 })
@@ -138,6 +160,22 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus], (
                 <option value="completed">Completed</option>
                 <option value="dropped">Dropped</option>
                 <option value="plan_to_watch">Plan to Watch</option>
+            </select>
+            <!-- Movie tech filters -->
+            <select v-if="type === 'movie'" v-model="filterVideoQuality"
+                class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                <option value="">All Video Quality</option>
+                <option v-for="q in videoQualityOptions" :key="q" :value="q">{{ q }}</option>
+            </select>
+            <select v-if="type === 'movie'" v-model="filterAudioFormat"
+                class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                <option value="">All Audio Format</option>
+                <option v-for="a in audioFormatOptions" :key="a" :value="a">{{ a }}</option>
+            </select>
+            <select v-if="type === 'movie'" v-model="filterLanguage"
+                class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                <option value="">All Languages</option>
+                <option v-for="l in languageOptions" :key="l" :value="l">{{ l }}</option>
             </select>
             <select v-model="filterStatus"
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">

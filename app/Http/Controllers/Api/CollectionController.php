@@ -62,6 +62,9 @@ class CollectionController extends Controller
             return response()->json(['message' => 'Invalid collection type'], 422);
         }
 
+        $modelClass = $this->getModelClass($type);
+        $detailTable = (new $modelClass)->getTable();
+
         $query = CollectionItem::where('user_id', Auth::id())
             ->where('type', $type);
 
@@ -69,45 +72,109 @@ class CollectionController extends Controller
             $query->where('status', $request->status);
         }
 
-        $modelClass = $this->getModelClass($type);
-
         if ($request->filled('format')) {
-            $query->whereHas('details', fn($q) => $q->where('format', $request->format));
+            $query->whereExists(
+                fn($q) =>
+                $q->selectRaw(1)
+                    ->from($detailTable)
+                    ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                    ->where('format', $request->format)
+            );
         }
 
         if ($type === 'game' && $request->filled('platform')) {
-            $query->whereHas('details', fn($q) => $q->where('platform', $request->platform));
+            $query->whereExists(
+                fn($q) =>
+                $q->selectRaw(1)
+                    ->from($detailTable)
+                    ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                    ->where('platform', $request->platform)
+            );
         }
 
         if ($type === 'tv_show' && $request->filled('watch_status')) {
-            $query->whereHas('details', fn($q) => $q->where('watch_status', $request->watch_status));
+            $query->whereExists(
+                fn($q) =>
+                $q->selectRaw(1)
+                    ->from($detailTable)
+                    ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                    ->where('watch_status', $request->watch_status)
+            );
+        }
+
+        if ($type === 'movie') {
+            if ($request->filled('video_quality')) {
+                $query->whereExists(
+                    fn($q) =>
+                    $q->selectRaw(1)
+                        ->from($detailTable)
+                        ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                        ->where('video_quality', $request->video_quality)
+                );
+            }
+            if ($request->filled('audio_format')) {
+                $query->whereExists(
+                    fn($q) =>
+                    $q->selectRaw(1)
+                        ->from($detailTable)
+                        ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                        ->where('audio_format', $request->audio_format)
+                );
+            }
+            if ($request->filled('language')) {
+                $query->whereExists(
+                    fn($q) =>
+                    $q->selectRaw(1)
+                        ->from($detailTable)
+                        ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                        ->where('language', $request->language)
+                );
+            }
         }
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function ($q) use ($search, $type) {
+            $query->where(function ($q) use ($search, $type, $detailTable) {
                 $q->where('title', 'LIKE', "%{$search}%");
                 if ($type === 'book') {
-                    $q->orWhereHas('details', fn($sq) => $sq->where('author', 'LIKE', "%{$search}%"));
+                    $q->orWhereExists(
+                        fn($sq) =>
+                        $sq->selectRaw(1)
+                            ->from($detailTable)
+                            ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                            ->where('author', 'LIKE', "%{$search}%")
+                    );
                 }
                 if ($type === 'movie') {
-                    $q->orWhereHas('details', fn($sq) => $sq->where('director', 'LIKE', "%{$search}%"));
+                    $q->orWhereExists(
+                        fn($sq) =>
+                        $sq->selectRaw(1)
+                            ->from($detailTable)
+                            ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                            ->where('director', 'LIKE', "%{$search}%")
+                    );
                 }
                 if ($type === 'music') {
-                    $q->orWhereHas('details', fn($sq) => $sq->where('artist', 'LIKE', "%{$search}%"));
+                    $q->orWhereExists(
+                        fn($sq) =>
+                        $sq->selectRaw(1)
+                            ->from($detailTable)
+                            ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                            ->where('artist', 'LIKE', "%{$search}%")
+                    );
                 }
             });
         }
 
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortDir = $request->get('sort_dir', 'desc');
+        // $sortBy = $request->get('sort_by', 'created_at');
+        $sortBy = $request->input('sort_by', 'created_at');
+        $sortDir = $request->input('sort_dir', 'desc');
         if (in_array($sortBy, ['title', 'purchase_date', 'purchase_price', 'created_at'])) {
             $query->orderBy($sortBy, $sortDir);
         }
 
-        $items = $query->paginate($request->get('per_page', 24));
+        $items = $query->paginate($request->input('per_page', 24));
 
-        // Manually load details — NO ->load() or ->with()
         if ($items->isNotEmpty()) {
             $ids = $items->pluck('id');
             $details = $modelClass::whereIn('collection_item_id', $ids)->get()->keyBy('collection_item_id');
