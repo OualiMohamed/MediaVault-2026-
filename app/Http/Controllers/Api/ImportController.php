@@ -12,6 +12,8 @@ use App\Models\TvShow;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 class ImportController extends Controller
 {
@@ -30,29 +32,51 @@ class ImportController extends Controller
     public function validate(Request $request, string $type)
     {
         $validTypes = ['movie', 'book', 'game', 'music', 'tv_show'];
-        if (!in_array($type, $validTypes)) {
+        if (!in_array($type, $validTypes))
             return response()->json(['error' => 'Invalid type'], 422);
-        }
 
-        $request->validate([
-            'file' => 'required|file|mimes:csv,json,txt|max:10240', // 10MB max
-        ]);
+        // Allow csv, json, OR zip
+        $request->validate(['file' => 'required|file|mimes:csv,json,zip|max:51200']); // 50MB limit for zips
 
         $file = $request->file('file');
-        $content = file_get_contents($file->getPathname());
+        $isZip = $file->getClientOriginalExtension() === 'zip';
 
-        // Fetch existing items for duplicate check
-        $existingItems = CollectionItem::where('user_id', Auth::id())
-            ->where('type', $type)
-            ->get(['id', 'title', 'barcode']);
+        // Create a temp directory for this import session
+        $importSessionDir = storage_path('app/temp/import_' . Str::uuid());
+        File::ensureDirectoryExists($importSessionDir);
 
+        if ($isZip) {
+            $zip = new \ZipArchive();
+            if ($zip->open($file->getPathname()) !== true) {
+                File::deleteDirectory($importSessionDir);
+                return response()->json(['error' => 'Invalid or corrupted ZIP file.'], 422);
+            }
+            $zip->extractTo($importSessionDir);
+            $zip->close();
+
+            // Look for data.json inside the zip
+            $dataPath = $importSessionDir . '/data.json';
+            if (!File::exists($dataPath)) {
+                File::deleteDirectory($importSessionDir);
+                return response()->json(['error' => 'ZIP file is missing data.json'], 422);
+            }
+            $content = File::get($dataPath);
+        } else {
+            $content = file_get_contents($file->getPathname());
+        }
+
+        // Store the session directory path in the response so the frontend can pass it back to execute
+        $sessionToken = basename($importSessionDir);
+
+        $existingItems = CollectionItem::where('user_id', Auth::id())->where('type', $type)->get(['id', 'title', 'barcode']);
         $existingTitles = $existingItems->pluck('title')->map(fn($t) => strtolower($t))->toArray();
         $existingBarcodes = $existingItems->pluck('barcode', 'barcode')->filter()->toArray();
 
-        $rows = $type === 'tv_show' ? $this->parseJson($content) : $this->parseCsv($content, $type);
-
-        if ($rows === null) {
-            return response()->json(['error' => 'Failed to parse file. Check the format.'], 422);
+        // Parse JSON (works for standard JSON exports AND our new Zip exports)
+        $rows = json_decode($content, true);
+        if (!is_array($rows)) {
+            File::deleteDirectory($importSessionDir);
+            return response()->json(['error' => 'Failed to parse file data.'], 422);
         }
 
         $validRows = [];
@@ -62,31 +86,29 @@ class ImportController extends Controller
 
         foreach ($rows as $index => $row) {
             $title = $row['title'] ?? null;
-            $barcode = $row['barcode'] ?? null;
-
             if (empty($title)) {
                 $errors++;
                 $errorMessages[] = "Row " . ($index + 1) . ": Missing title.";
                 continue;
             }
 
-            // Check duplicates
-            $isDuplicate = false;
-            if (!empty($barcode) && isset($existingBarcodes[$barcode])) {
-                $isDuplicate = true;
-            } elseif (in_array(strtolower($title), $existingTitles)) {
-                $isDuplicate = true;
-            }
+            $barcode = $row['barcode'] ?? null;
+            $isDuplicate = (!empty($barcode) && isset($existingBarcodes[$barcode])) || in_array(strtolower($title), $existingTitles);
 
             if ($isDuplicate) {
                 $duplicates++;
                 continue;
             }
 
-            // Basic type validation
+            // Flatten nested 'details' if it came from the Full Backup Zip
+            if (isset($row['details']) && is_array($row['details'])) {
+                $row = array_merge($row, $row['details']);
+                unset($row['details']);
+            }
+
             if (!$this->validateRowData($row, $type)) {
                 $errors++;
-                $errorMessages[] = "Row " . ($index + 1) . " ({$title}): Invalid data for required fields.";
+                $errorMessages[] = "Row " . ($index + 1) . " ({$title}): Invalid required fields.";
                 continue;
             }
 
@@ -99,60 +121,52 @@ class ImportController extends Controller
             'duplicates' => $duplicates,
             'errors' => $errors,
             'error_messages' => $errorMessages,
-            'items' => $validRows, // Send back to frontend for execution
+            'items' => $validRows,
+            'session_token' => $sessionToken, // Pass this to execute!
         ]);
     }
 
     public function execute(Request $request, string $type)
     {
         $validTypes = ['movie', 'book', 'game', 'music', 'tv_show'];
-        if (!in_array($type, $validTypes)) {
+        if (!in_array($type, $validTypes))
             return response()->json(['error' => 'Invalid type'], 422);
-        }
 
         $request->validate([
             'items' => 'required|array|max:500',
             'items.*.title' => 'required|string|max:255',
+            'session_token' => 'required|string', // Required to find extracted covers
         ]);
 
         $items = $request->items;
+        $sessionDir = storage_path('app/temp/' . $request->session_token);
         $modelClass = $this->getModelClass($type);
         $inserted = 0;
 
-        DB::transaction(function () use ($items, $type, $modelClass, &$inserted) {
+        // Map old IDs to new IDs for cover matching
+        $idMap = [];
+
+        DB::transaction(function () use ($items, $type, $modelClass, $sessionDir, &$inserted, &$idMap) {
+            $baseFields = ['title', 'barcode', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', '_old_id'];
+
             foreach ($items as $itemData) {
-                $baseFields = ['title', 'barcode', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes'];
+                $oldId = $itemData['_old_id'] ?? null;
                 $detailData = [];
 
                 foreach ($itemData as $key => $value) {
-                    if (in_array($key, $baseFields)) {
-                        continue; // Handled below
-                    }
-                    if ($value !== null && $value !== '') {
+                    if (in_array($key, $baseFields))
+                        continue;
+                    if ($value !== null && $value !== '')
                         $detailData[$key] = $value;
-                    }
                 }
 
-                // Handle booleans (Yes/No from CSV)
-                if (isset($itemData['seen']))
-                    $detailData['seen'] = $itemData['seen'] === true || strtolower($itemData['seen']) === 'yes';
-                if (isset($itemData['read']))
-                    $detailData['read'] = $itemData['read'] === true || strtolower($itemData['read']) === 'yes';
-                if (isset($itemData['completed']))
-                    $detailData['completed'] = $itemData['completed'] === true || strtolower($itemData['completed']) === 'yes';
-
-                // Handle TV Show nested seasons
-                if ($type === 'tv_show' && isset($itemData['seasons']) && is_array($itemData['seasons'])) {
-                    $detailData['seasons'] = $itemData['seasons'];
-                    unset($detailData['network'], $detailData['total_seasons']); // prevent mass assignment if not cast properly
-                } elseif ($type === 'tv_show') {
-                    // Map flat tv show details if they exist
-                    foreach (['network', 'total_seasons', 'total_episodes', 'watch_status'] as $tf) {
-                        if (isset($itemData[$tf]) && $itemData[$tf] !== '') {
-                            $detailData[$tf] = $itemData[$tf];
-                        }
-                    }
-                }
+                // Handle booleans
+                if (isset($detailData['seen']))
+                    $detailData['seen'] = filter_var($detailData['seen'], FILTER_VALIDATE_BOOLEAN);
+                if (isset($detailData['read']))
+                    $detailData['read'] = filter_var($detailData['read'], FILTER_VALIDATE_BOOLEAN);
+                if (isset($detailData['completed']))
+                    $detailData['completed'] = filter_var($detailData['completed'], FILTER_VALIDATE_BOOLEAN);
 
                 $collectionItem = CollectionItem::create([
                     'user_id' => Auth::id(),
@@ -171,9 +185,31 @@ class ImportController extends Controller
                     ...$detailData,
                 ]);
 
+                // If we have an old ID and a covers folder exists, move the cover
+                if ($oldId && is_dir($sessionDir . '/covers')) {
+                    $files = glob($sessionDir . '/covers/' . $oldId . '.*');
+                    if (!empty($files)) {
+                        $oldCoverPath = $files[0];
+                        $ext = pathinfo($oldCoverPath, PATHINFO_EXTENSION);
+                        $newCoverName = 'imported_' . $collectionItem->id . '_' . time() . '.' . $ext;
+
+                        $newPath = storage_path('app/public/covers/' . $newCoverName);
+                        File::ensureDirectoryExists(dirname($newPath));
+
+                        if (File::copy($oldCoverPath, $newPath)) {
+                            $collectionItem->update(['cover_image' => 'covers/' . $newCoverName]);
+                        }
+                    }
+                }
+
                 $inserted++;
             }
         });
+
+        // CRITICAL: Cleanup the temp directory after successful import
+        if (is_dir($sessionDir)) {
+            File::deleteDirectory($sessionDir);
+        }
 
         return response()->json([
             'message' => "Successfully imported {$inserted} items.",
