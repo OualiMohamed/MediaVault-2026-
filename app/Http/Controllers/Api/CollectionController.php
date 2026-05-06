@@ -457,6 +457,7 @@ class CollectionController extends Controller
                 'total_seasons' => 'nullable|integer|min:1',
                 'total_episodes' => 'nullable|integer|min:1',
                 'network' => 'nullable|string|max:255',
+                'director' => 'nullable|string|max:255', // Add this
                 'genre' => 'nullable|string|max:255',
                 'personal_rating' => 'nullable|integer|min:1|max:10',
                 'release_year' => 'nullable|integer|min:1920|max:' . (date('Y') + 2),
