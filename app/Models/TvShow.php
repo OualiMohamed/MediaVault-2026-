@@ -22,6 +22,7 @@ class TvShow extends Model
         'current_episode',
         'trailer_url',
         'actors',
+        'director', // Add this line
     ];
 
     protected $casts = [
