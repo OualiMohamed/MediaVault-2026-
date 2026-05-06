@@ -289,13 +289,10 @@ class TmdbController extends Controller
             ['api_key' => $apiKey]
         )->json();
 
-        if (is_array($credits['crew'] ?? null)) {
-            foreach ($credits['crew'] as $person) {
-                if (($person['job'] ?? '') === 'Director' && ($person['department'] ?? '') === 'Directing') {
-                    $director = $person['name'];
-                    break;
-                }
-            }
+        // Map Created By to Director
+        $director = null;
+        if (is_array($details['created_by'] ?? null) && count($details['created_by']) > 0) {
+            $director = implode(', ', array_column($details['created_by'], 'name'));
         }
 
         // ADD THIS: Extract top 8 actors
@@ -347,7 +344,7 @@ class TmdbController extends Controller
         return response()->json([
             'title' => $details['name'] ?? '',
             'cover_image' => $coverImage,
-            'director' => null,
+            'director' => $director, // Add this
             'genre' => $genre,
             'release_year' => isset($details['first_air_date']) ? (int) substr($details['first_air_date'], 0, 4) : null,
             'runtime_minutes' => $details['episode_runtime'] ?? null,
