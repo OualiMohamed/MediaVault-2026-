@@ -105,7 +105,7 @@ const typeFieldMap = {
     book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'read', 'date_finished'],
     game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'completed', 'completion_date'],
     music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed'],
-    tv_show: ['format', 'total_seasons', 'total_episodes', 'network', 'genre', 'personal_rating', 'release_year', 'watch_status', 'current_season', 'current_episode', 'seasons', 'trailer_url', 'actors'],
+    tv_show: ['format', 'total_seasons', 'total_episodes', 'network', 'director', 'genre', 'personal_rating', 'release_year', 'watch_status', 'current_season', 'current_episode', 'seasons', 'trailer_url', 'actors'],
 }
 
 const baseFields = ['title', 'barcode', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes']
@@ -700,6 +700,14 @@ function removeSeason(index) {
                             <input v-model="form.network" type="text"
                                 class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
                                 placeholder="Netflix, HBO, ABC..." />
+                        </div>
+
+                        <!-- Add this Creator/Director block -->
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Creator</label>
+                            <input v-model="form.director" type="text"
+                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                placeholder="Vince Gilligan, David Benioff..." />
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
