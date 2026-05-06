@@ -216,6 +216,21 @@ class TmdbController extends Controller
             }
         }
 
+        // ADD THIS: Extract top 8 actors
+        $actors = [];
+        if (is_array($credits['cast'] ?? null)) {
+            $actors = collect($credits['cast'])
+                ->take(8)
+                ->map(fn($a) => [
+                    'name' => $a['name'] ?? null,
+                    'character' => $a['character'] ?? null,
+                    'tmdb_id' => $a['id'] ?? null,
+                ])
+                ->filter(fn($a) => !empty($a['name']))
+                ->values()
+                ->toArray();
+        }
+
         // Trailer
         $trailer = null;
         $videos = Http::timeout(10)->withoutVerifying()->get(
@@ -252,6 +267,7 @@ class TmdbController extends Controller
             'imdb_id' => $details['imdb_id'] ?? null,
             'network' => null,
             'total_seasons' => null,
+            'actors' => $actors,
         ]);
     }
 
@@ -264,6 +280,37 @@ class TmdbController extends Controller
 
         if (!$details) {
             return response()->json(['error' => 'Show not found on TMDB'], 404);
+        }
+
+        // Director
+        $director = null;
+        $credits = Http::timeout(10)->withoutVerifying()->get(
+            "https://api.themoviedb.org/3/tv/" . $tmdbId . "/credits",
+            ['api_key' => $apiKey]
+        )->json();
+
+        if (is_array($credits['crew'] ?? null)) {
+            foreach ($credits['crew'] as $person) {
+                if (($person['job'] ?? '') === 'Director' && ($person['department'] ?? '') === 'Directing') {
+                    $director = $person['name'];
+                    break;
+                }
+            }
+        }
+
+        // ADD THIS: Extract top 8 actors
+        $actors = [];
+        if (is_array($credits['cast'] ?? null)) {
+            $actors = collect($credits['cast'])
+                ->take(8)
+                ->map(fn($a) => [
+                    'name' => $a['name'] ?? null,
+                    'character' => $a['character'] ?? null,
+                    'tmdb_id' => $a['id'] ?? null,
+                ])
+                ->filter(fn($a) => !empty($a['name']))
+                ->values()
+                ->toArray();
         }
 
         // Trailer
@@ -294,6 +341,7 @@ class TmdbController extends Controller
             $network = $details['networks'][0]['name'] ?? null;
         }
 
+
         $coverImage = $this->downloadPoster($details['poster_path'], $tmdbId);
 
         return response()->json([
@@ -308,6 +356,7 @@ class TmdbController extends Controller
             'imdb_id' => $details['imdb_id'] ?? null,
             'network' => $network,
             'total_seasons' => $details['number_of_seasons'] ?? null,
+            'actors' => $actors,
         ]);
     }
 
