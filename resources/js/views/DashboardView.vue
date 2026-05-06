@@ -8,7 +8,7 @@ import FormatBreakdown from '../components/FormatBreakdown.vue'
 import RecentItems from '../components/RecentItems.vue'
 
 const dashboard = useDashboardStore()
-const { exporting, exportCollection } = useExport()
+const { exporting, exportCollection, exportFullZip } = useExport()
 
 onMounted(() => dashboard.fetchStats())
 
@@ -198,6 +198,19 @@ async function handleConfirmImport() {
                             </div>
                         </div>
                     </button>
+                </div>
+                <div class="mt-4 pt-4 border-t border-vault-700">
+                    <button @click="exportFullZip(type)" :disabled="!!exporting"
+                        class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-vault-700/50 border border-dashed border-vault-500 rounded-xl hover:border-vault-400 hover:bg-vault-700 transition-all disabled:opacity-50 text-sm text-vault-200">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        </svg>
+                        Download Full Backup with Posters (ZIP)
+                    </button>
+                    <p class="text-vault-500 text-xs mt-2 text-center">Includes all data + cover images. Use this file
+                        for importing.
+                    </p>
                 </div>
             </div>
             <!-- Import Section -->

@@ -38,5 +38,37 @@ export function useExport() {
         }
     }
 
-    return { exporting, exportCollection };
+    // In composables/useExport.js, add:
+    async function exportFullZip(type) {
+        if (exporting.value) return;
+        exporting.value = type;
+        try {
+            const response = await api.post(
+                `/export/full/${type}`,
+                {},
+                { responseType: "blob" },
+            );
+            const disposition = response.headers["content-disposition"];
+            let filename = `${type}_full_backup.zip`;
+            if (disposition) {
+                const match = disposition.match(/filename="?([^"]+)"?/);
+                if (match) filename = match[1];
+            }
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error("Export failed:", err);
+            alert("Export failed.");
+        } finally {
+            exporting.value = null;
+        }
+    }
+
+    return { exporting, exportCollection, exportFullZip };
 }
