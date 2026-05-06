@@ -49,10 +49,11 @@ export function useImport() {
         try {
             const { data } = await api.post(`/import/execute/${type}`, {
                 items: preview.value.items,
+                session_token: preview.value.session_token, // Add this
             });
 
             resetState();
-            return data; // Return success message to caller
+            return data;
         } catch (err) {
             error.value = err.response?.data?.message || "Import failed.";
         } finally {
