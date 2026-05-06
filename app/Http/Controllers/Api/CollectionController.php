@@ -481,6 +481,7 @@ class CollectionController extends Controller
                 'seasons' => 'nullable|json',
                 'trailer_url' => 'nullable|url|max:500',
                 'actors' => 'nullable|string|max:2000',  // add this
+                'network_logo' => 'nullable|string|max:255',
             ],
         };
     }
