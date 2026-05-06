@@ -147,8 +147,10 @@ class CollectionController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function ($q) use ($search, $type, $detailTable) {
-                $q->where('title', 'LIKE', "%{$search}%");
+            $like = '%' . strtolower($search) . '%';
+
+            $query->where(function ($q) use ($like, $type, $detailTable) {
+                $q->whereRaw('LOWER(title) LIKE ?', [$like]);
 
                 if ($type === 'book') {
                     $q->orWhereExists(
@@ -156,27 +158,26 @@ class CollectionController extends Controller
                         $sq->selectRaw(1)
                             ->from($detailTable)
                             ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
-                            ->where('author', 'LIKE', "%{$search}%")
+                            ->whereRaw('LOWER(author) LIKE ?', [$like])
                     );
                 }
 
                 if ($type === 'movie' || $type === 'tv_show') {
-                    // Search by director/creator
                     $q->orWhereExists(
                         fn($sq) =>
                         $sq->selectRaw(1)
                             ->from($detailTable)
                             ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
-                            ->where('director', 'LIKE', "%{$search}%")
+                            ->whereRaw('LOWER(director) LIKE ?', [$like])
                     );
 
-                    // Search inside actors JSON array
+                    // Case-insensitive JSON search via LOWER string match
                     $q->orWhereExists(
                         fn($sq) =>
                         $sq->selectRaw(1)
                             ->from($detailTable)
                             ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
-                            ->whereRaw("JSON_SEARCH({$detailTable}.actors, 'one', ?) IS NOT NULL", ["%{$search}%"])
+                            ->whereRaw('LOWER(CAST(' . $detailTable . '.actors AS CHAR)) LIKE ?', [$like])
                     );
                 }
 
@@ -186,7 +187,7 @@ class CollectionController extends Controller
                         $sq->selectRaw(1)
                             ->from($detailTable)
                             ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
-                            ->where('artist', 'LIKE', "%{$search}%")
+                            ->whereRaw('LOWER(artist) LIKE ?', [$like])
                     );
                 }
             });
