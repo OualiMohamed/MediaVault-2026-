@@ -149,6 +149,7 @@ class CollectionController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search, $type, $detailTable) {
                 $q->where('title', 'LIKE', "%{$search}%");
+
                 if ($type === 'book') {
                     $q->orWhereExists(
                         fn($sq) =>
@@ -158,7 +159,9 @@ class CollectionController extends Controller
                             ->where('author', 'LIKE', "%{$search}%")
                     );
                 }
-                if ($type === 'movie') {
+
+                if ($type === 'movie' || $type === 'tv_show') {
+                    // Search by director/creator
                     $q->orWhereExists(
                         fn($sq) =>
                         $sq->selectRaw(1)
@@ -166,7 +169,17 @@ class CollectionController extends Controller
                             ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
                             ->where('director', 'LIKE', "%{$search}%")
                     );
+
+                    // Search inside actors JSON array
+                    $q->orWhereExists(
+                        fn($sq) =>
+                        $sq->selectRaw(1)
+                            ->from($detailTable)
+                            ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                            ->whereRaw("JSON_SEARCH({$detailTable}.actors, 'one', ?) IS NOT NULL", ["%{$search}%"])
+                    );
                 }
+
                 if ($type === 'music') {
                     $q->orWhereExists(
                         fn($sq) =>
