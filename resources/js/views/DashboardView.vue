@@ -290,10 +290,9 @@ async function handleConfirmImport() {
                         <!-- File Input -->
                         <div>
                             <label class="block text-sm font-medium text-vault-200 mb-2">
-                                Upload {{importTypes.find(t => t.type === importType)?.format}} file
+                                Upload CSV, JSON, or Full Backup ZIP
                             </label>
-                            <input type="file" @change="handleFileChange"
-                                :accept="importType === 'tv_show' ? '.json' : '.csv'"
+                            <input type="file" @change="handleFileChange" accept=".csv,.json,.zip"
                                 class="block w-full text-sm text-vault-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-vault-600 file:text-white hover:file:bg-vault-500 cursor-pointer" />
                         </div>
 
