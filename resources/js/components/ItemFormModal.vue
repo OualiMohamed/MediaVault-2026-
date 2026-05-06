@@ -69,6 +69,7 @@ const form = reactive({
     video_quality: '',
     audio_format: '',
     language: '',
+    actors: '', // Simple string for manual input
 })
 
 const formatOptions = computed(() => {
@@ -100,11 +101,11 @@ const languageOptions = [
 ]
 
 const typeFieldMap = {
-    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'seen', 'date_seen', 'video_quality', 'audio_format', 'language'],
+    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'seen', 'date_seen', 'video_quality', 'audio_format', 'language', 'actors'],
     book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'read', 'date_finished'],
     game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'completed', 'completion_date'],
     music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed'],
-    tv_show: ['format', 'total_seasons', 'total_episodes', 'network', 'genre', 'personal_rating', 'release_year', 'watch_status', 'current_season', 'current_episode', 'seasons', 'trailer_url'],
+    tv_show: ['format', 'total_seasons', 'total_episodes', 'network', 'genre', 'personal_rating', 'release_year', 'watch_status', 'current_season', 'current_episode', 'seasons', 'trailer_url', 'actors'],
 }
 
 const baseFields = ['title', 'barcode', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes']
@@ -140,6 +141,12 @@ watch(() => props.item, (item) => {
             if (key in form) form[key] = item.details[key]
         })
     }
+
+    // Convert actors array back to comma string for the input
+    if (item.details?.actors && Array.isArray(item.details.actors)) {
+        form.actors = item.details.actors.map(a => a.name || a).join(', ')
+    }
+
     if (item.details?.seasons && Array.isArray(item.details.seasons)) {
         seasons.value = item.details.seasons.map(s => ({
             season: s.season,
@@ -249,6 +256,10 @@ async function applyTmdbData(data) {
         tmdbMessage.value = 'Auto-filled from TMDB — poster downloaded'
     } else {
         tmdbMessage.value = 'Auto-filled from TMDB'
+    }
+
+    if (data.actors) {
+        form.actors = data.actors.map(a => a.name).join(', ')
     }
 }
 
@@ -464,7 +475,7 @@ function removeSeason(index) {
                                 d="M9 12l2 2 4-4m6 2a2 2 0 012-2H4m6 0h8a2 2 0 002 2v4a2 2 0 002-2H6a2 2 0 00-2-2H4" />
                         </svg>
                         <span class="text-xs" :class="existingCover ? 'text-sky-400' : 'text-amber-400'">{{ tmdbMessage
-                            }}</span>
+                        }}</span>
                     </div>
 
                     <!-- Title -->
@@ -573,6 +584,15 @@ function removeSeason(index) {
                                 <option v-for="l in languageOptions" :key="l" :value="l">{{ l }}</option>
                             </select>
                         </div>
+
+                        <!-- Actors -->
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Actors</label>
+                            <input v-model="form.actors" type="text"
+                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                placeholder="Keanu Reeves, Carrie-Anne Moss..." />
+                            <p class="text-vault-500 text-xs mt-1">Separated by commas. Auto-filled by TMDB.</p>
+                        </div>
                     </template>
 
                     <!-- Book Fields -->
@@ -666,6 +686,15 @@ function removeSeason(index) {
 
                     <!-- ─── TV Show Fields ─── -->
                     <template v-if="type === 'tv_show'">
+                        <!-- Actors -->
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Actors</label>
+                            <input v-model="form.actors" type="text"
+                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                placeholder="Keanu Reeves, Carrie-Anne Moss..." />
+                            <p class="text-vault-500 text-xs mt-1">Separated by commas. Auto-filled by TMDB.</p>
+                        </div>
+
                         <div>
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Network</label>
                             <input v-model="form.network" type="text"
@@ -953,7 +982,7 @@ function removeSeason(index) {
                                 class="text-rose-300 text-sm flex items-start gap-2">
                                 <span class="text-rose-500 mt-0.5">&#8226;</span>
                                 <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                                }}</span>
+                                    }}</span>
                             </li>
                         </ul>
                     </div>
