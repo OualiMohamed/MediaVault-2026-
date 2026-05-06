@@ -37,6 +37,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tmdb/poster', [TmdbController::class, 'poster']);
 
     Route::get('/export/{type}', [ExportController::class, 'export']);
+    Route::post('/export/full/{type}', [ExportController::class, 'exportFullZip']); // New
 
     Route::post('/import/validate/{type}', [ImportController::class, 'validate']);
     Route::post('/import/execute/{type}', [ImportController::class, 'execute']);
