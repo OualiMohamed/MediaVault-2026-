@@ -350,6 +350,12 @@ class CollectionController extends Controller
                 }
             }
 
+            // HANDLE ACTORS (Convert comma-separated string to JSON array)
+            if (isset($detailData['actors']) && is_string($detailData['actors'])) {
+                $names = explode(',', $detailData['actors']);
+                $detailData['actors'] = array_map(fn($n) => ['name' => trim($n)], array_filter($names));
+            }
+
             if (!empty($detailData)) {
                 $modelClass = $this->getModelClass($type);
                 $modelClass::where('collection_item_id', $item->id)->update($detailData);
@@ -414,6 +420,7 @@ class CollectionController extends Controller
                 'video_quality' => 'nullable|string|max:50',   // add
                 'audio_format' => 'nullable|string|max:50',     // add
                 'language' => 'nullable|string|max:50',         // add
+                'actors' => 'nullable|string|max:2000',  // add this
             ],
             'book' => $base + [
                 'author' => 'required|string|max:255',
@@ -458,6 +465,7 @@ class CollectionController extends Controller
                 'current_episode' => 'nullable|integer|min:1',
                 'seasons' => 'nullable|json',
                 'trailer_url' => 'nullable|url|max:500',
+                'actors' => 'nullable|string|max:2000',  // add this
             ],
         };
     }
