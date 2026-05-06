@@ -329,8 +329,10 @@ class TmdbController extends Controller
 
         // Network
         $network = null;
+        $networkLogo = null;
         if (is_array($details['networks'] ?? null) && count($details['networks']) > 0) {
             $network = $details['networks'][0]['name'] ?? null;
+            $networkLogo = $details['networks'][0]['logo_path'] ?? null;
         }
 
 
@@ -339,7 +341,7 @@ class TmdbController extends Controller
         return response()->json([
             'title' => $details['name'] ?? '',
             'cover_image' => $coverImage,
-            'director' => $director, // Add this
+            'director' => $director,
             'genre' => $genre,
             'release_year' => isset($details['first_air_date']) ? (int) substr($details['first_air_date'], 0, 4) : null,
             'runtime_minutes' => $details['episode_runtime'] ?? null,
@@ -347,6 +349,7 @@ class TmdbController extends Controller
             'trailer_url' => $trailer,
             'imdb_id' => $details['imdb_id'] ?? null,
             'network' => $network,
+            'network_logo' => $networkLogo,  // Add this
             'total_seasons' => $details['number_of_seasons'] ?? null,
             'actors' => $actors,
         ]);
