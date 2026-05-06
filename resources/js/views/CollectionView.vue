@@ -25,7 +25,7 @@ const filterAudioFormat = ref('')
 const filterLanguage = ref('')
 
 const videoQualityOptions = [
-    'UltraHD Light', 'HDLight 1080p', 'HDLight 1080p(x265)', 'HDLight 720p', 'HDLight 720p(x265)',
+    'UltraHD Light', 'HDLight 1080p', 'HDLight 1080p (x265)', 'HDLight 720p', 'HDLight 720p (x265)',
     'SD', 'dvdrip', '720p', '1080p', 'TVrip', 'Full HD', 'Blu-Ray 3D', '4k',
 ]
 
@@ -39,7 +39,7 @@ const languageOptions = [
 
 const formatOptions = computed(() => {
     const map = {
-        movie: ['DVD', 'Blu-ray', '4K UHD', 'Digital', 'VHS'],
+        movie: ['DVD', 'Blu-ray', '4K UHD', 'Digital', 'VHS', 'umd', 'HD DVD'],
         book: [],
         game: ['Physical', 'Digital'],
         music: ['CD', 'Vinyl', 'Digital', 'Cassette', '8-Track'],
