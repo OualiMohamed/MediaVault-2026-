@@ -23,6 +23,7 @@ class TvShow extends Model
         'trailer_url',
         'actors',
         'director', // Add this line
+        'network_logo', // Add this line
     ];
 
     protected $casts = [
