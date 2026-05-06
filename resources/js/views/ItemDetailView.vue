@@ -258,11 +258,12 @@ watch(() => route.params.id, fetchItem)
                                 <p class="text-vault-300 text-lg mt-2 flex items-center gap-2">
                                     <img v-if="type === 'tv_show' && item.details?.network && networkLogo"
                                         :src="networkLogo" :alt="item.details.network"
-                                        class="w-6 h-6 object-contain rounded opacity-80 flex-shrink-0" />
+                                        class="h-6 w-auto object-contain rounded bg-white/15 p-1 flex-shrink-0" />
                                     <span v-if="item.details?.director">{{ item.details.director }}</span>
                                     <span v-if="item.details?.author">{{ item.details.author }}</span>
                                     <span v-if="item.details?.artist">{{ item.details.artist }}</span>
-                                    <span v-if="item.details?.network">{{ item.details.network }}</span>
+                                    <span v-if="type === 'tv_show' && item.details?.network && !networkLogo">{{
+                                        item.details.network }}</span>
                                 </p>
                             </div>
                             <div v-if="item.details?.personal_rating"
@@ -333,8 +334,9 @@ watch(() => route.params.id, fetchItem)
                                 <div v-else-if="row.label === 'Network' && type === 'tv_show'"
                                     class="flex items-center gap-2.5">
                                     <img v-if="networkLogo" :src="networkLogo" :alt="row.value"
-                                        class="w-8 h-8 object-contain rounded flex-shrink-0" />
-                                    <span class="text-white text-sm font-medium">{{ row.value }}</span>
+                                        class="h-6 w-auto object-contain rounded bg-white/15 p-1 flex-shrink-0" />
+                                    <span v-if="!networkLogo" class="text-white text-sm font-medium">{{ row.value
+                                        }}</span>
                                 </div>
 
                                 <!-- Default fallback -->
