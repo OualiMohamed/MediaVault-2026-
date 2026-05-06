@@ -252,6 +252,13 @@ class CollectionController extends Controller
                     $detailData['seasons'] = $decoded;
                 }
             }
+
+            // HANDLE ACTORS (Convert comma-separated string to JSON array for manual entry)
+            if (isset($detailData['actors']) && is_string($detailData['actors'])) {
+                $names = explode(',', $detailData['actors']);
+                $detailData['actors'] = array_map(fn($n) => ['name' => trim($n)], array_filter($names));
+            }
+
             $modelClass = $this->getModelClass($type);
             $detail = $modelClass::create([
                 'collection_item_id' => $item->id,
