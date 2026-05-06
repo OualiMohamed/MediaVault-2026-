@@ -8,20 +8,17 @@ return new class extends Migration {
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
         Schema::table('tv_shows', function (Blueprint $table) {
             $table->string('network_logo')->nullable()->after('network');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
         Schema::table('tv_shows', function (Blueprint $table) {
-            //
+            $table->dropColumn('network_logo');
         });
     }
 };
