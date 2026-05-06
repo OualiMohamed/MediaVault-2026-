@@ -23,10 +23,11 @@ class Movie extends Model
         'video_quality',
         'audio_format',
         'language',
+        'actors',
     ];
 
     // cast attributes to appropriate data types
-    protected $casts = ['release_year' => 'integer'];
+    protected $casts = ['release_year' => 'integer', 'actors' => 'array'];
 
     public function collectionItem(): BelongsTo
     {

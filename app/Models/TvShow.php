@@ -21,11 +21,13 @@ class TvShow extends Model
         'current_season',
         'current_episode',
         'trailer_url',
+        'actors',
     ];
 
     protected $casts = [
         'release_year' => 'integer',
         'seasons' => 'array',
+        'actors' => 'array', // Add this line
     ];
 
     public function collectionItem(): BelongsTo
