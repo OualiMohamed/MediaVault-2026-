@@ -154,24 +154,19 @@ class TmdbController extends Controller
         }
     }
 
-    public function proxyPoster(Request $request): JsonResponse
+    public function proxyPoster(Request $request)
     {
         try {
             $validated = $request->validate([
                 'size' => 'nullable|in:w92,w154,w185,w342,w500,w780',
                 'path' => 'required|string',
             ]);
-        } catch (\Illuminate\Validation\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 422);
-        }
-
-        $apiKey = env('TMDB_API_KEY');
-        if (!$apiKey) {
-            return response()->json(['error' => 'TMDB_API_KEY not set in .env'], 500);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response('', 422);
         }
 
         $size = $validated['size'] ?? 'w500';
-        $url = "https://image.tmdb.org/t/" . $size . "/" . $validated['path'];
+        $url = "https://image.tmdb.org/t/p/" . $size . "/" . $validated['path'];
 
         try {
             $response = Http::timeout(10)->withoutVerifying()->get($url);
