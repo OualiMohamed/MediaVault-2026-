@@ -12,6 +12,7 @@ use App\Models\TvShow;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\File;
 
 class ExportController extends Controller
 {
@@ -309,6 +310,89 @@ class ExportController extends Controller
         }, 200, [
             'Content-Type' => 'application/json; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    public function exportFullZip(Request $request, string $type)
+    {
+        $validTypes = ['movie', 'book', 'game', 'music', 'tv_show'];
+        if (!in_array($type, $validTypes)) {
+            return response()->json(['error' => 'Invalid type'], 422);
+        }
+
+        $modelClass = $this->getModelClass($type);
+        $typeLabels = ['movie' => 'Movies', 'book' => 'Books', 'game' => 'Games', 'music' => 'Music', 'tv_show' => 'TV_Shows'];
+        $label = $typeLabels[$type];
+        $date = now()->format('Y-m-d');
+        $filename = "{$label}_Full_Backup_{$date}.zip";
+
+        $items = CollectionItem::where('user_id', Auth::id())
+            ->where('type', $type)
+            ->orderBy('title', 'asc')
+            ->get();
+
+        $ids = $items->pluck('id');
+        $details = $modelClass::whereIn('collection_item_id', $ids)->get()->keyBy('collection_item_id');
+
+        // Prepare data array, injecting the old ID so import can map covers
+        $exportData = $items->map(function ($item) use ($details) {
+            $detail = $details->get($item->id);
+            $row = [
+                '_old_id' => $item->id, // Crucial for mapping covers on import
+                'title' => $item->title,
+                'status' => $item->status,
+                'condition' => $item->condition,
+                'purchase_date' => $item->purchase_date?->format('Y-m-d'),
+                'purchase_price' => $item->purchase_price,
+                'barcode' => $item->barcode,
+                'notes' => $item->notes,
+                'details' => $detail ? $detail->toArray() : null,
+            ];
+
+            // Don't include the base collection_item_id in the details payload
+            if (isset($row['details']['collection_item_id'])) {
+                unset($row['details']['collection_item_id']);
+            }
+
+            return $row;
+        })->toArray();
+
+        // Create Zip in memory/temp
+        $tempFile = tempnam(sys_get_temp_dir(), 'vault_export_') . '.zip';
+        $zip = new \ZipArchive();
+
+        if ($zip->open($tempFile, \ZipArchive::CREATE) !== true) {
+            return response()->json(['error' => 'Failed to create zip file'], 500);
+        }
+
+        // Add data file
+        $zip->addFromString('data.json', json_encode($exportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+        // Add covers
+        $zip->addEmptyDir('covers');
+        foreach ($items as $item) {
+            if ($item->cover_image) {
+                $path = storage_path('app/public/' . $item->cover_image);
+                if (File::exists($path)) {
+                    // Name it by the OLD database ID so it's unique and mapable
+                    $ext = pathinfo($path, PATHINFO_EXTENSION);
+                    $zip->addFile($path, 'covers/' . $item->id . '.' . $ext);
+                }
+            }
+        }
+
+        $zip->close();
+
+        return Response::stream(function () use ($tempFile) {
+            $stream = fopen($tempFile, 'r');
+            fpassthru($stream);
+            fclose($stream);
+            // Cleanup temp file after streaming
+            unlink($tempFile);
+        }, 200, [
+            'Content-Type' => 'application/zip',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Length' => filesize($tempFile),
         ]);
     }
 }
