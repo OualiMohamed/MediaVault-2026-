@@ -89,11 +89,11 @@ const platformOptions = [
 
 const videoQualityOptions = [
     'UltraHD Light', 'HDLight 1080p', 'HDLight 1080p (x265)', 'HDLight 720p', 'HDLight 720p (x265)',
-    'SD', 'dvdrip', '720p', '1080p', 'TVrip', 'Full HD', 'Blu-Ray 3D', '4k',
+    '480 SD', '540 SD', '720 HD', '1080 HD', 'dvdrip', 'TVrip', 'Blu-Ray 3D', '4k',
 ]
 
 const audioFormatOptions = [
-    'DTS', 'DTS-HD', 'Dolby Digital 5.1', 'Dolby Digital 2.1', 'Dolby Digital 2.0', 'Stereo', 'Mono', 'Dolby Atmos',
+    'DTS', 'DTS-HD', 'DTS-MA', 'Dolby Digital 5.1', 'Dolby Digital 2.1', 'Dolby Digital 2.0', 'Dolby Atmos', 'Stereo', 'Mono', 'mp3',
 ]
 
 const languageOptions = [
