@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
 import ItemFormModal from '../components/ItemFormModal.vue'
 import TrailerModal from '../components/TrailerModal.vue'
-import { useNetworkLogo } from '../composables/useNetworkLogo'
+// import { useNetworkLogo } from '../composables/useNetworkLogo'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,7 +14,7 @@ const loading = ref(true)
 const error = ref('')
 const showEditModal = ref(false)
 const showTrailer = ref(false)
-const { logoUrl: networkLogo, loading: logoLoading, fetchLogo: fetchNetworkLogo, clear: clearNetworkLogo, dispose: disposeNetworkLogo } = useNetworkLogo()
+// const { logoUrl: networkLogo, loading: logoLoading, fetchLogo: fetchNetworkLogo, clear: clearNetworkLogo, dispose: disposeNetworkLogo } = useNetworkLogo()
 
 const type = computed(() => {
     const raw = route.params.type
@@ -45,6 +45,12 @@ const watchStatusColors = {
     dropped: 'text-vault-300 bg-vault-600/20 border-vault-500/20',
     plan_to_watch: 'text-sky-400 bg-sky-500/15 border-sky-500/20',
 }
+
+const networkLogo = computed(() => {
+    const path = item.value?.details?.network_logo
+    if (!path) return null
+    return `/api/tmdb/poster?size=w185&path=${path}`
+})
 
 const hasTrailer = computed(() => {
     return (type.value === 'movie' || type.value === 'tv_show') && !!item.value?.details?.trailer_url
@@ -185,17 +191,17 @@ onBeforeUnmount(() => disposeNetworkLogo?.())
 onMounted(fetchItem)
 watch(() => route.params.id, fetchItem)
 
-watch(
-    () => [item.value?.title, item.value?.details?.network],
-    ([title, network]) => {
-        if (type.value === 'tv_show' && title && network) {
-            fetchNetworkLogo(title, network)
-        } else {
-            clearNetworkLogo()
-        }
-    },
-    { immediate: true }
-)
+// watch(
+//     () => [item.value?.title, item.value?.details?.network],
+//     ([title, network]) => {
+//         if (type.value === 'tv_show' && title && network) {
+//             fetchNetworkLogo(title, network)
+//         } else {
+//             clearNetworkLogo()
+//         }
+//     },
+//     { immediate: true }
+// )
 </script>
 
 <template>
@@ -271,7 +277,7 @@ watch(
                                     </svg>
                                     <div class="absolute inset-0 flex items-center justify-center">
                                         <span class="text-lg font-bold" :style="{ color: ratingColor }">{{ ratingPercent
-                                        }}%</span>
+                                            }}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -363,7 +369,7 @@ watch(
                                 <div v-for="s in item.details.seasons" :key="s.season"
                                     class="inline-flex items-center gap-2 px-4 py-2.5 bg-vault-800 border border-vault-600 rounded-xl">
                                     <span class="text-white font-bold text-sm">S{{ String(s.season).padStart(2, '0')
-                                    }}</span>
+                                        }}</span>
                                     <span class="w-px h-4 bg-vault-600"></span>
                                     <span class="text-vault-300 text-sm">{{ s.format }}</span>
                                     <template v-if="s.video_quality || s.audio_format || s.language">
@@ -371,7 +377,7 @@ watch(
                                         <span v-if="s.video_quality" class="text-sky-400 text-xs font-medium">{{
                                             s.video_quality }}</span>
                                         <span v-if="s.audio_format" class="text-vault-400 text-xs">{{ s.audio_format
-                                        }}</span>
+                                            }}</span>
                                         <span v-if="s.language"
                                             class="text-amber-400 text-xs font-semibold uppercase">{{ s.language
                                             }}</span>
@@ -401,7 +407,7 @@ watch(
                                         class="text-vault-500 text-xs font-medium uppercase tracking-wider block mb-1">Condition</span>
                                     <span class="text-white text-sm font-medium">{{ item.condition === 'near_mint' ?
                                         'Near Mint' : item.condition?.charAt(0).toUpperCase() + item.condition?.slice(1)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div>
                                     <span
