@@ -7,10 +7,13 @@ import { useExport } from '../composables/useExport'
 import FormatBreakdown from '../components/FormatBreakdown.vue'
 import RecentItems from '../components/RecentItems.vue'
 
+
 const dashboard = useDashboardStore()
 const { exporting, exportCollection, exportFullZip } = useExport()
 
 onMounted(() => dashboard.fetchStats())
+
+const fullBackupType = ref('')
 
 const exportTypes = [
     { type: 'movie', label: 'Movies', icon: '\u{1F3AC}', format: 'CSV', color: 'amber' },
@@ -200,17 +203,30 @@ async function handleConfirmImport() {
                     </button>
                 </div>
                 <div class="mt-4 pt-4 border-t border-vault-700">
-                    <button @click="exportFullZip(type)" :disabled="!!exporting"
-                        class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-vault-700/50 border border-dashed border-vault-500 rounded-xl hover:border-vault-400 hover:bg-vault-700 transition-all disabled:opacity-50 text-sm text-vault-200">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                        </svg>
-                        Download Full Backup with Posters (ZIP)
-                    </button>
-                    <p class="text-vault-500 text-xs mt-2 text-center">Includes all data + cover images. Use this file
-                        for importing.
-                    </p>
+                    <div class="flex gap-2">
+                        <select v-model="fullBackupType"
+                            class="flex-1 px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                            <option value="" disabled>Select library...</option>
+                            <option value="movie">Movies</option>
+                            <option value="book">Books</option>
+                            <option value="game">Games</option>
+                            <option value="tv_show">TV Shows</option>
+                            <option value="music">Music</option>
+                        </select>
+                        <button @click="exportFullZip(fullBackupType)" :disabled="!fullBackupType || !!exporting"
+                            class="px-5 py-2.5 bg-vault-700/50 border border-dashed border-vault-500 rounded-xl hover:border-vault-400 hover:bg-vault-700 transition-all disabled:opacity-50 disabled:cursor-wait flex items-center gap-2 text-sm text-vault-200 whitespace-nowrap">
+                            <svg v-if="!exporting" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                            <div v-else
+                                class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin">
+                            </div>
+                            Download ZIP
+                        </button>
+                    </div>
+                    <p class="text-vault-500 text-xs mt-2 text-center">Includes all data + cover images</p>
                 </div>
             </div>
             <!-- Import Section -->
