@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { useCollectionStore } from '../stores/collection'
 import MediaCard from '../components/MediaCard.vue'
 import ItemFormModal from '../components/ItemFormModal.vue'
+import api from '../api' // Make sure this is imported
 
 const route = useRoute()
 const store = useCollectionStore()
@@ -23,6 +24,8 @@ const currentPage = ref(1)
 const filterVideoQuality = ref('')
 const filterAudioFormat = ref('')
 const filterLanguage = ref('')
+const bookGenres = ref([])
+const filterGenre = ref('')
 
 const videoQualityOptions = [
     'UltraHD Light', 'HDLight 1080p', 'HDLight 1080p (x265)', 'HDLight 720p', 'HDLight 720p (x265)',
@@ -86,6 +89,7 @@ const typeConfig = {
 const config = computed(() => typeConfig[type.value])
 
 function loadItems() {
+    console.log('Genre value:', filterGenre.value) // Add this line
     const params = {
         page: currentPage.value,
         search: search.value || undefined,
@@ -96,11 +100,21 @@ function loadItems() {
         video_quality: filterVideoQuality.value || undefined,
         audio_format: filterAudioFormat.value || undefined,
         language: filterLanguage.value || undefined,
+        genre: filterGenre.value || undefined,
         letter: filterLetter.value || undefined,
         sort_by: sortBy.value,
         sort_dir: sortDir.value,
     }
     store.fetchItems(type.value, params)
+}
+
+async function fetchBookGenres() {
+    try {
+        const { data } = await api.get('/filters/genres/book')
+        bookGenres.value = data
+    } catch (e) {
+        // Silently fail
+    }
 }
 
 function handlePageChange(page) {
@@ -124,9 +138,12 @@ function handleFormSaved() {
     loadItems()
 }
 
-onMounted(loadItems)
+onMounted(() => {
+    loadItems()
+    if (route.path === '/books') fetchBookGenres()
+})
 
-watch(() => route.path, () => {
+watch(() => route.path, (newPath) => {
     search.value = ''
     filterFormat.value = ''
     filterStatus.value = ''
@@ -135,14 +152,17 @@ watch(() => route.path, () => {
     filterVideoQuality.value = ''
     filterAudioFormat.value = ''
     filterLanguage.value = ''
+    filterGenre.value = ''
     filterLetter.value = ''
     sortBy.value = 'created_at'
     sortDir.value = 'desc'
     currentPage.value = 1
     loadItems()
+    if (newPath === '/books') fetchBookGenres()
 })
 
-watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, filterVideoQuality, filterAudioFormat, filterLanguage, filterLetter, sortValue], () => {
+watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, filterVideoQuality, filterAudioFormat, filterLanguage, filterLetter, sortValue, filterGenre], () => {
+    console.log('>>> Watcher fired! Genre is:', filterGenre.value) // Add this
     currentPage.value = 1
     loadItems()
 })
@@ -171,7 +191,6 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
         </div>
 
         <!-- Filters -->
-        <!-- Filters -->
         <div class="flex flex-wrap items-center gap-3 mb-4">
             <input v-model="search" type="text" :placeholder="`Search ${config.label.toLowerCase()}...`"
                 class="flex-1 min-w-[200px] px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all text-sm" />
@@ -187,11 +206,19 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
                 <option value="">All Formats</option>
                 <option v-for="f in formatOptions" :key="f" :value="f">{{ f }}</option>
             </select>
+
+            <select v-if="type === 'book'" v-model="filterGenre" @change="console.log('Change event:', filterGenre)"
+                class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                <option value="">All Genres</option>
+                <option v-for="g in bookGenres" :key="g" :value="g">{{ g }}</option>
+            </select>
+
             <select v-if="type === 'game'" v-model="filterPlatform"
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                 <option value="">All Platforms</option>
                 <option v-for="p in platformOptions" :key="p" :value="p">{{ p }}</option>
             </select>
+
             <select v-if="type === 'tv_show'" v-model="filterWatchStatus"
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                 <option value="">All Watch Status</option>
@@ -288,3 +315,14 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
             @saved="handleFormSaved" />
     </div>
 </template>
+
+<style scoped>
+.scrollbar-none::-webkit-scrollbar {
+    display: none;
+}
+
+.scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+</style>

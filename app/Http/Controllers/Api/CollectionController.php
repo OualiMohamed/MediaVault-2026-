@@ -95,6 +95,16 @@ class CollectionController extends Controller
             );
         }
 
+        if ($type === 'book' && $request->filled('genre')) {
+            $query->whereExists(
+                fn($q) =>
+                $q->selectRaw(1)
+                    ->from($detailTable)
+                    ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                    ->whereRaw('LOWER(' . $detailTable . '.genre) LIKE ?', ['%' . strtolower($request->genre) . '%'])
+            );
+        }
+
         if ($type === 'game' && $request->filled('platform')) {
             $query->whereExists(
                 fn($q) =>
@@ -484,5 +494,27 @@ class CollectionController extends Controller
                 'network_logo' => 'nullable|string|max:255',
             ],
         };
+    }
+
+    public function bookGenres(): JsonResponse
+    {
+        $genres = Book::whereExists(
+            fn($q) =>
+            $q->selectRaw(1)
+                ->from('collection_items')
+                ->whereColumn('collection_items.id', 'books.collection_item_id')
+                ->where('user_id', Auth::id())
+        )
+            ->whereNotNull('genre')
+            ->where('genre', '!=', '')
+            ->pluck('genre')
+            ->flatMap(fn($g) => explode(',', $g))
+            ->map(fn($g) => trim($g))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        return response()->json($genres);
     }
 }
