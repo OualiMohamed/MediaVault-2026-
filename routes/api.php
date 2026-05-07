@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\ImportController;
 use App\Http\Controllers\Api\NetworkLogoController;
+use App\Http\Controllers\Api\RawgController;
 use App\Http\Controllers\Api\TmdbController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +15,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::get('/tmdb/poster', [TmdbController::class, 'proxyPoster']);
+Route::get('/rawg/poster', [RawgController::class, 'proxyPoster']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
@@ -42,4 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/import/validate/{type}', [ImportController::class, 'validate']);
     Route::post('/import/execute/{type}', [ImportController::class, 'execute']);
+
+    Route::post('/rawg/search', [RawgController::class, 'search']);
+    Route::post('/rawg/details', [RawgController::class, 'details']);
 });
