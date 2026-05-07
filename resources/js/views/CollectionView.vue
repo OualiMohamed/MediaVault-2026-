@@ -49,8 +49,8 @@ const formatOptions = computed(() => {
 })
 
 const platformOptions = [
-    'PS5', 'PS4', 'PS3', 'PS Vita', 'Switch', 'Wii U', 'Wii',
-    'Xbox Series X', 'Xbox One', 'PC', 'Steam', 'DS', 'Other',
+    'PS5', 'PS4', 'PS3', 'PS Vita', 'Switch', 'Wii U', 'Wii', 'Nintendo DS',
+    'Xbox Series X', 'Xbox One', 'PC', 'Steam', 'Other',
 ]
 
 const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '#']

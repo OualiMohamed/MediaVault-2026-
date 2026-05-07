@@ -47,18 +47,19 @@ const watchStatusColors = {
 }
 
 const platformConfig = {
-    'PS5': { bg: 'bg-[#003087]', text: 'text-white', icon: 'fa-brands fa-playstation' },
-    'PS4': { bg: 'bg-[#003087]/80', text: 'text-blue-200', icon: 'fa-brands fa-playstation' },
-    'PS3': { bg: 'bg-[#37392e]', text: 'text-gray-200', icon: 'fa-brands fa-playstation' },
-    'PS Vita': { bg: 'bg-[#003087]/60', text: 'text-blue-300', icon: 'fa-brands fa-playstation' },
-    'Switch': { bg: 'bg-[#e60012]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
-    'Wii U': { bg: 'bg-[#8b8b8b]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
-    'Wii': { bg: 'bg-[#8b8b8b]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
-    'Xbox Series X': { bg: 'bg-[#107c10]', text: 'text-white', icon: 'fa-brands fa-xbox' },
-    'Xbox One': { bg: 'bg-[#107c10]/80', text: 'text-green-200', icon: 'fa-brands fa-xbox' },
-    'PC': { bg: 'bg-[#0078d4]', text: 'text-white', icon: 'fa-brands fa-windows' },
-    'Steam': { bg: 'bg-[#1b2838]', text: 'text-white', icon: 'fa-brands fa-steam' },
-    'Other': { bg: 'bg-vault-600', text: 'text-vault-200', icon: 'fa-solid fa-gamepad' },
+    'PS5':          { bg: 'bg-[#003087]', text: 'text-white', icon: 'fa-brands fa-playstation' },
+    'PS4':          { bg: 'bg-[#003087]/80', text: 'text-blue-200', icon: 'fa-brands fa-playstation' },
+    'PS3':          { bg: 'bg-[#37392e]', text: 'text-gray-200', icon: 'fa-brands fa-playstation' },
+    'PS Vita':      { bg: 'bg-[#003087]/60', text: 'text-blue-300', icon: 'fa-brands fa-playstation' },
+    'Switch':       { bg: 'bg-[#e60012]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
+    'Wii U':        { bg: 'bg-[#8b8b8b]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
+    'Wii':          { bg: 'bg-[#8b8b8b]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
+    'Nintendo DS':  { bg: 'bg-[#333]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
+    'Xbox Series X':{ bg: 'bg-[#107c10]', text: 'text-white', icon: 'fa-brands fa-xbox' },
+    'Xbox One':     { bg: 'bg-[#107c10]/80', text: 'text-green-200', icon: 'fa-brands fa-xbox' },
+    'PC':           { bg: 'bg-[#0078d4]', text: 'text-white', icon: 'fa-brands fa-windows' },
+    'Steam':        { bg: 'bg-[#1b2838]', text: 'text-white', icon: 'fa-brands fa-steam' },
+    'Other':        { bg: 'bg-vault-600', text: 'text-vault-200', icon: 'fa-solid fa-gamepad' },
 }
 
 function getPlatformStyle(platformName) {
