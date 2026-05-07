@@ -6,6 +6,7 @@ import api from '../api'
 import BarcodeScanner from './BarcodeScanner.vue'
 import TmdbSearchModal from './TmdbSearchModal.vue'
 import RawgSearchModal from './RawgSearchModal.vue'
+import GoogleBooksSearchModal from './GoogleBooksSearchModal.vue'
 
 const props = defineProps({
     type: { type: String, required: true },
@@ -28,6 +29,8 @@ const showTmdbSearch = ref(false)
 const tmdbMessage = ref('')
 const showRawgSearch = ref(false)
 const rawgMessage = ref('')
+const showGoogleBooksSearch = ref(false)
+const googleBooksMessage = ref('')
 
 const isEditing = computed(() => !!props.item)
 
@@ -288,6 +291,29 @@ async function applyRawgData(data) {
     }
 }
 
+async function applyGoogleBooksData(data) {
+    showGoogleBooksSearch.value = false
+    googleBooksMessage.value = ''
+    existingCover.value = ''
+
+    if (data.title) form.title = data.title
+    if (data.author) form.author = data.author
+    if (data.isbn) form.isbn = data.isbn
+    if (data.publisher) form.publisher = data.publisher
+    if (data.page_count) form.page_count = data.page_count
+    if (data.release_year) form.release_year = data.release_year
+    if (data.genre) form.genre = data.genre
+    if (data.overview) form.notes = data.overview
+
+    if (data.cover_image) {
+        existingCover.value = data.cover_image.replace(/^\/storage\//, '')
+        coverPreview.value = data.cover_image
+        googleBooksMessage.value = 'Auto-filled from Google Books — cover downloaded'
+    } else {
+        googleBooksMessage.value = 'Auto-filled from Google Books'
+    }
+}
+
 async function handleSubmit() {
     errors.value = {}
     serverError.value = ''
@@ -500,7 +526,7 @@ function removeSeason(index) {
                                 d="M9 12l2 2 4-4m6 2a2 2 0 012-2H4m6 0h8a2 2 0 002 2v4a2 2 0 002-2H6a2 2 0 00-2-2H4" />
                         </svg>
                         <span class="text-xs" :class="existingCover ? 'text-sky-400' : 'text-amber-400'">{{ tmdbMessage
-                            }}</span>
+                        }}</span>
                     </div>
 
                     <!-- Title -->
@@ -631,6 +657,24 @@ function removeSeason(index) {
                                 placeholder="Author name" />
                             <p v-if="fieldError('author')" class="text-rose-500 text-xs mt-1">{{ fieldError('author') }}
                             </p>
+                        </div>
+                        <!-- ═══ Google Books Auto-fill ═══ -->
+                        <div class="mt-4">
+                            <button @click="showGoogleBooksSearch = true" type="button"
+                                class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 rounded-xl text-sm font-medium hover:bg-emerald-500/25 hover:border-emerald-500/50 transition-all">
+                                📖 Auto-fill from Google Books
+                            </button>
+                            <p class="text-vault-500 text-xs mt-1.5 text-center">Search by title to auto-fill details,
+                                ISBN, and cover</p>
+                        </div>
+
+                        <!-- Google Books success message -->
+                        <div v-if="googleBooksMessage" class="mt-2 flex items-center gap-2">
+                            <svg class="w-3.5 h-3.5 flex-shrink-0 text-emerald-400" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-xs text-emerald-400">{{ googleBooksMessage }}</span>
                         </div>
                         <div class="grid grid-cols-3 gap-4">
                             <div><label class="block text-sm font-medium text-vault-200 mb-1.5">ISBN</label><input
@@ -1033,7 +1077,7 @@ function removeSeason(index) {
                                 class="text-rose-300 text-sm flex items-start gap-2">
                                 <span class="text-rose-500 mt-0.5">&#8226;</span>
                                 <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                                }}</span>
+                                    }}</span>
                             </li>
                         </ul>
                     </div>
@@ -1062,4 +1106,8 @@ function removeSeason(index) {
 
     <!-- RAWG Search Modal -->
     <RawgSearchModal :open="showRawgSearch" @close="showRawgSearch = false" @selected="applyRawgData" />
+
+    <!-- Google Books Search Modal -->
+    <GoogleBooksSearchModal :open="showGoogleBooksSearch" @close="showGoogleBooksSearch = false"
+        @selected="applyGoogleBooksData" />
 </template>

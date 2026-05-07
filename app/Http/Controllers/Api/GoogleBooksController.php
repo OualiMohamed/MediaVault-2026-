@@ -13,13 +13,13 @@ class GoogleBooksController extends Controller
 {
     public function search(Request $request): JsonResponse
     {
-        $request->validate(['query' => 'required|string|min:2|max:255']);
+        $validated = $request->validate(['query' => 'required|string|min:2|max:255']);
 
         $apiKey = env('GOOGLE_BOOKS_API_KEY');
 
         try {
             $params = [
-                'q' => 'intitle:' . $request->query,
+                'q' => 'intitle:' . $validated['query'],
                 'maxResults' => 10,
                 'printType' => 'books',
             ];
@@ -57,7 +57,7 @@ class GoogleBooksController extends Controller
 
     public function details(Request $request): JsonResponse
     {
-        $request->validate(['google_id' => 'required|string']);
+        $validated = $request->validate(['google_id' => 'required|string']);
 
         $apiKey = env('GOOGLE_BOOKS_API_KEY');
 
@@ -66,8 +66,7 @@ class GoogleBooksController extends Controller
             if ($apiKey)
                 $params['key'] = $apiKey;
 
-            $response = Http::timeout(10)->withoutVerifying()->get("https://www.googleapis.com/books/v1/volumes/{$request->google_id}", $params);
-
+            $response = Http::timeout(10)->withoutVerifying()->get("https://www.googleapis.com/books/v1/volumes/{$validated['google_id']}", $params);
             $details = $response->json();
             $info = $details['volumeInfo'] ?? [];
 
