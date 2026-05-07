@@ -38,6 +38,25 @@ const statusColors = {
     lost: 'text-rose-400 bg-rose-500/15',
 }
 
+const platformConfig = {
+    'PS5': { bg: 'bg-[#003087]', text: 'text-white', icon: 'fa-brands fa-playstation' },
+    'PS4': { bg: 'bg-[#003087]/80', text: 'text-blue-200', icon: 'fa-brands fa-playstation' },
+    'PS3': { bg: 'bg-[#37392e]', text: 'text-gray-200', icon: 'fa-brands fa-playstation' },
+    'PS Vita': { bg: 'bg-[#003087]/60', text: 'text-blue-300', icon: 'fa-brands fa-playstation' },
+    'Switch': { bg: 'bg-[#e60012]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
+    'Wii U': { bg: 'bg-[#8b8b8b]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
+    'Wii': { bg: 'bg-[#8b8b8b]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
+    'Xbox Series X': { bg: 'bg-[#107c10]', text: 'text-white', icon: 'fa-brands fa-xbox' },
+    'Xbox One': { bg: 'bg-[#107c10]/80', text: 'text-green-200', icon: 'fa-brands fa-xbox' },
+    'PC': { bg: 'bg-[#0078d4]', text: 'text-white', icon: 'fa-brands fa-windows' },
+    'Steam': { bg: 'bg-[#1b2838]', text: 'text-white', icon: 'fa-brands fa-steam' },
+    'Other': { bg: 'bg-vault-600', text: 'text-vault-200', icon: 'fa-solid fa-gamepad' },
+}
+
+function getPlatformStyle(platformName) {
+    return platformConfig[platformName] || platformConfig['Other']
+}
+
 const subtitle = computed(() => {
     const d = props.item.details
     if (!d) return ''
@@ -58,6 +77,7 @@ const subtitle = computed(() => {
     }
     return ''
 })
+
 
 // Navigate to detail page — stop propagation on action buttons
 function goToDetail() {
@@ -168,9 +188,10 @@ async function handleDelete() {
             <h3 class="text-white text-sm font-semibold truncate" :title="item.title">{{ item.title }}</h3>
             <p class="text-vault-400 text-xs truncate mt-0.5">{{ subtitle }}</p>
             <div class="mt-2 flex items-center justify-between gap-2">
-                <span v-if="item.details?.format || item.details?.platform"
-                    class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-vault-700 text-vault-300 truncate">
-                    {{ item.details.format || item.details.platform }}
+                <span v-if="item.details?.platform"
+                    :class="['inline-flex items-center gap-1.2 text-[10px] font-semibold px-2 py-0.5 rounded-md', getPlatformStyle(item.details.platform).bg, getPlatformStyle(item.details.platform).text]">
+                    <i :class="getPlatformStyle(item.details.platform).icon"></i>
+                    {{ item.details.platform }}
                 </span>
                 <span v-if="item.purchase_price" class="text-xs text-vault-400 whitespace-nowrap ml-auto">
                     ${{ Number(item.purchase_price).toFixed(2) }}

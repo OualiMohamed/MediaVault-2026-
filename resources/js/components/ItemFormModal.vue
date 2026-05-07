@@ -87,7 +87,7 @@ const formatOptions = computed(() => {
 
 const platformOptions = [
     'PS5', 'PS4', 'PS3', 'PS Vita', 'Switch', 'Wii U', 'Wii',
-    'Xbox Series X', 'Xbox One', 'PC', 'Steam', 'Nintendo DS', 'Other',
+    'Xbox Series X', 'Xbox One', 'PC', 'Steam', 'DS', 'Other',
 ]
 
 const videoQualityOptions = [

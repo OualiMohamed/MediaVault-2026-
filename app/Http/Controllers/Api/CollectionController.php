@@ -448,7 +448,7 @@ class CollectionController extends Controller
                 'date_finished' => 'nullable|date',
             ],
             'game' => $base + [
-                'platform' => 'required|in:PS5,PS4,PS3,PS Vita,Switch,Wii U,Wii,Xbox Series X,Xbox One,PC,Steam,Other',
+                'platform' => 'required|in:PS5,PS4,PS3,PS Vita,Switch,Wii U,Wii,Xbox Series X,Xbox One,PC,Steam,DS,Other',
                 'format' => 'required|in:Physical,Digital',
                 'genre' => 'nullable|string|max:255',
                 'publisher' => 'nullable|string|max:255',

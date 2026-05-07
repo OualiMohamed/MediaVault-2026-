@@ -46,6 +46,25 @@ const watchStatusColors = {
     plan_to_watch: 'text-sky-400 bg-sky-500/15 border-sky-500/20',
 }
 
+const platformConfig = {
+    'PS5': { bg: 'bg-[#003087]', text: 'text-white', icon: 'fa-brands fa-playstation' },
+    'PS4': { bg: 'bg-[#003087]/80', text: 'text-blue-200', icon: 'fa-brands fa-playstation' },
+    'PS3': { bg: 'bg-[#37392e]', text: 'text-gray-200', icon: 'fa-brands fa-playstation' },
+    'PS Vita': { bg: 'bg-[#003087]/60', text: 'text-blue-300', icon: 'fa-brands fa-playstation' },
+    'Switch': { bg: 'bg-[#e60012]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
+    'Wii U': { bg: 'bg-[#8b8b8b]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
+    'Wii': { bg: 'bg-[#8b8b8b]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
+    'Xbox Series X': { bg: 'bg-[#107c10]', text: 'text-white', icon: 'fa-brands fa-xbox' },
+    'Xbox One': { bg: 'bg-[#107c10]/80', text: 'text-green-200', icon: 'fa-brands fa-xbox' },
+    'PC': { bg: 'bg-[#0078d4]', text: 'text-white', icon: 'fa-brands fa-windows' },
+    'Steam': { bg: 'bg-[#1b2838]', text: 'text-white', icon: 'fa-brands fa-steam' },
+    'Other': { bg: 'bg-vault-600', text: 'text-vault-200', icon: 'fa-solid fa-gamepad' },
+}
+
+function getPlatformStyle(platformName) {
+    return platformConfig[platformName] || platformConfig['Other']
+}
+
 const networkLogo = computed(() => {
     const path = item.value?.details?.network_logo
     if (!path) return null
@@ -144,7 +163,15 @@ const tags = computed(() => {
     if (!d) return []
     const list = []
     if (d.format) list.push({ label: d.format, color: 'bg-vault-600 text-vault-100' })
-    if (d.platform) list.push({ label: d.platform, color: 'bg-vault-600 text-vault-100' })
+
+    // Change this:
+    // if (d.platform) list.push({ label: d.platform, color: 'bg-vault-600 text-vault-100' })
+    // To this:
+    if (d.platform) {
+        const style = getPlatformStyle(d.platform)
+        list.push({ label: d.platform, color: `${style.bg} ${style.text}`, icon: style.icon })
+    }
+
     if (d.genre) {
         d.genre.split(',').map(g => g.trim()).filter(Boolean).forEach(g => {
             list.push({ label: g, color: 'bg-vault-700 text-vault-200' })
@@ -278,7 +305,7 @@ watch(() => route.params.id, fetchItem)
                                     </svg>
                                     <div class="absolute inset-0 flex items-center justify-center">
                                         <span class="text-lg font-bold" :style="{ color: ratingColor }">{{ ratingPercent
-                                        }}%</span>
+                                            }}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -286,8 +313,10 @@ watch(() => route.params.id, fetchItem)
 
                         <div v-if="tags.length" class="flex flex-wrap gap-2 mb-6">
                             <span v-for="(tag, i) in tags" :key="i"
-                                :class="['px-3 py-1 rounded-full text-xs font-medium', tag.color]">{{ tag.label
-                                }}</span>
+                                :class="['inline-flex items-center gap-1.2 px-3 py-1 rounded-full text-xs font-medium', tag.color]">
+                                <i v-if="tag.icon" :class="tag.icon"></i>
+                                {{ tag.label }}
+                            </span>
                             <span v-if="item.status"
                                 :class="['px-3 py-1 rounded-full text-xs font-medium border', statusColors[item.status] || '']">{{
                                     item.status.charAt(0).toUpperCase() + item.status.slice(1) }}</span>
@@ -336,7 +365,7 @@ watch(() => route.params.id, fetchItem)
                                     <img v-if="networkLogo" :src="networkLogo" :alt="row.value"
                                         class="h-6 w-auto object-contain rounded bg-white/15 p-1 flex-shrink-0" />
                                     <span v-if="!networkLogo" class="text-white text-sm font-medium">{{ row.value
-                                        }}</span>
+                                    }}</span>
                                 </div>
 
                                 <!-- Default fallback -->
@@ -371,7 +400,7 @@ watch(() => route.params.id, fetchItem)
                                 <div v-for="s in item.details.seasons" :key="s.season"
                                     class="inline-flex items-center gap-2 px-4 py-2.5 bg-vault-800 border border-vault-600 rounded-xl">
                                     <span class="text-white font-bold text-sm">S{{ String(s.season).padStart(2, '0')
-                                    }}</span>
+                                        }}</span>
                                     <span class="w-px h-4 bg-vault-600"></span>
                                     <span class="text-vault-300 text-sm">{{ s.format }}</span>
                                     <template v-if="s.video_quality || s.audio_format || s.language">
@@ -379,7 +408,7 @@ watch(() => route.params.id, fetchItem)
                                         <span v-if="s.video_quality" class="text-sky-400 text-xs font-medium">{{
                                             s.video_quality }}</span>
                                         <span v-if="s.audio_format" class="text-vault-400 text-xs">{{ s.audio_format
-                                        }}</span>
+                                            }}</span>
                                         <span v-if="s.language"
                                             class="text-amber-400 text-xs font-semibold uppercase">{{ s.language
                                             }}</span>
@@ -409,7 +438,7 @@ watch(() => route.params.id, fetchItem)
                                         class="text-vault-500 text-xs font-medium uppercase tracking-wider block mb-1">Condition</span>
                                     <span class="text-white text-sm font-medium">{{ item.condition === 'near_mint' ?
                                         'Near Mint' : item.condition?.charAt(0).toUpperCase() + item.condition?.slice(1)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div>
                                     <span
