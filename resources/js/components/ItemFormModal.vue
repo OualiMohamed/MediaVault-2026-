@@ -5,6 +5,7 @@ import { useCollectionStore } from '../stores/collection'
 import api from '../api'
 import BarcodeScanner from './BarcodeScanner.vue'
 import TmdbSearchModal from './TmdbSearchModal.vue'
+import RawgSearchModal from './RawgSearchModal.vue'
 
 const props = defineProps({
     type: { type: String, required: true },
@@ -25,6 +26,8 @@ const existingCover = ref('')
 const seasons = ref([{ season: 1, format: 'Digital', video_quality: '', audio_format: '', language: '' }])
 const showTmdbSearch = ref(false)
 const tmdbMessage = ref('')
+const showRawgSearch = ref(false)
+const rawgMessage = ref('')
 
 const isEditing = computed(() => !!props.item)
 
@@ -261,6 +264,27 @@ async function applyTmdbData(data) {
 
     if (data.actors) {
         form.actors = data.actors.map(a => a.name).join(', ')
+    }
+}
+
+async function applyRawgData(data) {
+    showRawgSearch.value = false
+    rawgMessage.value = ''
+    existingCover.value = ''
+
+    if (data.title) form.title = data.title
+    if (data.publisher) form.publisher = data.publisher
+    if (data.genre) form.genre = data.genre
+    if (data.release_year) form.release_year = data.release_year
+    if (data.platform) form.platform = data.platform // Auto-maps from RAWG!
+    if (data.overview) form.notes = data.overview
+
+    if (data.cover_image) {
+        existingCover.value = data.cover_image.replace(/^\/storage\//, '')
+        coverPreview.value = data.cover_image
+        rawgMessage.value = 'Auto-filled from RAWG — cover downloaded'
+    } else {
+        rawgMessage.value = 'Auto-filled from RAWG'
     }
 }
 
@@ -662,6 +686,24 @@ function removeSeason(index) {
                                 <p v-if="fieldError('format')" class="text-rose-500 text-xs mt-1">{{
                                     fieldError('format') }}</p>
                             </div>
+
+                            <!-- RAWG success message -->
+                            <div v-if="rawgMessage" class="mt-2 flex items-center gap-2">
+                                <svg class="w-3.5 h-3.5 flex-shrink-0 text-sky-400" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span class="text-xs text-sky-400">{{ rawgMessage }}</span>
+                            </div>
+                        </div>
+                        <!-- ═══ RAWG Auto-fill ═══ -->
+                        <div class="mt-4">
+                            <button @click="showRawgSearch = true" type="button"
+                                class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-sky-500/15 border border-sky-500/30 text-sky-400 rounded-xl text-sm font-medium hover:bg-sky-500/25 hover:border-sky-500/50 transition-all">
+                                🎮 Auto-fill from RAWG
+                            </button>
+                            <p class="text-vault-500 text-xs mt-1.5 text-center">Search by title to auto-fill
+                                details, platform, and cover</p>
                         </div>
                         <div class="grid grid-cols-3 gap-4">
                             <div><label class="block text-sm font-medium text-vault-200 mb-1.5">Year</label><input
@@ -1017,4 +1059,7 @@ function removeSeason(index) {
 
     <!-- TMDB Search Modal -->
     <TmdbSearchModal :open="showTmdbSearch" :type="type" @close="showTmdbSearch = false" @selected="applyTmdbData" />
+
+    <!-- RAWG Search Modal -->
+    <RawgSearchModal :open="showRawgSearch" @close="showRawgSearch = false" @selected="applyRawgData" />
 </template>

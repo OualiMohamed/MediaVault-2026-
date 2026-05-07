@@ -13,7 +13,7 @@ class RawgController extends Controller
 {
     public function search(Request $request): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'query' => 'required|string|min:2|max:255',
         ]);
 
@@ -22,9 +22,9 @@ class RawgController extends Controller
             return response()->json(['error' => 'RAWG_API_KEY not set'], 500);
 
         try {
-            $response = Http::timeout(10)->get('https://api.rawg.io/api/games', [
+            $response = Http::timeout(10)->withoutVerifying()->get('https://api.rawg.io/api/games', [
                 'key' => $apiKey,
-                'search' => $request->query,
+                'search' => $validated['query'],  // Changed from $request->query
                 'page_size' => 10,
             ]);
 
@@ -64,7 +64,7 @@ class RawgController extends Controller
             return response()->json(['error' => 'RAWG_API_KEY not set'], 500);
 
         try {
-            $details = Http::timeout(10)->get("https://api.rawg.io/api/games/{$request->rawg_id}", [
+            $details = Http::timeout(10)->withoutVerifying()->get("https://api.rawg.io/api/games/{$request->rawg_id}", [
                 'key' => $apiKey,
             ])->json();
 
@@ -148,7 +148,7 @@ class RawgController extends Controller
     {
         $request->validate(['url' => 'required|url']);
         try {
-            $response = Http::timeout(10)->get($request->url);
+            $response = Http::timeout(10)->withoutVerifying()->get($request->url);
             if (!$response->successful() || strlen($response->body()) < 2000)
                 return response('', 404);
             return response($response->body(), 200, [
@@ -165,7 +165,7 @@ class RawgController extends Controller
         if (empty($imageUrl))
             return null;
         try {
-            $response = Http::timeout(10)->get($imageUrl);
+            $response = Http::timeout(10)->withoutVerifying()->get($imageUrl);
             if (!$response->successful() || strlen($response->body()) < 2000)
                 return null;
 
