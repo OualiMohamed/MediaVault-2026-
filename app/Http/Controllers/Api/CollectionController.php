@@ -476,6 +476,7 @@ class CollectionController extends Controller
                 'personal_rating' => 'nullable|integer|min:1|max:10',
                 'release_year' => 'nullable|integer|min:1887|max:' . (date('Y') + 2),
                 'vinyl_speed' => 'nullable|in:33,45,78',
+                'tracks' => 'nullable|json', // Add this
             ],
             'tv_show' => $base + [
                 'total_seasons' => 'nullable|integer|min:1',
