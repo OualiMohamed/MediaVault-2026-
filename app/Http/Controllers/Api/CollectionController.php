@@ -591,9 +591,9 @@ class CollectionController extends Controller
         ];
 
         $typeRoutes = [
-            'movie' => '/movies',
-            'book' => '/books',
-            'game' => '/games',
+            'movie' => '/movie',
+            'book' => '/book',
+            'game' => '/game',
             'music' => '/music',
             'tv_show' => '/tv-shows',
         ];

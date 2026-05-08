@@ -1,4 +1,5 @@
 <script setup>
+import GlobalSearch from '../components/GlobalSearch.vue'
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useRouter, useRoute } from 'vue-router'
@@ -71,9 +72,9 @@ const bottomNavItems = computed(() => navItems.slice(0, 5))
         <header v-if="isAuth"
             class="fixed top-0 left-0 right-0 z-50 bg-vault-900/90 backdrop-blur-xl border-b border-vault-700">
             <div class="max-w-7xl mx-auto px-4 sm:px-6">
-                <div class="flex items-center justify-between h-14 sm:h-16">
+                <div class="flex items-center justify-between h-14 sm:h-16 gap-3">
                     <!-- Logo -->
-                    <router-link to="/" class="flex items-center gap-2.5 group">
+                    <router-link to="/" class="flex items-center gap-2.5 group flex-shrink-0">
                         <div
                             class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-br from-amber-500 to-ember-500 flex items-center justify-center">
                             <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="none" viewBox="0 0 24 24"
@@ -83,7 +84,7 @@ const bottomNavItems = computed(() => navItems.slice(0, 5))
                             </svg>
                         </div>
                         <span
-                            class="text-base sm:text-lg font-bold tracking-tight text-white group-hover:text-amber-400 transition-colors">
+                            class="hidden sm:inline text-base sm:text-lg font-bold tracking-tight text-white group-hover:text-amber-400 transition-colors">
                             MediaVault
                         </span>
                     </router-link>
@@ -98,31 +99,37 @@ const bottomNavItems = computed(() => navItems.slice(0, 5))
                         </router-link>
                     </nav>
 
-                    <!-- Desktop user menu -->
-                    <div class="hidden sm:flex items-center gap-3">
-                        <span v-if="auth.user" class="text-sm text-vault-300">
-                            {{ auth.user.name }}
-                        </span>
-                        <button @click="handleLogout"
-                            class="px-3 py-1.5 rounded-lg text-sm text-vault-300 hover:text-white hover:bg-vault-700 transition-all">
-                            Sign Out
+                    <!-- Right side: Search + User Menu -->
+                    <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                        <!-- Global Search (ALWAYS VISIBLE) -->
+                        <GlobalSearch />
+
+                        <!-- Desktop user menu -->
+                        <div class="hidden sm:flex items-center gap-3">
+                            <span v-if="auth.user" class="text-sm text-vault-300">
+                                {{ auth.user.name }}
+                            </span>
+                            <button @click="handleLogout"
+                                class="px-3 py-1.5 rounded-lg text-sm text-vault-300 hover:text-white hover:bg-vault-700 transition-all">
+                                Sign Out
+                            </button>
+                        </div>
+
+                        <!-- Mobile user menu button -->
+                        <button @click="toggleMobileMenu"
+                            class="sm:hidden w-9 h-9 rounded-lg flex items-center justify-center text-vault-300 hover:text-white hover:bg-vault-700 transition-all relative flex-shrink-0">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <span v-if="mobileMenuOpen"
+                                class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500"></span>
                         </button>
                     </div>
-
-                    <!-- Mobile user menu button -->
-                    <button @click="toggleMobileMenu"
-                        class="sm:hidden w-9 h-9 rounded-lg flex items-center justify-center text-vault-300 hover:text-white hover:bg-vault-700 transition-all relative">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        <span v-if="mobileMenuOpen"
-                            class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-amber-500"></span>
-                    </button>
                 </div>
             </div>
 
-            <!-- Mobile dropdown menu -->
+            <!-- Mobile dropdown menu (unchanged) -->
             <transition name="mobile-menu">
                 <div v-if="mobileMenuOpen" class="sm:hidden bg-vault-800 border-b border-vault-700 shadow-xl"
                     @click.stop>
@@ -131,8 +138,6 @@ const bottomNavItems = computed(() => navItems.slice(0, 5))
                         <p v-if="auth.user" class="text-vault-400 text-xs mt-0.5">{{ auth.user.email }}</p>
                     </div>
 
-                    <!-- Wishlist link — NO @click here, let the watcher close the menu -->
-                    <!-- In the mobile dropdown, replace the single wishlist link with both music and wishlist -->
                     <router-link to="/music"
                         class="flex items-center gap-3 px-4 py-3 text-vault-200 hover:text-white hover:bg-vault-700 transition-colors"
                         :class="currentPath === '/music' ? 'text-amber-400 bg-amber-500/10' : ''">
@@ -147,7 +152,6 @@ const bottomNavItems = computed(() => navItems.slice(0, 5))
                         <span class="text-sm font-medium">Wishlist</span>
                     </router-link>
 
-                    <!-- Sign Out — this one CAN have @click because it's a <button>, not a router-link -->
                     <button @click="handleLogout"
                         class="w-full flex items-center gap-3 px-4 py-3 text-rose-400 hover:text-rose-300 hover:bg-vault-700 transition-colors">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
