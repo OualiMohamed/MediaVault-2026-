@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BarcodeLookupController;
 use App\Http\Controllers\Api\CollectionController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DiscogsController;
 use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\GoogleBooksController;
 use App\Http\Controllers\Api\ImportController;
@@ -18,6 +19,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/tmdb/poster', [TmdbController::class, 'proxyPoster']);
 Route::get('/rawg/poster', [RawgController::class, 'proxyPoster']);
 Route::get('/google-books/poster', [GoogleBooksController::class, 'proxyPoster']);
+Route::get('/discogs/poster', [DiscogsController::class, 'proxyPoster']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
@@ -54,4 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/google-books/search', [GoogleBooksController::class, 'search']);
     Route::post('/google-books/details', [GoogleBooksController::class, 'details']);
+
+    Route::post('/discogs/search', [DiscogsController::class, 'search']);
+    Route::post('/discogs/details', [DiscogsController::class, 'details']);
 });
