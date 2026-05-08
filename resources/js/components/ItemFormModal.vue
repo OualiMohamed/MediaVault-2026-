@@ -114,7 +114,7 @@ const typeFieldMap = {
     movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'seen', 'date_seen', 'video_quality', 'audio_format', 'language', 'actors'],
     book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'read', 'date_finished'],
     game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'completed', 'completion_date'],
-    music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed', 'tracks'],
+    music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed'],
     tv_show: ['format', 'total_seasons', 'total_episodes', 'network', 'network_logo', 'director', 'genre', 'personal_rating', 'release_year', 'watch_status', 'current_season', 'current_episode', 'seasons', 'trailer_url', 'actors'],
 }
 
@@ -371,6 +371,11 @@ async function handleSubmit() {
         // Send seasons as JSON string
         if (props.type === 'tv_show' && seasons.value.length > 0) {
             formData.append('seasons', JSON.stringify(seasons.value))
+        }
+
+        // Send tracks as JSON string
+        if (props.type === 'music' && form.tracks.length > 0) {
+            formData.append('tracks', JSON.stringify(form.tracks))
         }
 
         if (existingCover.value) {

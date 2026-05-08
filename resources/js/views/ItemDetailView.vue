@@ -47,19 +47,19 @@ const watchStatusColors = {
 }
 
 const platformConfig = {
-    'PS5':          { bg: 'bg-[#003087]', text: 'text-white', icon: 'fa-brands fa-playstation' },
-    'PS4':          { bg: 'bg-[#003087]/80', text: 'text-blue-200', icon: 'fa-brands fa-playstation' },
-    'PS3':          { bg: 'bg-[#37392e]', text: 'text-gray-200', icon: 'fa-brands fa-playstation' },
-    'PS Vita':      { bg: 'bg-[#003087]/60', text: 'text-blue-300', icon: 'fa-brands fa-playstation' },
-    'Switch':       { bg: 'bg-[#e60012]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
-    'Wii U':        { bg: 'bg-[#8b8b8b]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
-    'Wii':          { bg: 'bg-[#8b8b8b]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
-    'Nintendo DS':  { bg: 'bg-[#333]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
-    'Xbox Series X':{ bg: 'bg-[#107c10]', text: 'text-white', icon: 'fa-brands fa-xbox' },
-    'Xbox One':     { bg: 'bg-[#107c10]/80', text: 'text-green-200', icon: 'fa-brands fa-xbox' },
-    'PC':           { bg: 'bg-[#0078d4]', text: 'text-white', icon: 'fa-brands fa-windows' },
-    'Steam':        { bg: 'bg-[#1b2838]', text: 'text-white', icon: 'fa-brands fa-steam' },
-    'Other':        { bg: 'bg-vault-600', text: 'text-vault-200', icon: 'fa-solid fa-gamepad' },
+    'PS5': { bg: 'bg-[#003087]', text: 'text-white', icon: 'fa-brands fa-playstation' },
+    'PS4': { bg: 'bg-[#003087]/80', text: 'text-blue-200', icon: 'fa-brands fa-playstation' },
+    'PS3': { bg: 'bg-[#37392e]', text: 'text-gray-200', icon: 'fa-brands fa-playstation' },
+    'PS Vita': { bg: 'bg-[#003087]/60', text: 'text-blue-300', icon: 'fa-brands fa-playstation' },
+    'Switch': { bg: 'bg-[#e60012]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
+    'Wii U': { bg: 'bg-[#8b8b8b]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
+    'Wii': { bg: 'bg-[#8b8b8b]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
+    'Nintendo DS': { bg: 'bg-[#333]', text: 'text-white', icon: 'fa-solid fa-gamepad' },
+    'Xbox Series X': { bg: 'bg-[#107c10]', text: 'text-white', icon: 'fa-brands fa-xbox' },
+    'Xbox One': { bg: 'bg-[#107c10]/80', text: 'text-green-200', icon: 'fa-brands fa-xbox' },
+    'PC': { bg: 'bg-[#0078d4]', text: 'text-white', icon: 'fa-brands fa-windows' },
+    'Steam': { bg: 'bg-[#1b2838]', text: 'text-white', icon: 'fa-brands fa-steam' },
+    'Other': { bg: 'bg-vault-600', text: 'text-vault-200', icon: 'fa-solid fa-gamepad' },
 }
 
 function getPlatformStyle(platformName) {
@@ -306,7 +306,7 @@ watch(() => route.params.id, fetchItem)
                                     </svg>
                                     <div class="absolute inset-0 flex items-center justify-center">
                                         <span class="text-lg font-bold" :style="{ color: ratingColor }">{{ ratingPercent
-                                            }}%</span>
+                                        }}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -366,11 +366,29 @@ watch(() => route.params.id, fetchItem)
                                     <img v-if="networkLogo" :src="networkLogo" :alt="row.value"
                                         class="h-6 w-auto object-contain rounded bg-white/15 p-1 flex-shrink-0" />
                                     <span v-if="!networkLogo" class="text-white text-sm font-medium">{{ row.value
-                                    }}</span>
+                                        }}</span>
                                 </div>
 
                                 <!-- Default fallback -->
                                 <span v-else class="text-white text-sm font-medium">{{ row.value }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Tracklist -->
+                        <div v-if="type === 'music' && item.details?.tracks?.length" class="mb-8">
+                            <h3 class="text-sm font-semibold text-vault-300 uppercase tracking-wider mb-4">Tracklist
+                            </h3>
+                            <div class="bg-vault-800/50 border border-vault-700 rounded-xl overflow-hidden">
+                                <div v-for="(track, index) in item.details.tracks" :key="index"
+                                    class="flex items-center gap-4 px-4 py-3 text-sm"
+                                    :class="index !== item.details.tracks.length - 1 ? 'border-b border-vault-700/50' : ''">
+                                    <span class="text-vault-500 font-mono text-xs w-8 text-right flex-shrink-0">{{
+                                        track.position }}</span>
+                                    <span class="text-white flex-1 truncate">{{ track.title }}</span>
+                                    <span v-if="track.duration"
+                                        class="text-vault-400 text-xs font-mono flex-shrink-0">{{ track.duration
+                                        }}</span>
+                                </div>
                             </div>
                         </div>
 
@@ -401,7 +419,7 @@ watch(() => route.params.id, fetchItem)
                                 <div v-for="s in item.details.seasons" :key="s.season"
                                     class="inline-flex items-center gap-2 px-4 py-2.5 bg-vault-800 border border-vault-600 rounded-xl">
                                     <span class="text-white font-bold text-sm">S{{ String(s.season).padStart(2, '0')
-                                        }}</span>
+                                    }}</span>
                                     <span class="w-px h-4 bg-vault-600"></span>
                                     <span class="text-vault-300 text-sm">{{ s.format }}</span>
                                     <template v-if="s.video_quality || s.audio_format || s.language">
@@ -409,7 +427,7 @@ watch(() => route.params.id, fetchItem)
                                         <span v-if="s.video_quality" class="text-sky-400 text-xs font-medium">{{
                                             s.video_quality }}</span>
                                         <span v-if="s.audio_format" class="text-vault-400 text-xs">{{ s.audio_format
-                                            }}</span>
+                                        }}</span>
                                         <span v-if="s.language"
                                             class="text-amber-400 text-xs font-semibold uppercase">{{ s.language
                                             }}</span>
@@ -439,7 +457,7 @@ watch(() => route.params.id, fetchItem)
                                         class="text-vault-500 text-xs font-medium uppercase tracking-wider block mb-1">Condition</span>
                                     <span class="text-white text-sm font-medium">{{ item.condition === 'near_mint' ?
                                         'Near Mint' : item.condition?.charAt(0).toUpperCase() + item.condition?.slice(1)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div>
                                     <span
