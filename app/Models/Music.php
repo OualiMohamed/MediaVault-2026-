@@ -17,9 +17,10 @@ class Music extends Model
         'personal_rating',
         'release_year',
         'vinyl_speed',
+        'tracks',
     ];
 
-    protected $casts = ['release_year' => 'integer'];
+    protected $casts = ['release_year' => 'integer', 'tracks' => 'array'];
 
     public function collectionItem(): BelongsTo
     {
