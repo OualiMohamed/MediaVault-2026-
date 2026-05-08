@@ -136,6 +136,25 @@ class DiscogsController extends Controller
                 $coverImage = $this->downloadPoster($details['images'][0]['uri'] ?? null, $validated['discogs_id']);
             }
 
+            // Parse Tracklist
+            $tracks = [];
+            if (is_array($details['tracklist'] ?? null)) {
+                foreach ($details['tracklist'] as $track) {
+                    $position = $track['position'] ?? '';
+                    $title = $track['title'] ?? '';
+                    $duration = $track['duration'] ?? '';
+
+                    // Skip empty headings or separators Discogs sometimes includes
+                    if (empty($title) && empty($duration))
+                        continue;
+
+                    $tracks[] = [
+                        'position' => $position,
+                        'title' => $title,
+                        'duration' => $duration,
+                    ];
+                }
+            }
             return response()->json([
                 'title' => $details['title'] ?? '',
                 'artist' => $artist,
@@ -146,6 +165,7 @@ class DiscogsController extends Controller
                 'format' => $format,
                 'vinyl_speed' => $vinylSpeed,
                 'cover_image' => $coverImage,
+                'tracks' => $tracks, // Add this
             ]);
         } catch (\Exception $e) {
             Log::error('Discogs details failed', ['message' => $e->getMessage()]);
