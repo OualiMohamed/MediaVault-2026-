@@ -518,4 +518,109 @@ class CollectionController extends Controller
 
         return response()->json($genres);
     }
+
+    // Global search across all collections
+    public function globalSearch(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['q' => 'required|string|min:2|max:100']);
+        $like = '%' . strtolower($validated['q']) . '%';
+
+        $query = CollectionItem::where('user_id', Auth::id())
+            ->where(function ($q) use ($like) {
+                $q->whereRaw('LOWER(title) LIKE ?', [$like]);
+
+                // Movies
+                $q->orWhereExists(
+                    fn($sq) =>
+                    $sq->selectRaw(1)->from('movies')
+                        ->whereColumn('movies.collection_item_id', 'collection_items.id')
+                        ->whereRaw('LOWER(director) LIKE ?', [$like])
+                )->orWhereExists(
+                        fn($sq) =>
+                        $sq->selectRaw(1)->from('movies')
+                            ->whereColumn('movies.collection_item_id', 'collection_items.id')
+                            ->whereRaw('LOWER(CAST(actors AS CHAR)) LIKE ?', [$like])
+                    );
+
+                // TV Shows
+                $q->orWhereExists(
+                    fn($sq) =>
+                    $sq->selectRaw(1)->from('tv_shows')
+                        ->whereColumn('tv_shows.collection_item_id', 'collection_items.id')
+                        ->whereRaw('LOWER(director) LIKE ?', [$like])
+                )->orWhereExists(
+                        fn($sq) =>
+                        $sq->selectRaw(1)->from('tv_shows')
+                            ->whereColumn('tv_shows.collection_item_id', 'collection_items.id')
+                            ->whereRaw('LOWER(CAST(actors AS CHAR)) LIKE ?', [$like])
+                    );
+
+                // Books
+                $q->orWhereExists(
+                    fn($sq) =>
+                    $sq->selectRaw(1)->from('books')
+                        ->whereColumn('books.collection_item_id', 'collection_items.id')
+                        ->whereRaw('LOWER(author) LIKE ?', [$like])
+                );
+
+                // Music
+                $q->orWhereExists(
+                    fn($sq) =>
+                    $sq->selectRaw(1)->from('music')
+                        ->whereColumn('music.collection_item_id', 'collection_items.id')
+                        ->whereRaw('LOWER(artist) LIKE ?', [$like])
+                );
+            })
+            ->orderBy('title', 'asc')
+            ->limit(25);
+
+        $items = $query->get(['id', 'type', 'title', 'cover_image']);
+
+        if ($items->isEmpty())
+            return response()->json([]);
+
+        $ids = $items->pluck('id');
+
+        // Bulk fetch all details to avoid N+1 queries
+        $details = [
+            'movie' => Movie::whereIn('collection_item_id', $ids)->get()->keyBy('collection_item_id'),
+            'book' => Book::whereIn('collection_item_id', $ids)->get()->keyBy('collection_item_id'),
+            'game' => Game::whereIn('collection_item_id', $ids)->get()->keyBy('collection_item_id'),
+            'music' => Music::whereIn('collection_item_id', $ids)->get()->keyBy('collection_item_id'),
+            'tv_show' => TvShow::whereIn('collection_item_id', $ids)->get()->keyBy('collection_item_id'),
+        ];
+
+        $typeRoutes = [
+            'movie' => '/movies',
+            'book' => '/books',
+            'game' => '/games',
+            'music' => '/music',
+            'tv_show' => '/tv-shows',
+        ];
+
+        return response()->json($items->map(function ($item) use ($details, $typeRoutes) {
+            $d = $details[$item->type]->get($item->id);
+            $subtitle = '';
+
+            if ($item->type === 'movie')
+                $subtitle = $d->director ?? '';
+            if ($item->type === 'tv_show')
+                $subtitle = $d->network ?? ($d->director ?? '');
+            if ($item->type === 'book')
+                $subtitle = $d->author ?? '';
+            if ($item->type === 'music')
+                $subtitle = $d->artist ?? '';
+            if ($item->type === 'game')
+                $subtitle = $d->platform ?? '';
+
+            return [
+                'id' => $item->id,
+                'type' => $item->type,
+                'title' => $item->title,
+                'cover_image' => $item->cover_image ? '/storage/' . $item->cover_image : null,
+                'subtitle' => $subtitle,
+                'url' => ($typeRoutes[$item->type] ?? '/') . '/' . $item->id,
+            ];
+        }));
+    }
 }

@@ -59,4 +59,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/discogs/search', [DiscogsController::class, 'search']);
     Route::post('/discogs/details', [DiscogsController::class, 'details']);
+
+    // Global search across all collections
+    Route::get('/search', [CollectionController::class, 'globalSearch']);
 });
