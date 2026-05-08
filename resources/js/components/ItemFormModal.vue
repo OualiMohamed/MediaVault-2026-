@@ -7,6 +7,7 @@ import BarcodeScanner from './BarcodeScanner.vue'
 import TmdbSearchModal from './TmdbSearchModal.vue'
 import RawgSearchModal from './RawgSearchModal.vue'
 import GoogleBooksSearchModal from './GoogleBooksSearchModal.vue'
+import DiscogsSearchModal from './DiscogsSearchModal.vue'
 
 const props = defineProps({
     type: { type: String, required: true },
@@ -31,6 +32,8 @@ const showRawgSearch = ref(false)
 const rawgMessage = ref('')
 const showGoogleBooksSearch = ref(false)
 const googleBooksMessage = ref('')
+const showDiscogsSearch = ref(false)
+const discogsMessage = ref('')
 
 const isEditing = computed(() => !!props.item)
 
@@ -314,6 +317,31 @@ async function applyGoogleBooksData(data) {
     }
 }
 
+async function applyDiscogsData(data) {
+    showDiscogsSearch.value = false
+    discogsMessage.value = ''
+    existingCover.value = ''
+
+    if (data.title) form.title = data.title
+    if (data.artist) form.artist = data.artist
+    if (data.label) form.label = data.label
+    if (data.track_count) form.track_count = data.track_count
+    if (data.release_year) form.release_year = data.release_year
+    if (data.genre) form.genre = data.genre
+
+    // Auto-set format and vinyl speed!
+    if (data.format) form.format = data.format
+    if (data.vinyl_speed) form.vinyl_speed = data.vinyl_speed
+
+    if (data.cover_image) {
+        existingCover.value = data.cover_image.replace(/^\/storage\//, '')
+        coverPreview.value = data.cover_image
+        discogsMessage.value = 'Auto-filled from Discogs — cover downloaded'
+    } else {
+        discogsMessage.value = 'Auto-filled from Discogs'
+    }
+}
+
 async function handleSubmit() {
     errors.value = {}
     serverError.value = ''
@@ -526,7 +554,7 @@ function removeSeason(index) {
                                 d="M9 12l2 2 4-4m6 2a2 2 0 012-2H4m6 0h8a2 2 0 002 2v4a2 2 0 002-2H6a2 2 0 00-2-2H4" />
                         </svg>
                         <span class="text-xs" :class="existingCover ? 'text-sky-400' : 'text-amber-400'">{{ tmdbMessage
-                        }}</span>
+                            }}</span>
                     </div>
 
                     <!-- Title -->
@@ -964,6 +992,24 @@ function removeSeason(index) {
                             <p v-if="fieldError('artist')" class="text-rose-500 text-xs mt-1">{{ fieldError('artist') }}
                             </p>
                         </div>
+                        <!-- ═══ Discogs Auto-fill ═══ -->
+                        <div class="mt-4">
+                            <button @click="showDiscogsSearch = true" type="button"
+                                class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-violet-500/15 border border-violet-500/30 text-violet-400 rounded-xl text-sm font-medium hover:bg-violet-500/25 hover:border-violet-500/50 transition-all">
+                                🎵 Auto-fill from Discogs
+                            </button>
+                            <p class="text-vault-500 text-xs mt-1.5 text-center">Search for vinyl, CD or cassette to
+                                auto-fill details and cover</p>
+                        </div>
+
+                        <!-- Discogs success message -->
+                        <div v-if="discogsMessage" class="mt-2 flex items-center gap-2">
+                            <svg class="w-3.5 h-3.5 flex-shrink-0 text-violet-400" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-xs text-violet-400">{{ discogsMessage }}</span>
+                        </div>
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-vault-200 mb-1.5">Format <span
@@ -1077,7 +1123,7 @@ function removeSeason(index) {
                                 class="text-rose-300 text-sm flex items-start gap-2">
                                 <span class="text-rose-500 mt-0.5">&#8226;</span>
                                 <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                                    }}</span>
+                                }}</span>
                             </li>
                         </ul>
                     </div>
@@ -1110,4 +1156,7 @@ function removeSeason(index) {
     <!-- Google Books Search Modal -->
     <GoogleBooksSearchModal :open="showGoogleBooksSearch" @close="showGoogleBooksSearch = false"
         @selected="applyGoogleBooksData" />
+
+    <!-- Discogs Search Modal -->
+    <DiscogsSearchModal :open="showDiscogsSearch" @close="showDiscogsSearch = false" @selected="applyDiscogsData" />
 </template>
