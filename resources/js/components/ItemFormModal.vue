@@ -98,8 +98,8 @@ const platformOptions = [
 ]
 
 const videoQualityOptions = [
-    'Ultra HDLight', 'HDLight 1080p', 'HDLight 1080p(x265)', 'HDLight 720p', 'HDLight 720p(x265)',
-    'SD', 'dvdrip', '720p', '1080p', 'TVrip', 'Full HD', 'Blu-Ray 3D', '4k',
+    'Ultra HDLight', 'HDLight 1080p', 'HDLight 1080p (x265)', 'HDLight 720p', 'HDLight 720p (x265)',
+    '480 SD', '540 SD', '720 HD', '1080 HD', 'dvdrip', 'TVrip', 'Full HD', 'Blu-Ray 3D', '4k',
 ]
 
 const audioFormatOptions = [
