@@ -53,6 +53,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/rawg/details', [RawgController::class, 'details']);
 
     Route::get('/filters/genres/book', [CollectionController::class, 'bookGenres']);
+    Route::get('/filters/genres/music', [CollectionController::class, 'musicGenres']);
 
     Route::post('/google-books/search', [GoogleBooksController::class, 'search']);
     Route::post('/google-books/details', [GoogleBooksController::class, 'details']);

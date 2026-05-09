@@ -26,6 +26,7 @@ const filterAudioFormat = ref('')
 const filterLanguage = ref('')
 const bookGenres = ref([])
 const filterGenre = ref('')
+const musicGenres = ref([])
 
 const videoQualityOptions = [
     'Ultra HDLight', 'HDLight 1080p', 'HDLight 1080p (x265)', 'HDLight 720p', 'HDLight 720p (x265)',
@@ -117,6 +118,13 @@ async function fetchBookGenres() {
     }
 }
 
+async function fetchMusicGenres() {
+    try {
+        const { data } = await api.get('/filters/genres/music')
+        musicGenres.value = data
+    } catch (e) { }
+}
+
 function handlePageChange(page) {
     currentPage.value = page
     loadItems()
@@ -136,11 +144,14 @@ function handleFormSaved() {
     showForm.value = false
     editItem.value = null
     loadItems()
+    if (route.path === '/books') fetchBookGenres()
+    if (route.path === '/music') fetchMusicGenres()
 }
 
 onMounted(() => {
     loadItems()
     if (route.path === '/books') fetchBookGenres()
+    if (route.path === '/music') fetchMusicGenres()
 })
 
 watch(() => route.path, (newPath) => {
@@ -159,6 +170,7 @@ watch(() => route.path, (newPath) => {
     currentPage.value = 1
     loadItems()
     if (newPath === '/books') fetchBookGenres()
+    if (newPath === '/music') fetchMusicGenres()
 })
 
 watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, filterVideoQuality, filterAudioFormat, filterLanguage, filterLetter, sortValue, filterGenre], () => {
@@ -211,6 +223,12 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                 <option value="">All Genres</option>
                 <option v-for="g in bookGenres" :key="g" :value="g">{{ g }}</option>
+            </select>
+
+            <select v-if="type === 'music' && musicGenres.length" v-model="filterGenre"
+                class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                <option value="">All Genres</option>
+                <option v-for="g in musicGenres" :key="g" :value="g">{{ g }}</option>
             </select>
 
             <select v-if="type === 'game'" v-model="filterPlatform"
