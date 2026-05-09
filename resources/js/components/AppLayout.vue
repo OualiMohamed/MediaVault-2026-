@@ -65,7 +65,7 @@ function navIcon(icon) {
     return icons[icon] || ''
 }
 
-const bottomNavItems = computed(() => navItems.slice(0, 5))
+const bottomNavItems = computed(() => navItems.slice(0, 6)) // Show first 6 items in bottom nav
 </script>
 
 <template>

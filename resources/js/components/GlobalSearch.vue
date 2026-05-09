@@ -72,7 +72,7 @@ function handleKeydown(e) {
             </div>
             <input v-model="query" @input="onInput" @keydown="handleKeydown" @focus="isOpen = results.length > 0"
                 type="text"
-                class="w-full pl-10 pr-8 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white placeholder-vault-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all text-sm"
+                class="w-full pl-10 pr-8 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white placeholder-vault-500 focus:outline-none focus:ring-2 focus:ring-amber-500/150 focus:border-amber-500 transition-all text-sm"7
                 placeholder="Search everything..." autocomplete="off" />
             <div v-if="loading" class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                 <div class="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>

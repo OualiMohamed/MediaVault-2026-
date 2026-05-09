@@ -154,6 +154,37 @@ export function useTheme() {
                 .bg-vault-900 { background-color: #ffffff !important; }
                 .bg-vault-950 { background-color: #f9fafb !important; }
                 .divide-vault-700 > :not([hidden]) ~ :not([hidden]) { border-color: #e5e7eb !important; }
+                /* ═══ Mobile Dropdown Menu ═══ */
+                .sm\\:hidden.bg-vault-800 {
+                    background-color: #ffffff !important;
+                    border-color: #d1d5db !important;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.12) !important;
+                }
+                .sm\\:hidden .border-b-vault-700,
+                .sm\\:hidden .border-t-vault-700 {
+                    border-color: #e5e7eb !important;
+                }
+                .sm\\:hidden .text-vault-200 {
+                    color: #111827 !important;
+                }
+                .sm\\:hidden .text-vault-400 {
+                    color: #6b7280 !important;
+                }
+                .sm\\:hidden .hover\\:bg-vault-700:hover {
+                    background-color: #f3f4f6 !important;
+                }
+                .sm\\:hidden .bg-amber-500\\/10 {
+                    background-color: rgb(245 158 11 / 0.12) !important;
+                }
+                .sm\\:hidden .text-amber-400 {
+                    color: #d97706 !important;
+                }
+                .sm\\:hidden .text-rose-400 {
+                    color: #ef4444 !important;
+                }
+                .sm\\:hidden .hover\\:text-rose-300:hover {
+                    color: #dc2626 !important;
+                }
             `;
             document.head.appendChild(styleTag);
         } else {
