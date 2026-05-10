@@ -6,6 +6,7 @@ import { useImport } from '../composables/useImport'
 import { useExport } from '../composables/useExport'
 import FormatBreakdown from '../components/FormatBreakdown.vue'
 import RecentItems from '../components/RecentItems.vue'
+import DoughnutChart from '../components/DoughnutChart.vue'
 
 
 const dashboard = useDashboardStore()
@@ -155,6 +156,15 @@ async function handleConfirmImport() {
                 <FormatBreakdown title="Movies by Format" :data="dashboard.stats.movies_by_format" color="amber" />
                 <FormatBreakdown title="Games by Platform" :data="dashboard.stats.games_by_platform" color="sky" />
                 <FormatBreakdown title="Music by Format" :data="dashboard.stats.music_by_format" color="violet" />
+
+                <div class="bg-vault-800 border border-vault-700 rounded-2xl p-6">
+                    <h2 class="text-white font-semibold mb-4">Collection Breakdown</h2>
+                    <DoughnutChart :movie="dashboard.stats?.by_type?.movie?.count ?? 0"
+                        :tv-show="dashboard.stats?.by_type?.tv_show?.count ?? 0"
+                        :game="dashboard.stats?.by_type?.game?.count ?? 0"
+                        :book="dashboard.stats?.by_type?.book?.count ?? 0"
+                        :music="dashboard.stats?.by_type?.music?.count ?? 0" />
+                </div>
                 <RecentItems :items="dashboard.stats.recent_additions" />
             </div>
 
