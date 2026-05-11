@@ -30,4 +30,9 @@ class Book extends Model
     {
         return $this->belongsTo(CollectionItem::class, 'collection_item_id');
     }
+
+    public function series()
+    {
+        return $this->belongsTo(BookSeries::class, 'series_id');
+    }
 }
