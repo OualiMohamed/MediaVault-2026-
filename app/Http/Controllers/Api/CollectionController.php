@@ -294,6 +294,18 @@ class CollectionController extends Controller
                 $detailData['actors'] = array_map(fn($n) => ['name' => trim($n)], array_filter($names));
             }
 
+            // Handle series
+            if (!empty($validated['series_name'])) {
+                $series = \App\Models\BookSeries::firstOrCreate(
+                    ['user_id' => Auth::id(), 'name' => trim($validated['series_name'])],
+                );
+                $detailData['series_id'] = $series->id;
+                $detailData['series_position'] = !empty($validated['series_position']) ? (int) $validated['series_position'] : null;
+            } else {
+                $detailData['series_id'] = null;
+                $detailData['series_position'] = null;
+            }
+
             $modelClass = $this->getModelClass($type);
             $detail = $modelClass::create([
                 'collection_item_id' => $item->id,
@@ -396,6 +408,18 @@ class CollectionController extends Controller
                 $modelClass::where('collection_item_id', $item->id)->update($detailData);
             }
 
+            // Same series handling block as store, inside the transaction
+            if (!empty($validated['series_name'])) {
+                $series = \App\Models\BookSeries::firstOrCreate(
+                    ['user_id' => Auth::id(), 'name' => trim($validated['series_name'])],
+                );
+                $detailData['series_id'] = $series->id;
+                $detailData['series_position'] = !empty($validated['series_position']) ? (int) $validated['series_position'] : null;
+            } else {
+                $detailData['series_id'] = null;
+                $detailData['series_position'] = null;
+            }
+
             // Fetch detail manually — NO ->load()
             $modelClass = $this->getModelClass($type);
             $detail = $modelClass::where('collection_item_id', $item->id)->first();
@@ -467,6 +491,8 @@ class CollectionController extends Controller
                 'release_year' => 'nullable|integer|min:1000|max:' . (date('Y') + 2),
                 'read' => 'nullable|boolean',
                 'date_finished' => 'nullable|date',
+                'series_name' => 'nullable|string|max:255',
+                'series_position' => 'nullable|integer|min:1',
             ],
             'game' => $base + [
                 'platform' => 'required|in:PS5,PS4,PS3,PS Vita,Switch,Wii U,Wii,Nintendo DS,Xbox Series X,Xbox One,PC,Steam,Other',
