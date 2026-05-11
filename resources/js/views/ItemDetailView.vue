@@ -334,7 +334,19 @@ watch(() => route.params.id, fetchItem)
 
                         <!-- Metadata Grid — NO <template> wrappers, uses v-if/v-else-if on real elements -->
                         <!-- Metadata Grid -->
-                        <div v-if="metadata.length" class="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-4 mb-8">
+                        <div v-if="metadata.length || item.details?.series?.name"
+                            class="grid grid-cols-2 sm:grid-cols-3 gap-x-8 gap-y-4 mb-8">
+
+                            <!-- Series badge — OUTSIDE the loop -->
+                            <div v-if="item.details?.series?.name" class="flex flex-col">
+                                <span
+                                    class="text-vault-500 text-xs font-medium uppercase tracking-wider mb-0.5">Series</span>
+                                <span
+                                    class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-md bg-violet-500/15 text-violet-400 w-fit">
+                                    {{ item.details.series.name }} #{{ item.details.series_position }}
+                                </span>
+                            </div>
+
                             <div v-for="row in metadata" :key="row.label" class="flex flex-col">
                                 <span class="text-vault-500 text-xs font-medium uppercase tracking-wider mb-0.5">{{
                                     row.label }}</span>
@@ -360,7 +372,7 @@ watch(() => route.params.id, fetchItem)
                                     </svg>
                                 </button>
 
-                                <!-- Network row: completely separate branch, no nested v-if -->
+                                <!-- Network row -->
                                 <div v-else-if="row.label === 'Network' && type === 'tv_show'"
                                     class="flex items-center gap-2.5">
                                     <img v-if="networkLogo" :src="networkLogo" :alt="row.value"

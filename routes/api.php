@@ -63,4 +63,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Global search across all collections
     Route::get('/search', [CollectionController::class, 'globalSearch']);
+
+    Route::get('/book-series/{seriesId}', [CollectionController::class, 'seriesBooks']);
 });

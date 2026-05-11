@@ -100,6 +100,32 @@ class GoogleBooksController extends Controller
             // Download Cover
             $coverImage = $this->downloadPoster($info['imageLinks']['thumbnail'] ?? $info['imageLinks']['smallThumbnail'] ?? null, $request->google_id);
 
+            // Series name — try both keys
+            // Series — parse from subtitle if seriesInfo is missing
+            $seriesName = $info['seriesInfo']['title'] ?? $info['seriesInfo']['name'] ?? null;
+            $seriesPosition = null;
+
+            if (!$seriesName) {
+                $subtitle = $info['subtitle'] ?? '';
+                if (preg_match('/\(([^,]+),?\s*#(\d+)\)/', $subtitle, $m)) {
+                    $seriesName = trim($m[1]);
+                    $seriesPosition = (int) $m[2];
+                } elseif (preg_match('/\(([^,]+),\s*Book\s+(\d+)\)/i', $subtitle, $m)) {
+                    $seriesName = trim($m[1]);
+                    $seriesPosition = (int) $m[2];
+                }
+            }
+
+            // If seriesInfo DID exist, try all position variants
+            if ($seriesName && !$seriesPosition) {
+                $rawPosition = $info['seriesInfo']['bookDisplayNumber']
+                    ?? $info['seriesInfo']['issue']
+                    ?? null;
+                if ($rawPosition && preg_match('/\d+/', $rawPosition, $matches)) {
+                    $seriesPosition = (int) $matches[0];
+                }
+            }
+
             return response()->json([
                 'title' => $info['title'] ?? '',
                 'author' => is_array($info['authors'] ?? null) ? implode(', ', $info['authors']) : '',
@@ -110,8 +136,8 @@ class GoogleBooksController extends Controller
                 'genre' => $genre,
                 'overview' => $overview,
                 'cover_image' => $coverImage,
-                'series' => $info['seriesInfo']['title'] ?? null,
-                'series_position' => isset($info['seriesInfo']['issue']) ? (int) $info['seriesInfo']['issue'] : null,
+                'series' => $seriesName,
+                'series_position' => $seriesPosition,
             ]);
         } catch (\Exception $e) {
             Log::error('Google Books details failed', ['message' => $e->getMessage()]);

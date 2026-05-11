@@ -108,9 +108,11 @@ class DashboardController extends Controller
                 };
 
                 if ($modelClass) {
-                    $detailsByType[$type] = $modelClass::whereIn('collection_item_id', $ids)
-                        ->get()
-                        ->keyBy('collection_item_id');
+                    $query = $modelClass::whereIn('collection_item_id', $ids);
+                    if ($type === 'book') {
+                        $query->with('series');
+                    }
+                    $detailsByType[$type] = $query->get()->keyBy('collection_item_id');
                 }
             }
 

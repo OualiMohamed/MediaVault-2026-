@@ -227,7 +227,11 @@ class CollectionController extends Controller
 
         if ($items->isNotEmpty()) {
             $ids = $items->pluck('id');
-            $details = $modelClass::whereIn('collection_item_id', $ids)->get()->keyBy('collection_item_id');
+            $details = $modelClass::whereIn('collection_item_id', $ids);
+            if ($type === 'book') {
+                $details->with('series');
+            }
+            $details = $details->get()->keyBy('collection_item_id');
             $items->each(fn($item) => $item->setRelation($type, $details->get($item->id)));
             $items->getCollection()->transform(fn($item) => $this->formatItem($item));
         }
@@ -267,18 +271,18 @@ class CollectionController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            $baseFields = ['title', 'barcode', 'cover_image', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes'];
+            $baseFields = ['title', 'barcode', 'cover_image', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'series_name'];
             $detailData = array_filter(
                 $validated,
                 fn($key) => !in_array($key, $baseFields),
                 ARRAY_FILTER_USE_KEY
             );
 
-            $detailData = array_filter(
-                $validated,
-                fn($key) => !in_array($key, $baseFields),
-                ARRAY_FILTER_USE_KEY
-            );
+            // $detailData = array_filter(
+            //     $validated,
+            //     fn($key) => !in_array($key, $baseFields),
+            //     ARRAY_FILTER_USE_KEY
+            // );
 
             // DECODE SEASONS JSON — ADD THESE LINES:
             if (isset($validated['seasons'])) {
@@ -288,23 +292,37 @@ class CollectionController extends Controller
                 }
             }
 
+            // Handle series — convert name to series_id
+            if ($type === 'book') {
+                if (!empty($validated['series_name'])) {
+                    $series = \App\Models\BookSeries::firstOrCreate(
+                        ['user_id' => Auth::id(), 'name' => trim($validated['series_name'])],
+                    );
+                    $detailData['series_id'] = $series->id;
+                    $detailData['series_position'] = !empty($validated['series_position']) ? (int) $validated['series_position'] : null;
+                } else {
+                    $detailData['series_id'] = null;
+                    $detailData['series_position'] = null;
+                }
+            }
+
             // HANDLE ACTORS (Convert comma-separated string to JSON array for manual entry)
             if (isset($detailData['actors']) && is_string($detailData['actors'])) {
                 $names = explode(',', $detailData['actors']);
                 $detailData['actors'] = array_map(fn($n) => ['name' => trim($n)], array_filter($names));
             }
 
-            // Handle series
-            if (!empty($validated['series_name'])) {
-                $series = \App\Models\BookSeries::firstOrCreate(
-                    ['user_id' => Auth::id(), 'name' => trim($validated['series_name'])],
-                );
-                $detailData['series_id'] = $series->id;
-                $detailData['series_position'] = !empty($validated['series_position']) ? (int) $validated['series_position'] : null;
-            } else {
-                $detailData['series_id'] = null;
-                $detailData['series_position'] = null;
-            }
+            // // Handle series
+            // if (!empty($validated['series_name'])) {
+            //     $series = \App\Models\BookSeries::firstOrCreate(
+            //         ['user_id' => Auth::id(), 'name' => trim($validated['series_name'])],
+            //     );
+            //     $detailData['series_id'] = $series->id;
+            //     $detailData['series_position'] = !empty($validated['series_position']) ? (int) $validated['series_position'] : null;
+            // } else {
+            //     $detailData['series_id'] = null;
+            //     $detailData['series_position'] = null;
+            // }
 
             $modelClass = $this->getModelClass($type);
             $detail = $modelClass::create([
@@ -332,7 +350,11 @@ class CollectionController extends Controller
 
         // Fetch detail manually — NO ->load()
         $modelClass = $this->getModelClass($type);
-        $detail = $modelClass::where('collection_item_id', $item->id)->first();
+        $detailQuery = $modelClass::where('collection_item_id', $item->id);
+        if ($type === 'book') {
+            $detailQuery->with('series');
+        }
+        $detail = $detailQuery->first();
         $item->setRelation($type, $detail);
 
         return response()->json($this->formatItem($item));
@@ -376,18 +398,18 @@ class CollectionController extends Controller
                 'notes' => $validated['notes'] ?? $item->notes,
             ]);
 
-            $baseFields = ['title', 'barcode', 'cover_image', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes'];
+            $baseFields = ['title', 'barcode', 'cover_image', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'series_name'];
             $detailData = array_filter(
                 $validated,
                 fn($key) => !in_array($key, $baseFields),
                 ARRAY_FILTER_USE_KEY
             );
 
-            $detailData = array_filter(
-                $validated,
-                fn($key) => !in_array($key, $baseFields),
-                ARRAY_FILTER_USE_KEY
-            );
+            // $detailData = array_filter(
+            //     $validated,
+            //     fn($key) => !in_array($key, $baseFields),
+            //     ARRAY_FILTER_USE_KEY
+            // );
 
             // DECODE SEASONS JSON — ADD THESE LINES:
             if (isset($validated['seasons'])) {
@@ -397,6 +419,19 @@ class CollectionController extends Controller
                 }
             }
 
+            // Handle series — convert name to series_id
+            if ($type === 'book') {
+                if (!empty($validated['series_name'])) {
+                    $series = \App\Models\BookSeries::firstOrCreate(
+                        ['user_id' => Auth::id(), 'name' => trim($validated['series_name'])],
+                    );
+                    $detailData['series_id'] = $series->id;
+                    $detailData['series_position'] = !empty($validated['series_position']) ? (int) $validated['series_position'] : null;
+                } else {
+                    $detailData['series_id'] = null;
+                    $detailData['series_position'] = null;
+                }
+            }
             // HANDLE ACTORS (Convert comma-separated string to JSON array)
             if (isset($detailData['actors']) && is_string($detailData['actors'])) {
                 $names = explode(',', $detailData['actors']);
@@ -409,20 +444,24 @@ class CollectionController extends Controller
             }
 
             // Same series handling block as store, inside the transaction
-            if (!empty($validated['series_name'])) {
-                $series = \App\Models\BookSeries::firstOrCreate(
-                    ['user_id' => Auth::id(), 'name' => trim($validated['series_name'])],
-                );
-                $detailData['series_id'] = $series->id;
-                $detailData['series_position'] = !empty($validated['series_position']) ? (int) $validated['series_position'] : null;
-            } else {
-                $detailData['series_id'] = null;
-                $detailData['series_position'] = null;
-            }
+            // if (!empty($validated['series_name'])) {
+            //     $series = \App\Models\BookSeries::firstOrCreate(
+            //         ['user_id' => Auth::id(), 'name' => trim($validated['series_name'])],
+            //     );
+            //     $detailData['series_id'] = $series->id;
+            //     $detailData['series_position'] = !empty($validated['series_position']) ? (int) $validated['series_position'] : null;
+            // } else {
+            //     $detailData['series_id'] = null;
+            //     $detailData['series_position'] = null;
+            // }
 
             // Fetch detail manually — NO ->load()
             $modelClass = $this->getModelClass($type);
-            $detail = $modelClass::where('collection_item_id', $item->id)->first();
+            $detailQuery = $modelClass::where('collection_item_id', $item->id);
+            if ($type === 'book') {
+                $detailQuery->with('series');
+            }
+            $detail = $detailQuery->first();
             $item->setRelation($type, $detail);
 
             return response()->json($this->formatItem($item));
@@ -682,5 +721,28 @@ class CollectionController extends Controller
             ->values();
 
         return response()->json($genres);
+    }
+
+    //   
+    public function seriesBooks(int $seriesId): JsonResponse
+    {
+        $series = \App\Models\BookSeries::where('user_id', Auth::id())
+            ->findOrFail($seriesId);
+
+        $books = $series->books()->with('collectionItem')->get()->map(function ($book) {
+            $item = $book->collectionItem;
+            return [
+                'id' => $item->id,
+                'title' => $item->title,
+                'cover_image' => $item->cover_image,
+                'series_position' => $book->series_position,
+                'read' => $book->read,
+            ];
+        });
+
+        return response()->json([
+            'series' => $series->name,
+            'books' => $books,
+        ]);
     }
 }

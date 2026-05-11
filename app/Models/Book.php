@@ -18,6 +18,8 @@ class Book extends Model
         'release_year',
         'read',
         'date_finished',
+        'series_id',
+        'series_position',
     ];
 
     protected $casts = [
