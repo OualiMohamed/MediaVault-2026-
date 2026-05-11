@@ -110,6 +110,8 @@ class GoogleBooksController extends Controller
                 'genre' => $genre,
                 'overview' => $overview,
                 'cover_image' => $coverImage,
+                'series' => $info['seriesInfo']['title'] ?? null,
+                'series_position' => isset($info['seriesInfo']['issue']) ? (int) $info['seriesInfo']['issue'] : null,
             ]);
         } catch (\Exception $e) {
             Log::error('Google Books details failed', ['message' => $e->getMessage()]);
