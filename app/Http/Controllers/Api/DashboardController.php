@@ -11,6 +11,7 @@ use App\Models\Music;
 use App\Models\TvShow;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -153,6 +154,50 @@ class DashboardController extends Controller
             'tv_shows_completed' => $tvShowsCompleted,
             'recent_additions' => $recent,
             'wishlist_count' => $wishlistCount,
+            'rating_distribution' => $this->getRatingDistribution(),
         ]);
+    }
+
+    private function getRatingDistribution(): array
+    {
+        $userId = Auth::id();
+        $tables = ['movies', 'books', 'games', 'music', 'tv_shows'];
+        $itemTable = 'collection_items';
+
+        // All rated items across 5 tables
+        $rated = collect();
+        foreach ($tables as $table) {
+            $rows = DB::table($table)
+                ->select('personal_rating')
+                ->whereExists(
+                    fn($q) =>
+                    $q->selectRaw(1)
+                        ->from($itemTable)
+                        ->whereColumn($itemTable . '.id', $table . '.collection_item_id')
+                        ->where('user_id', $userId)
+                )
+                ->whereNotNull('personal_rating')
+                ->get();
+
+            $rated = $rated->merge($rows);
+        }
+
+        // Build buckets 1-10
+        $distribution = [];
+        for ($i = 1; $i <= 10; $i++) {
+            $distribution[] = [
+                'rating' => $i,
+                'count' => $rated->where('personal_rating', $i)->count(),
+            ];
+        }
+
+        // Unrated count: total items minus rated
+        $totalItems = DB::table($itemTable)->where('user_id', $userId)->count();
+        $distribution[] = [
+            'rating' => null,
+            'count' => $totalItems - $rated->count(),
+        ];
+
+        return $distribution;
     }
 }

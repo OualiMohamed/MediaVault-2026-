@@ -7,6 +7,7 @@ import { useExport } from '../composables/useExport'
 import FormatBreakdown from '../components/FormatBreakdown.vue'
 import RecentItems from '../components/RecentItems.vue'
 import DoughnutChart from '../components/DoughnutChart.vue'
+import RatingBarChart from '../components/RatingBarChart.vue'
 
 
 const dashboard = useDashboardStore()
@@ -164,6 +165,10 @@ async function handleConfirmImport() {
                         :game="dashboard.stats?.by_type?.game?.count ?? 0"
                         :book="dashboard.stats?.by_type?.book?.count ?? 0"
                         :music="dashboard.stats?.by_type?.music?.count ?? 0" />
+                </div>
+                <div class="bg-vault-800 border border-vault-700 rounded-2xl p-6">
+                    <h2 class="text-white font-semibold mb-4">Rating Distribution</h2>
+                    <RatingBarChart :data="dashboard.stats?.rating_distribution ?? []" />
                 </div>
                 <RecentItems :items="dashboard.stats.recent_additions" />
             </div>
