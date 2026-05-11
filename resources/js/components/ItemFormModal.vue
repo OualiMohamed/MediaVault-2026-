@@ -80,6 +80,8 @@ const form = reactive({
     audio_format: '',
     language: '',
     actors: '', // Simple string for manual input
+    series_name: '',
+    series_position: '',
 })
 
 const formatOptions = computed(() => {
@@ -112,7 +114,7 @@ const languageOptions = [
 
 const typeFieldMap = {
     movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'seen', 'date_seen', 'video_quality', 'audio_format', 'language', 'actors'],
-    book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'read', 'date_finished'],
+    book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'read', 'date_finished', 'series_name', 'series_position'],
     game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'completed', 'completion_date'],
     music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed'],
     tv_show: ['format', 'total_seasons', 'total_episodes', 'network', 'network_logo', 'director', 'genre', 'personal_rating', 'release_year', 'watch_status', 'current_season', 'current_episode', 'seasons', 'trailer_url', 'actors'],
@@ -150,6 +152,10 @@ watch(() => props.item, (item) => {
         Object.keys(item.details).forEach(key => {
             if (key in form) form[key] = item.details[key]
         })
+        // After the details forEach loop:
+        if (item.details?.series?.name) {
+            form.series_name = item.details.series.name
+        }
     }
 
     // Convert actors array back to comma string for the input
@@ -738,6 +744,21 @@ function removeSeason(index) {
                                         type="checkbox"
                                         class="w-4 h-4 rounded bg-vault-700 border-vault-600 text-amber-500 focus:ring-amber-500/50" /><span
                                         class="text-sm text-vault-200">Mark as Read</span></label></div>
+                        </div>
+                        <!-- Series -->
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Series</label>
+                                <input v-model="form.series_name" type="text"
+                                    class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                    placeholder="e.g. Jack Reacher" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Book #</label>
+                                <input v-model="form.series_position" type="number" min="1"
+                                    class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                    placeholder="1" />
+                            </div>
                         </div>
                         <div v-if="form.read"><label class="block text-sm font-medium text-vault-200 mb-1.5">Date
                                 Finished</label><input v-model="form.date_finished" type="date"
