@@ -85,14 +85,27 @@ class CollectionController extends Controller
         }
 
         if ($request->filled('format')) {
-            $query->whereExists(
-                fn($q) =>
-                $q->selectRaw(1)
-                    ->from($detailTable)
-                    ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
-                    // ->where('format', $request->format)
-                    ->where('format', $request->input('format'))
-            );
+            if ($type === 'tv_show') {
+                // Search inside the JSON seasons array for matching format
+                $query->whereExists(
+                    fn($q) =>
+                    $q->selectRaw(1)
+                        ->from($detailTable)
+                        ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                        ->whereRaw(
+                            'JSON_SEARCH(' . $detailTable . '.seasons, \'one\', ?, NULL, \'$[*].format\') IS NOT NULL',
+                            [$request->input('format')]
+                        )
+                );
+            } else {
+                $query->whereExists(
+                    fn($q) =>
+                    $q->selectRaw(1)
+                        ->from($detailTable)
+                        ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                        ->where('format', $request->input('format'))
+                );
+            }
         }
 
         if ($type === 'book' && $request->filled('genre')) {
