@@ -40,7 +40,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/tmdb/search', [TmdbController::class, 'search']);
     Route::post('/tmdb/details', [TmdbController::class, 'details']);
-
     Route::post('/tmdb/poster', [TmdbController::class, 'poster']);
 
     Route::get('/export/{type}', [ExportController::class, 'export']);
@@ -54,6 +53,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/filters/genres/book', [CollectionController::class, 'bookGenres']);
     Route::get('/filters/genres/music', [CollectionController::class, 'musicGenres']);
+    Route::get('/filters/genres/movie', [CollectionController::class, 'movieGenres']);
+    Route::get('/filters/genres/tv_show', [CollectionController::class, 'tvShowGenres']);
+    Route::get('/filters/genres/game', [CollectionController::class, 'gameGenres']);
 
     Route::post('/google-books/search', [GoogleBooksController::class, 'search']);
     Route::post('/google-books/details', [GoogleBooksController::class, 'details']);

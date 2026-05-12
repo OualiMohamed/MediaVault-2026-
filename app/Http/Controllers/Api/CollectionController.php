@@ -108,7 +108,8 @@ class CollectionController extends Controller
             }
         }
 
-        if ($type === 'book' && $request->filled('genre')) {
+        // Genre filter — works for all types that have a genre column
+        if ($request->filled('genre') && in_array($type, ['book', 'music', 'movie', 'tv_show', 'game'])) {
             $query->whereExists(
                 fn($q) =>
                 $q->selectRaw(1)
@@ -118,16 +119,26 @@ class CollectionController extends Controller
             );
         }
 
-        // genre filter for music
-        if ($type === 'music' && $request->filled('genre')) {
-            $query->whereExists(
-                fn($q) =>
-                $q->selectRaw(1)
-                    ->from($detailTable)
-                    ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
-                    ->whereRaw('LOWER(' . $detailTable . '.genre) LIKE ?', ['%' . strtolower($request->genre) . '%'])
-            );
-        }
+        // if ($type === 'book' && $request->filled('genre')) {
+        //     $query->whereExists(
+        //         fn($q) =>
+        //         $q->selectRaw(1)
+        //             ->from($detailTable)
+        //             ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+        //             ->whereRaw('LOWER(' . $detailTable . '.genre) LIKE ?', ['%' . strtolower($request->genre) . '%'])
+        //     );
+        // }
+
+        // // genre filter for music
+        // if ($type === 'music' && $request->filled('genre')) {
+        //     $query->whereExists(
+        //         fn($q) =>
+        //         $q->selectRaw(1)
+        //             ->from($detailTable)
+        //             ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+        //             ->whereRaw('LOWER(' . $detailTable . '.genre) LIKE ?', ['%' . strtolower($request->genre) . '%'])
+        //     );
+        // }
 
         if ($type === 'game' && $request->filled('platform')) {
             $query->whereExists(
@@ -760,5 +771,71 @@ class CollectionController extends Controller
             'series' => $series->name,
             'books' => $books,
         ]);
+    }
+
+    public function movieGenres(): JsonResponse
+    {
+        $genres = Movie::whereExists(
+            fn($q) =>
+            $q->selectRaw(1)
+                ->from('collection_items')
+                ->whereColumn('collection_items.id', 'movies.collection_item_id')
+                ->where('user_id', Auth::id())
+        )
+            ->whereNotNull('genre')
+            ->where('genre', '!=', '')
+            ->pluck('genre')
+            ->flatMap(fn($g) => explode(',', $g))
+            ->map(fn($g) => trim($g))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        return response()->json($genres);
+    }
+
+    public function tvShowGenres(): JsonResponse
+    {
+        $genres = TvShow::whereExists(
+            fn($q) =>
+            $q->selectRaw(1)
+                ->from('collection_items')
+                ->whereColumn('collection_items.id', 'tv_shows.collection_item_id')
+                ->where('user_id', Auth::id())
+        )
+            ->whereNotNull('genre')
+            ->where('genre', '!=', '')
+            ->pluck('genre')
+            ->flatMap(fn($g) => explode(',', $g))
+            ->map(fn($g) => trim($g))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        return response()->json($genres);
+    }
+
+    public function gameGenres(): JsonResponse
+    {
+        $genres = Game::whereExists(
+            fn($q) =>
+            $q->selectRaw(1)
+                ->from('collection_items')
+                ->whereColumn('collection_items.id', 'games.collection_item_id')
+                ->where('user_id', Auth::id())
+        )
+            ->whereNotNull('genre')
+            ->where('genre', '!=', '')
+            ->pluck('genre')
+            ->flatMap(fn($g) => explode(',', $g))
+            ->map(fn($g) => trim($g))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        return response()->json($genres);
     }
 }
