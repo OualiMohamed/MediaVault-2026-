@@ -159,13 +159,16 @@ class CollectionController extends Controller
                         ->where('video_quality', $request->video_quality)
                 );
             }
-            if ($request->filled('audio_format')) {
+            if ($type === 'movie' && $request->filled('audio_format')) {
                 $query->whereExists(
                     fn($q) =>
                     $q->selectRaw(1)
                         ->from($detailTable)
                         ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
-                        ->where('audio_format', $request->audio_format)
+                        ->whereRaw(
+                            'JSON_SEARCH(' . $detailTable . '.audio_format, \'one\', ?) IS NOT NULL',
+                            [$request->audio_format]
+                        )
                 );
             }
             if ($request->filled('language')) {
@@ -529,7 +532,7 @@ class CollectionController extends Controller
                 'seen' => 'nullable|boolean',          // add
                 'date_seen' => 'nullable|date',         // add
                 'video_quality' => 'nullable|string|max:50',   // add
-                'audio_format' => 'nullable|string|max:50',     // add
+                'audio_format' => 'nullable|json',
                 'language' => 'nullable|string|max:50',         // add
                 'actors' => 'nullable|string|max:2000',  // add this
             ],

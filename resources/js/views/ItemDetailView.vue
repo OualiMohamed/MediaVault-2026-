@@ -109,7 +109,10 @@ const metadata = computed(() => {
         if (d.release_year) rows.push({ label: 'Year', value: d.release_year })
         if (d.imdb_id) rows.push({ label: 'IMDb', value: d.imdb_id, link: `https://www.imdb.com/title/${d.imdb_id}` })
         if (d.video_quality) rows.push({ label: 'Video Quality', value: d.video_quality })
-        if (d.audio_format) rows.push({ label: 'Audio', value: d.audio_format })
+        if (d.audio_format) {
+            const formats = Array.isArray(d.audio_format) ? d.audio_format : [d.audio_format]
+            rows.push({ label: 'Audio', value: formats })
+        }
         if (d.language) rows.push({ label: 'Language', value: d.language })
         if (d.seen) rows.push({ label: 'Seen', value: d.date_seen ? `Seen on ${d.date_seen}` : 'Yes' })
     }
@@ -306,7 +309,7 @@ watch(() => route.params.id, fetchItem)
                                     </svg>
                                     <div class="absolute inset-0 flex items-center justify-center">
                                         <span class="text-lg font-bold" :style="{ color: ratingColor }">{{ ratingPercent
-                                        }}%</span>
+                                            }}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -372,13 +375,21 @@ watch(() => route.params.id, fetchItem)
                                     </svg>
                                 </button>
 
+                                <div v-else-if="row.label === 'Audio'" class="flex flex-wrap gap-1.5">
+                                    <span v-for="fmt in (Array.isArray(row.value) ? row.value : row.value.split(', '))"
+                                        :key="fmt"
+                                        class="text-xs font-medium px-2 py-0.5 rounded-md bg-vault-700 text-vault-200">
+                                        {{ fmt }}
+                                    </span>
+                                </div>
+
                                 <!-- Network row -->
                                 <div v-else-if="row.label === 'Network' && type === 'tv_show'"
                                     class="flex items-center gap-2.5">
                                     <img v-if="networkLogo" :src="networkLogo" :alt="row.value"
                                         class="h-6 w-auto object-contain rounded bg-white/15 p-1 flex-shrink-0" />
                                     <span v-if="!networkLogo" class="text-white text-sm font-medium">{{ row.value
-                                        }}</span>
+                                    }}</span>
                                 </div>
 
                                 <!-- Default fallback -->
@@ -431,7 +442,7 @@ watch(() => route.params.id, fetchItem)
                                 <div v-for="s in item.details.seasons" :key="s.season"
                                     class="inline-flex items-center gap-2 px-4 py-2.5 bg-vault-800 border border-vault-600 rounded-xl">
                                     <span class="text-white font-bold text-sm">S{{ String(s.season).padStart(2, '0')
-                                    }}</span>
+                                        }}</span>
                                     <span class="w-px h-4 bg-vault-600"></span>
                                     <span class="text-vault-300 text-sm">{{ s.format }}</span>
                                     <template v-if="s.video_quality || s.audio_format || s.language">
@@ -439,7 +450,7 @@ watch(() => route.params.id, fetchItem)
                                         <span v-if="s.video_quality" class="text-sky-400 text-xs font-medium">{{
                                             s.video_quality }}</span>
                                         <span v-if="s.audio_format" class="text-vault-400 text-xs">{{ s.audio_format
-                                        }}</span>
+                                            }}</span>
                                         <span v-if="s.language"
                                             class="text-amber-400 text-xs font-semibold uppercase">{{ s.language
                                             }}</span>
@@ -469,7 +480,7 @@ watch(() => route.params.id, fetchItem)
                                         class="text-vault-500 text-xs font-medium uppercase tracking-wider block mb-1">Condition</span>
                                     <span class="text-white text-sm font-medium">{{ item.condition === 'near_mint' ?
                                         'Near Mint' : item.condition?.charAt(0).toUpperCase() + item.condition?.slice(1)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div>
                                     <span

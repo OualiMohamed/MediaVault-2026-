@@ -27,7 +27,7 @@ class Movie extends Model
     ];
 
     // cast attributes to appropriate data types
-    protected $casts = ['release_year' => 'integer', 'actors' => 'array'];
+    protected $casts = ['release_year' => 'integer', 'actors' => 'array', 'audio_format' => 'array',];
 
     public function collectionItem(): BelongsTo
     {

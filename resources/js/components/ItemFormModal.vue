@@ -77,7 +77,7 @@ const form = reactive({
     seen: false,       // add these two
     date_seen: '',
     video_quality: '',
-    audio_format: '',
+    audio_format: [], // for multiple audio formats
     language: '',
     actors: '', // Simple string for manual input
     series_name: '',
@@ -113,7 +113,7 @@ const languageOptions = [
 ]
 
 const typeFieldMap = {
-    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'seen', 'date_seen', 'video_quality', 'audio_format', 'language', 'actors'],
+    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'seen', 'date_seen', 'video_quality', 'language', 'actors'],
     book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'read', 'date_finished', 'series_name', 'series_position'],
     game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'completed', 'completion_date'],
     music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed'],
@@ -163,6 +163,15 @@ watch(() => props.item, (item) => {
         form.actors = item.details.actors.map(a => a.name || a).join(', ')
     }
 
+    // Convert audio_format to array for editing
+    if (item.details?.audio_format) {
+        form.audio_format = Array.isArray(item.details.audio_format)
+            ? item.details.audio_format
+            : [item.details.audio_format]
+    } else {
+        form.audio_format = []
+    }
+
     // Map series relationship to form field
     if (item.details?.series?.name) {
         form.series_name = item.details.series.name
@@ -204,6 +213,16 @@ function handleCoverChange(e) {
     if (file) {
         form.cover_image = file
         coverPreview.value = URL.createObjectURL(file)
+    }
+}
+
+// Toggle audio format in the array for TV show seasons
+function toggleAudioFormat(format) {
+    const idx = form.audio_format.indexOf(format)
+    if (idx === -1) {
+        form.audio_format.push(format)
+    } else {
+        form.audio_format.splice(idx, 1)
     }
 }
 
@@ -386,6 +405,11 @@ async function handleSubmit() {
         // Send seasons as JSON string
         if (props.type === 'tv_show' && seasons.value.length > 0) {
             formData.append('seasons', JSON.stringify(seasons.value))
+        }
+
+        // Audio formats as JSON array
+        if (props.type === 'movie' && form.audio_format.length > 0) {
+            formData.append('audio_format', JSON.stringify(form.audio_format))
         }
 
         // Send tracks as JSON string
@@ -667,14 +691,18 @@ function removeSeason(index) {
                             </select>
                         </div>
 
-                        <!-- Audio Format -->
+                        <!-- Audio Formats -->
                         <div>
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Audio Format</label>
-                            <select v-model="form.audio_format"
-                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
-                                <option value="">Not specified</option>
-                                <option v-for="a in audioFormatOptions" :key="a" :value="a">{{ a }}</option>
-                            </select>
+                            <div class="flex flex-wrap gap-2">
+                                <button v-for="a in audioFormatOptions" :key="a" type="button"
+                                    @click="toggleAudioFormat(a)"
+                                    class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all" :class="form.audio_format.includes(a)
+                                        ? 'bg-amber-500 text-white'
+                                        : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
+                                    {{ a }}
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Language -->
