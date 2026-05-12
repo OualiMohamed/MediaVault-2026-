@@ -184,11 +184,11 @@ watch(() => props.item, (item) => {
             season: s.season,
             format: s.format || 'Digital',
             video_quality: s.video_quality || '',
-            audio_format: s.audio_format || '',
+            audio_format: Array.isArray(s.audio_format) ? s.audio_format : (s.audio_format ? [s.audio_format] : []),
             language: s.language || '',
         }))
     } else {
-        seasons.value = [{ season: 1, format: 'Digital', video_quality: '', audio_format: '', language: '' }]
+        seasons.value = [{ season: 1, format: 'Digital', video_quality: '', audio_format: [], language: '' }]
     }
 }, { immediate: true })
 
@@ -223,6 +223,19 @@ function toggleAudioFormat(format) {
         form.audio_format.push(format)
     } else {
         form.audio_format.splice(idx, 1)
+    }
+}
+
+// Separate function for toggling audio format on seasons, since they have their own audio_format field
+function toggleSeasonAudio(season, format) {
+    if (!Array.isArray(season.audio_format)) {
+        season.audio_format = []
+    }
+    const idx = season.audio_format.indexOf(format)
+    if (idx === -1) {
+        season.audio_format.push(format)
+    } else {
+        season.audio_format.splice(idx, 1)
     }
 }
 
@@ -481,7 +494,7 @@ function addSeason() {
     const nextNum = seasons.value.length > 0
         ? Math.max(...seasons.value.map(s => s.season)) + 1
         : 1
-    seasons.value.push({ season: nextNum, format: 'Digital' })
+    seasons.value.push({ season: nextNum, format: 'Digital', video_quality: '', audio_format: [], language: '' })
 }
 
 function removeSeason(index) {
@@ -691,6 +704,16 @@ function removeSeason(index) {
                             </select>
                         </div>
 
+                        <!-- Language -->
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Language</label>
+                            <select v-model="form.language"
+                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                                <option value="">Not specified</option>
+                                <option v-for="l in languageOptions" :key="l" :value="l">{{ l }}</option>
+                            </select>
+                        </div>
+
                         <!-- Audio Formats -->
                         <div>
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Audio Format</label>
@@ -703,16 +726,6 @@ function removeSeason(index) {
                                     {{ a }}
                                 </button>
                             </div>
-                        </div>
-
-                        <!-- Language -->
-                        <div>
-                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Language</label>
-                            <select v-model="form.language"
-                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
-                                <option value="">Not specified</option>
-                                <option v-for="l in languageOptions" :key="l" :value="l">{{ l }}</option>
-                            </select>
                         </div>
 
                         <!-- Actors -->
@@ -995,11 +1008,19 @@ function removeSeason(index) {
                                             <option v-for="q in videoQualityOptions" :key="q" :value="q">{{ q }}
                                             </option>
                                         </select>
-                                        <select v-model="s.audio_format"
-                                            class="px-2 py-1.5 bg-vault-700 border border-vault-600 rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50">
-                                            <option value="">Audio format</option>
-                                            <option v-for="a in audioFormatOptions" :key="a" :value="a">{{ a }}</option>
-                                        </select>
+                                        <!-- Audio format pill for each season needs init -->
+                                        <div class="relative col-span-2 sm:col-span-3">
+                                            <div class="flex flex-wrap gap-1.5">
+                                                <button v-for="a in audioFormatOptions" :key="a" type="button"
+                                                    @click="toggleSeasonAudio(s, a)"
+                                                    class="px-2 py-1 rounded-md text-[11px] font-medium transition-all"
+                                                    :class="(s.audio_format || []).includes(a)
+                                                        ? 'bg-amber-500 text-white'
+                                                        : 'bg-vault-600 text-vault-400 hover:bg-vault-500'">
+                                                    {{ a }}
+                                                </button>
+                                            </div>
+                                        </div>
                                         <select v-model="s.language"
                                             class="px-2 py-1.5 bg-vault-700 border border-vault-600 rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50">
                                             <option value="">Language</option>

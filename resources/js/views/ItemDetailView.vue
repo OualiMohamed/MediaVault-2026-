@@ -309,7 +309,7 @@ watch(() => route.params.id, fetchItem)
                                     </svg>
                                     <div class="absolute inset-0 flex items-center justify-center">
                                         <span class="text-lg font-bold" :style="{ color: ratingColor }">{{ ratingPercent
-                                            }}%</span>
+                                        }}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -389,7 +389,7 @@ watch(() => route.params.id, fetchItem)
                                     <img v-if="networkLogo" :src="networkLogo" :alt="row.value"
                                         class="h-6 w-auto object-contain rounded bg-white/15 p-1 flex-shrink-0" />
                                     <span v-if="!networkLogo" class="text-white text-sm font-medium">{{ row.value
-                                    }}</span>
+                                        }}</span>
                                 </div>
 
                                 <!-- Default fallback -->
@@ -442,15 +442,19 @@ watch(() => route.params.id, fetchItem)
                                 <div v-for="s in item.details.seasons" :key="s.season"
                                     class="inline-flex items-center gap-2 px-4 py-2.5 bg-vault-800 border border-vault-600 rounded-xl">
                                     <span class="text-white font-bold text-sm">S{{ String(s.season).padStart(2, '0')
-                                        }}</span>
+                                    }}</span>
                                     <span class="w-px h-4 bg-vault-600"></span>
                                     <span class="text-vault-300 text-sm">{{ s.format }}</span>
                                     <template v-if="s.video_quality || s.audio_format || s.language">
                                         <span class="w-px h-4 bg-vault-600"></span>
                                         <span v-if="s.video_quality" class="text-sky-400 text-xs font-medium">{{
                                             s.video_quality }}</span>
-                                        <span v-if="s.audio_format" class="text-vault-400 text-xs">{{ s.audio_format
-                                            }}</span>
+                                        <template v-if="s.audio_format && s.audio_format.length">
+                                            <span v-for="af in s.audio_format" :key="af"
+                                                class="text-vault-300 text-xs font-medium px-1.5 py-0.5 rounded bg-vault-600/50">
+                                                {{ af }}
+                                            </span>
+                                        </template>
                                         <span v-if="s.language"
                                             class="text-amber-400 text-xs font-semibold uppercase">{{ s.language
                                             }}</span>
@@ -480,7 +484,7 @@ watch(() => route.params.id, fetchItem)
                                         class="text-vault-500 text-xs font-medium uppercase tracking-wider block mb-1">Condition</span>
                                     <span class="text-white text-sm font-medium">{{ item.condition === 'near_mint' ?
                                         'Near Mint' : item.condition?.charAt(0).toUpperCase() + item.condition?.slice(1)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div>
                                     <span
