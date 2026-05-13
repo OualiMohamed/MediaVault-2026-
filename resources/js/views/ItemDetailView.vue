@@ -106,7 +106,7 @@ const metadata = computed(() => {
         rows.push({
             label: 'Franchise',
             value: `${d.franchise.name} #${d.franchise_position}`,
-            link: `/franchise/${d.franchise.id}`,
+            route: `/franchise/${d.franchise.id}`,
         });
     }
 
@@ -122,8 +122,12 @@ const metadata = computed(() => {
         if (d.imdb_id) rows.push({ label: 'IMDb', value: d.imdb_id, link: `https://www.imdb.com/title/${d.imdb_id}` })
         if (d.video_quality) rows.push({ label: 'Video Quality', value: d.video_quality })
         if (d.audio_format) {
-            const formats = Array.isArray(d.audio_format) ? d.audio_format : [d.audio_format]
-            rows.push({ label: 'Audio', value: formats })
+            let formats = d.audio_format
+            if (typeof formats === 'string') {
+                try { formats = JSON.parse(formats) } catch { formats = [formats] }
+            }
+            if (!Array.isArray(formats)) formats = [formats]
+            rows.push({ label: 'Audio', value: formats.join(', ') })
         }
         if (d.language) rows.push({ label: 'Language', value: d.language })
         if (d.seen) rows.push({ label: 'Seen', value: d.date_seen ? `Seen on ${d.date_seen}` : 'Yes' })
@@ -416,6 +420,16 @@ watch(() => route.params.id, (newId, oldId) => {
                                     </svg>
                                 </a>
 
+                                <button v-else-if="row.route" @click="router.push(row.route)"
+                                    class="text-left text-amber-400 hover:text-amber-300 text-sm font-medium transition-colors flex items-center gap-1">
+                                    {{ row.value }}
+                                    <svg class="inline w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                </button>
+                                
                                 <button v-else-if="row.copyable" @click="navigator.clipboard.writeText(row.value)"
                                     class="text-left text-white text-sm font-mono hover:text-amber-400 transition-colors group flex items-center gap-1.5"
                                     title="Click to copy">

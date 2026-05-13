@@ -256,12 +256,11 @@ class CollectionController extends Controller
             $ids = $items->pluck('id');
             $details = $modelClass::whereIn('collection_item_id', $ids);
             if ($type === 'book') {
-                $details->with('series');
+                $details->with('series', 'franchise');
+            } else {
+                $details->with('franchise');
             }
-            $details = $modelClass::whereIn('collection_item_id', $ids)
-                ->with('franchise', 'series')
-                ->get()
-                ->keyBy('collection_item_id');
+            $details = $details->get()->keyBy('collection_item_id');
             $items->each(fn($item) => $item->setRelation($type, $details->get($item->id)));
             $items->getCollection()->transform(fn($item) => $this->formatItem($item));
         }
@@ -374,9 +373,13 @@ class CollectionController extends Controller
                 ...$detailData,
             ]);
 
-            $detail = $modelClass::where('collection_item_id', $item->id)
-                ->with('franchise', 'series')
-                ->first();
+            $detail = $modelClass::where('collection_item_id', $item->id);
+            if ($type === 'book') {
+                $detail->with('series', 'franchise');
+            } else {
+                $detail->with('franchise');
+            }
+            $detail = $detail->first();
 
             // Attach detail manually — NO ->load()
             $item->setRelation($type, $detail);
@@ -400,7 +403,9 @@ class CollectionController extends Controller
         $modelClass = $this->getModelClass($type);
         $detailQuery = $modelClass::where('collection_item_id', $item->id);
         if ($type === 'book') {
-            $detailQuery->with('series');
+            $detailQuery->with('series', 'franchise');
+        } else {
+            $detailQuery->with('franchise');
         }
         $detail = $detailQuery->first();
         $item->setRelation($type, $detail);
@@ -446,7 +451,7 @@ class CollectionController extends Controller
                 'notes' => $validated['notes'] ?? $item->notes,
             ]);
 
-            $baseFields = ['title', 'barcode', 'cover_image', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'series_name'];
+            $baseFields = ['title', 'barcode', 'cover_image', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'series_name', 'franchise_name'];
 
             $detailData = array_filter(
                 $validated,
@@ -567,7 +572,7 @@ class CollectionController extends Controller
 
         return match ($type) {
             'movie' => $base + [
-                'format' => 'required|in:DVD,Blu-ray,4K UHD,Digital,VHS',
+                'format' => 'required|in:DVD,Blu-ray,4K UHD,Digital,HDD,VHS,umd,HD DVD',
                 'runtime_minutes' => 'nullable|integer|min:1',
                 'director' => 'nullable|string|max:255',
                 'genre' => 'nullable|string|max:255',
