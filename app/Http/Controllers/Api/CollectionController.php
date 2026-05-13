@@ -258,10 +258,14 @@ class CollectionController extends Controller
             if ($type === 'book') {
                 $details->with('series');
             }
-            $details = $details->get()->keyBy('collection_item_id');
+            $details = $modelClass::whereIn('collection_item_id', $ids)
+                ->with('franchise', 'series')
+                ->get()
+                ->keyBy('collection_item_id');
             $items->each(fn($item) => $item->setRelation($type, $details->get($item->id)));
             $items->getCollection()->transform(fn($item) => $this->formatItem($item));
         }
+
 
         return response()->json($items);
     }
@@ -298,7 +302,8 @@ class CollectionController extends Controller
                 'notes' => $validated['notes'] ?? null,
             ]);
 
-            $baseFields = ['title', 'barcode', 'cover_image', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'series_name'];
+            $baseFields = ['title', 'barcode', 'cover_image', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'series_name', 'franchise_name'];
+
             $detailData = array_filter(
                 $validated,
                 fn($key) => !in_array($key, $baseFields),
@@ -333,6 +338,18 @@ class CollectionController extends Controller
                 }
             }
 
+            // Handle franchise — convert name to franchise_id
+            if (!empty($validated['franchise_name'])) {
+                $franchise = \App\Models\Franchise::firstOrCreate(
+                    ['user_id' => Auth::id(), 'name' => trim($validated['franchise_name'])],
+                );
+                $detailData['franchise_id'] = $franchise->id;
+                $detailData['franchise_position'] = !empty($validated['franchise_position']) ? (int) $validated['franchise_position'] : null;
+            } else {
+                $detailData['franchise_id'] = null;
+                $detailData['franchise_position'] = null;
+            }
+
             // HANDLE ACTORS (Convert comma-separated string to JSON array for manual entry)
             if (isset($detailData['actors']) && is_string($detailData['actors'])) {
                 $names = explode(',', $detailData['actors']);
@@ -356,6 +373,10 @@ class CollectionController extends Controller
                 'collection_item_id' => $item->id,
                 ...$detailData,
             ]);
+
+            $detail = $modelClass::where('collection_item_id', $item->id)
+                ->with('franchise', 'series')
+                ->first();
 
             // Attach detail manually — NO ->load()
             $item->setRelation($type, $detail);
@@ -426,6 +447,7 @@ class CollectionController extends Controller
             ]);
 
             $baseFields = ['title', 'barcode', 'cover_image', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'series_name'];
+
             $detailData = array_filter(
                 $validated,
                 fn($key) => !in_array($key, $baseFields),
@@ -459,6 +481,19 @@ class CollectionController extends Controller
                     $detailData['series_position'] = null;
                 }
             }
+
+            // Handle franchise — convert name to franchise_id
+            if (!empty($validated['franchise_name'])) {
+                $franchise = \App\Models\Franchise::firstOrCreate(
+                    ['user_id' => Auth::id(), 'name' => trim($validated['franchise_name'])],
+                );
+                $detailData['franchise_id'] = $franchise->id;
+                $detailData['franchise_position'] = !empty($validated['franchise_position']) ? (int) $validated['franchise_position'] : null;
+            } else {
+                $detailData['franchise_id'] = null;
+                $detailData['franchise_position'] = null;
+            }
+
             // HANDLE ACTORS (Convert comma-separated string to JSON array)
             if (isset($detailData['actors']) && is_string($detailData['actors'])) {
                 $names = explode(',', $detailData['actors']);
@@ -486,7 +521,7 @@ class CollectionController extends Controller
             $modelClass = $this->getModelClass($type);
             $detailQuery = $modelClass::where('collection_item_id', $item->id);
             if ($type === 'book') {
-                $detailQuery->with('series');
+                $detailQuery->with('franchise', 'series');
             }
             $detail = $detailQuery->first();
             $item->setRelation($type, $detail);
@@ -546,6 +581,8 @@ class CollectionController extends Controller
                 'audio_format' => 'nullable|json',
                 'language' => 'nullable|string|max:50',         // add
                 'actors' => 'nullable|string|max:2000',  // add this
+                'franchise_name' => 'nullable|string|max:255',
+                'franchise_position' => 'nullable|integer|min:1',
             ],
             'book' => $base + [
                 'author' => 'required|string|max:255',
@@ -559,6 +596,8 @@ class CollectionController extends Controller
                 'date_finished' => 'nullable|date',
                 'series_name' => 'nullable|string|max:255',
                 'series_position' => 'nullable|integer|min:1',
+                'franchise_name' => 'nullable|string|max:255',
+                'franchise_position' => 'nullable|integer|min:1',
             ],
             'game' => $base + [
                 'platform' => 'required|in:PS5,PS4,PS3,PS Vita,Switch,Wii U,Wii,Nintendo DS,Xbox Series X,Xbox One,PC,Steam,Other',
@@ -569,6 +608,8 @@ class CollectionController extends Controller
                 'release_year' => 'nullable|integer|min:1970|max:' . (date('Y') + 2),
                 'completed' => 'nullable|boolean',
                 'completion_date' => 'nullable|date',
+                'franchise_name' => 'nullable|string|max:255',
+                'franchise_position' => 'nullable|integer|min:1',
             ],
             'music' => $base + [
                 'format' => 'required|in:CD,Vinyl,Digital,Cassette,8-Track',
@@ -580,6 +621,8 @@ class CollectionController extends Controller
                 'release_year' => 'nullable|integer|min:1887|max:' . (date('Y') + 2),
                 'vinyl_speed' => 'nullable|in:33,45,78',
                 'tracks' => 'nullable|json', // Add this
+                'franchise_name' => 'nullable|string|max:255',
+                'franchise_position' => 'nullable|integer|min:1',
             ],
             'tv_show' => $base + [
                 'total_seasons' => 'nullable|integer|min:1',
@@ -596,6 +639,8 @@ class CollectionController extends Controller
                 'trailer_url' => 'nullable|url|max:500',
                 'actors' => 'nullable|string|max:2000',  // add this
                 'network_logo' => 'nullable|string|max:255',
+                'franchise_name' => 'nullable|string|max:255',
+                'franchise_position' => 'nullable|integer|min:1',
             ],
         };
     }
