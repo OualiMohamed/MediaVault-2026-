@@ -302,6 +302,8 @@ async function applyTmdbData(data) {
     if (data.total_seasons) form.total_seasons = data.total_seasons
     if (data.overview) form.notes = data.overview
     if (data.trailer_url) form.trailer_url = data.trailer_url
+    if (data.franchise) form.franchise_name = data.franchise
+    if (data.franchise_position) form.franchise_position = data.franchise_position
     if (data.imdb_id) form.imdb_id = data.imdb_id
 
     if (data.cover_image) {
@@ -614,7 +616,7 @@ function removeSeason(index) {
                                 d="M9 12l2 2 4-4m6 2a2 2 0 012-2H4m6 0h8a2 2 0 002 2v4a2 2 0 002-2H6a2 2 0 00-2-2H4" />
                         </svg>
                         <span class="text-xs" :class="existingCover ? 'text-sky-400' : 'text-amber-400'">{{ tmdbMessage
-                            }}</span>
+                        }}</span>
                     </div>
 
                     <!-- Title -->
@@ -1210,7 +1212,7 @@ function removeSeason(index) {
                                 class="text-rose-300 text-sm flex items-start gap-2">
                                 <span class="text-rose-500 mt-0.5">&#8226;</span>
                                 <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                                }}</span>
+                                    }}</span>
                             </li>
                         </ul>
                     </div>

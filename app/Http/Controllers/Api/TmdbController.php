@@ -250,6 +250,27 @@ class TmdbController extends Controller
 
         $coverImage = $this->downloadPoster($details['poster_path'], $tmdbId);
 
+        // Franchise / Collection
+        $franchise = null;
+        $franchisePosition = null;
+
+        if (isset($details['belongs_to_collection']) && $details['belongs_to_collection']['name']) {
+            $franchise = $details['belongs_to_collection']['name'];
+
+            // Fetch collection details to get this movie's position
+            $collection = Http::timeout(10)->withoutVerifying()->get(
+                "https://api.themoviedb.org/3/collection/" . $details['belongs_to_collection']['id'],
+                ['api_key' => $apiKey]
+            )->json();
+
+            if (is_array($collection['parts'] ?? null)) {
+                $idx = array_search($tmdbId, array_column($collection['parts'], 'id'));
+                if ($idx !== false) {
+                    $franchisePosition = $idx + 1;
+                }
+            }
+        }
+
         return response()->json([
             'title' => $details['title'] ?? '',
             'cover_image' => $coverImage,
@@ -263,6 +284,8 @@ class TmdbController extends Controller
             'network' => null,
             'total_seasons' => null,
             'actors' => $actors,
+            'franchise' => $franchise,
+            'franchise_position' => $franchisePosition,
         ]);
     }
 
