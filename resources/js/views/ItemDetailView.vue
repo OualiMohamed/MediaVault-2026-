@@ -5,6 +5,7 @@ import api from '../api'
 import ItemFormModal from '../components/ItemFormModal.vue'
 import TrailerModal from '../components/TrailerModal.vue'
 // import { useNetworkLogo } from '../composables/useNetworkLogo'
+import { useCollectionStore } from '../stores/collection'
 
 const route = useRoute()
 const router = useRouter()
@@ -15,10 +16,12 @@ const error = ref('')
 const showEditModal = ref(false)
 const showTrailer = ref(false)
 // const { logoUrl: networkLogo, loading: logoLoading, fetchLogo: fetchNetworkLogo, clear: clearNetworkLogo, dispose: disposeNetworkLogo } = useNetworkLogo()
+const store = useCollectionStore()
 
 const type = computed(() => {
     const raw = route.params.type
-    return raw === 'tv-shows' ? 'tv_show' : raw
+    const map = { 'tv-shows': 'tv_show', 'movies': 'movie', 'books': 'book', 'games': 'game', 'music': 'music' }
+    return map[raw] || raw
 })
 
 const typeConfig = {
@@ -189,6 +192,25 @@ const coverUrl = computed(() => {
     return '/storage/' + item.value.cover_image
 })
 
+const prevItem = computed(() => {
+    const ids = store.sortedIds
+    const idx = ids.indexOf(Number(route.params.id))
+    if (idx <= 0) return null
+    return { id: ids[idx - 1], type: type.value }
+})
+
+const nextItem = computed(() => {
+    const ids = store.sortedIds
+    const idx = ids.indexOf(Number(route.params.id))
+    if (idx === -1 || idx >= ids.length - 1) return null
+    return { id: ids[idx + 1], type: type.value }
+})
+
+function goToItem(item) {
+    const pathMap = { movie: '/movies', book: '/books', game: '/games', music: '/music', tv_show: '/tv-shows' }
+    router.push(`${pathMap[item.type] || '/'}/${item.id}`)
+}
+
 function goBack() {
     const pathMap = { movie: '/movies', book: '/books', game: '/games', music: '/music', tv_show: '/tv-shows' }
     router.push(pathMap[type.value] || '/')
@@ -220,7 +242,10 @@ function handleEditSaved() {
 // onBeforeUnmount(() => disposeNetworkLogo?.())
 
 onMounted(fetchItem)
-watch(() => route.params.id, fetchItem)
+// Update the existing watcher to also handle navigation
+watch(() => route.params.id, (newId, oldId) => {
+    if (newId && newId !== oldId) fetchItem()
+})
 
 // watch(
 //     () => [item.value?.title, item.value?.details?.network],
@@ -248,6 +273,7 @@ watch(() => route.params.id, fetchItem)
                 Back</button>
         </div>
 
+
         <div v-else-if="item" class="relative">
             <div class="absolute inset-0 h-[500px] overflow-hidden">
                 <div v-if="coverUrl" class="absolute inset-0">
@@ -264,6 +290,23 @@ watch(() => route.params.id, fetchItem)
                     </svg>
                     Back to {{ config.label }}s
                 </button>
+                <div class="flex items-center gap-2">
+                    <button v-if="prevItem" @click="goToItem(prevItem)"
+                        class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-vault-800/60 backdrop-blur-sm border border-vault-600/50 text-vault-300 hover:text-white hover:bg-vault-700/60 transition-all text-sm">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Previous
+                    </button>
+
+                    <button v-if="nextItem" @click="goToItem(nextItem)"
+                        class="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-vault-800/60 backdrop-blur-sm border border-vault-600/50 text-vault-300 hover:text-white hover:bg-vault-700/60 transition-all text-sm">
+                        Next
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-16">

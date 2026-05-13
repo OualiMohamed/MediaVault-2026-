@@ -12,6 +12,7 @@ export const useCollectionStore = defineStore("collection", () => {
         per_page: 24,
         total: 0,
     });
+    const sortedIds = ref([]);
 
     async function fetchItems(type, params = {}) {
         loading.value = true;
@@ -52,15 +53,40 @@ export const useCollectionStore = defineStore("collection", () => {
         return data;
     }
 
+    // For naviagtion purposes, we need to keep track of the sorted IDs separately
+    async function fetchItems(type, params = {}) {
+        loading.value = true;
+        try {
+            const { data } = await api.get(`/collection/${type}`, {
+                params,
+                timeout: 15000,
+            });
+            items.value = data.data;
+            sortedIds.value = data.data.map((item) => item.id);
+            pagination.value = {
+                current_page: data.current_page,
+                last_page: data.last_page,
+                per_page: data.per_page,
+                total: data.total,
+            };
+        } catch (err) {
+            console.error("Failed to fetch items:", err);
+        } finally {
+            loading.value = false;
+        }
+    }
+
     async function deleteItem(type, id) {
         await api.delete(`/collection/${type}/${id}`, { timeout: 15000 });
         items.value = items.value.filter((i) => i.id !== id);
+        sortedIds.value = sortedIds.value.filter((i) => i !== id);
     }
 
     return {
         items,
         loading,
         pagination,
+        sortedIds,
         fetchItems,
         createItem,
         updateItem,
