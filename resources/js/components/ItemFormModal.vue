@@ -82,6 +82,8 @@ const form = reactive({
     actors: '', // Simple string for manual input
     series_name: '',
     series_position: '',
+    franchise_name: '',
+    franchise_position: '',
 })
 
 const formatOptions = computed(() => {
@@ -113,11 +115,11 @@ const languageOptions = [
 ]
 
 const typeFieldMap = {
-    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'seen', 'date_seen', 'video_quality', 'language', 'actors'],
-    book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'read', 'date_finished', 'series_name', 'series_position'],
-    game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'completed', 'completion_date'],
-    music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed'],
-    tv_show: ['format', 'total_seasons', 'total_episodes', 'network', 'network_logo', 'director', 'genre', 'personal_rating', 'release_year', 'watch_status', 'current_season', 'current_episode', 'seasons', 'trailer_url', 'actors'],
+    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'seen', 'date_seen', 'video_quality', 'language', 'actors', 'franchise_name', 'franchise_position'],
+    book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'read', 'date_finished', 'series_name', 'series_position', 'franchise_name', 'franchise_position'],
+    game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'completed', 'completion_date', 'franchise_name', 'franchise_position'],
+    music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed', 'franchise_name', 'franchise_position'],
+    tv_show: ['format', 'total_seasons', 'total_episodes', 'network', 'network_logo', 'director', 'genre', 'personal_rating', 'release_year', 'watch_status', 'current_season', 'current_episode', 'seasons', 'trailer_url', 'actors', 'franchise_name', 'franchise_position'],
 }
 
 const baseFields = ['title', 'barcode', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes']
@@ -177,6 +179,13 @@ watch(() => props.item, (item) => {
         form.series_name = item.details.series.name
     } else {
         form.series_name = ''
+    }
+
+    // Map franchise relationship to form field
+    if (item.details?.franchise?.name) {
+        form.franchise_name = item.details.franchise.name
+    } else {
+        form.franchise_name = ''
     }
 
     if (item.details?.seasons && Array.isArray(item.details.seasons)) {
@@ -1141,6 +1150,23 @@ function removeSeason(index) {
                         <input v-model="form.genre" type="text"
                             class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
                             placeholder="e.g. Action, Sci-Fi, Rock" />
+                    </div>
+
+                    <!-- Franchise -->
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Franchise /
+                                Collection</label>
+                            <input v-model="form.franchise_name" type="text"
+                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                placeholder="e.g. The Lord of the Rings" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Position #</label>
+                            <input v-model="form.franchise_position" type="number" min="1"
+                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                placeholder="1" />
+                        </div>
                     </div>
 
                     <!-- Rating -->
