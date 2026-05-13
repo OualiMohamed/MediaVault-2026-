@@ -57,6 +57,11 @@ const routes = [
         component: () => import("../views/ItemDetailView.vue"),
         meta: { auth: true },
     },
+    {
+        path: "/franchise/:id",
+        name: "franchise",
+        component: () => import("../views/FranchiseView.vue"),
+    },
 ];
 
 const router = createRouter({
