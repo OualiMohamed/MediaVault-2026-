@@ -46,11 +46,11 @@ const languageOptions = [
 
 const formatOptions = computed(() => {
     const map = {
-        movie: ['DVD', 'Blu-ray', '4K UHD', 'Digital', 'VHS', 'umd', 'HD DVD'],
+        movie: ['DVD', 'Blu-ray', '4K UHD', 'HDD', 'Digital', 'VHS', 'umd', 'HD DVD'],
         book: [],
         game: ['Physical', 'Digital'],
         music: ['CD', 'Vinyl', 'Digital', 'Cassette', '8-Track'],
-        tv_show: ['Digital', 'DVD', 'Blu-ray', '4K UHD', 'VHS'],
+        tv_show: ['Digital', 'DVD', 'Blu-ray', 'HDD', '4K UHD', 'VHS'],
     }
     return map[type.value] || []
 })

@@ -88,10 +88,10 @@ const form = reactive({
 
 const formatOptions = computed(() => {
     const map = {
-        movie: ['DVD', 'Blu-ray', '4K UHD', 'Digital', 'VHS'],
+        movie: ['DVD', 'Blu-ray', '4K UHD', 'HDD', 'Digital', 'VHS', 'umd', 'HD DVD'],
         game: ['Physical', 'Digital'],
         music: ['CD', 'Vinyl', 'Digital', 'Cassette', '8-Track'],
-        tv_show: ['Digital', 'DVD', 'Blu-ray', '4K UHD', 'VHS'],
+        tv_show: ['Digital', 'DVD', 'Blu-ray', 'HDD', '4K UHD', 'VHS'],
     }
     return map[props.type] || []
 })
@@ -157,6 +157,11 @@ watch(() => props.item, (item) => {
         // After the details forEach loop:
         if (item.details?.series?.name) {
             form.series_name = item.details.series.name
+        }
+        if (item.details?.franchise?.name) {
+            form.franchise_name = item.details.franchise.name
+        } else {
+            form.franchise_name = ''
         }
     }
 
@@ -628,7 +633,7 @@ function removeSeason(index) {
                                 d="M9 12l2 2 4-4m6 2a2 2 0 012-2H4m6 0h8a2 2 0 002 2v4a2 2 0 002-2H6a2 2 0 00-2-2H4" />
                         </svg>
                         <span class="text-xs" :class="existingCover ? 'text-sky-400' : 'text-amber-400'">{{ tmdbMessage
-                            }}</span>
+                        }}</span>
                     </div>
 
                     <!-- Title -->
@@ -1241,7 +1246,7 @@ function removeSeason(index) {
                                 class="text-rose-300 text-sm flex items-start gap-2">
                                 <span class="text-rose-500 mt-0.5">&#8226;</span>
                                 <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                                }}</span>
+                                    }}</span>
                             </li>
                         </ul>
                     </div>
