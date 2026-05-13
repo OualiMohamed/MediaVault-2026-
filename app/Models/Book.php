@@ -20,6 +20,8 @@ class Book extends Model
         'date_finished',
         'series_id',
         'series_position',
+        'franchise_id',
+        'franchise_position',
     ];
 
     protected $casts = [
@@ -36,5 +38,10 @@ class Book extends Model
     public function series()
     {
         return $this->belongsTo(BookSeries::class, 'series_id');
+    }
+
+    public function franchise()
+    {
+        return $this->belongsTo(Franchise::class, 'franchise_id');
     }
 }

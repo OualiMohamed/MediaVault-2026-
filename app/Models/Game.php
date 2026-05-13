@@ -17,6 +17,8 @@ class Game extends Model
         'release_year',
         'completed',
         'completion_date',
+        'franchise_id',
+        'franchise_position',
     ];
 
     protected $casts = [
@@ -28,5 +30,10 @@ class Game extends Model
     public function collectionItem(): BelongsTo
     {
         return $this->belongsTo(CollectionItem::class, 'collection_item_id');
+    }
+
+    public function franchise()
+    {
+        return $this->belongsTo(Franchise::class, 'franchise_id');
     }
 }

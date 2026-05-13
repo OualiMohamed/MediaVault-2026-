@@ -18,6 +18,8 @@ class Music extends Model
         'release_year',
         'vinyl_speed',
         'tracks',
+        'franchise_id',
+        'franchise_position',
     ];
 
     protected $casts = ['release_year' => 'integer', 'tracks' => 'array'];
@@ -25,5 +27,10 @@ class Music extends Model
     public function collectionItem(): BelongsTo
     {
         return $this->belongsTo(CollectionItem::class, 'collection_item_id');
+    }
+
+    public function franchise()
+    {
+        return $this->belongsTo(Franchise::class, 'franchise_id');
     }
 }

@@ -24,6 +24,8 @@ class Movie extends Model
         'audio_format',
         'language',
         'actors',
+        'franchise_id',
+        'franchise_position',
     ];
 
     // cast attributes to appropriate data types
@@ -32,5 +34,10 @@ class Movie extends Model
     public function collectionItem(): BelongsTo
     {
         return $this->belongsTo(CollectionItem::class, 'collection_item_id');
+    }
+
+    public function franchise()
+    {
+        return $this->belongsTo(Franchise::class, 'franchise_id');
     }
 }
