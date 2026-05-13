@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CollectionController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DiscogsController;
 use App\Http\Controllers\Api\ExportController;
+use App\Http\Controllers\Api\FranchiseController;
 use App\Http\Controllers\Api\GoogleBooksController;
 use App\Http\Controllers\Api\ImportController;
 use App\Http\Controllers\Api\NetworkLogoController;
@@ -67,4 +68,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/search', [CollectionController::class, 'globalSearch']);
 
     Route::get('/book-series/{seriesId}', [CollectionController::class, 'seriesBooks']);
+
+    Route::get('/franchises', [FranchiseController::class, 'index']);
+    Route::get('/franchises/list', [FranchiseController::class, 'listByName']);
+    Route::get('/franchises/{id}', [FranchiseController::class, 'show']);
+    Route::post('/franchises', [FranchiseController::class, 'store']);
+    Route::put('/franchises/{id}', [FranchiseController::class, 'update']);
+    Route::delete('/franchises/{id}', [FranchiseController::class, 'destroy']);
 });
