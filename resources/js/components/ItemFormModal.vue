@@ -142,6 +142,7 @@ watch(() => props.item, (item) => {
     Object.assign(form, {
         title: item.title || '',
         cover_image: null,
+        audio_format: [],  // Add this line
         purchase_date: item.purchase_date || '',
         purchase_price: item.purchase_price ?? '',
         condition: item.condition || 'near_mint',
@@ -171,10 +172,35 @@ watch(() => props.item, (item) => {
     }
 
     // Convert audio_format to array for editing
+    // Convert audio_format to flat array for editing
     if (item.details?.audio_format) {
-        form.audio_format = Array.isArray(item.details.audio_format)
-            ? item.details.audio_format
-            : [item.details.audio_format]
+        let raw = item.details.audio_format
+        // Handle string (parsed JSON that wasn't cast properly)
+        if (typeof raw === 'string') {
+            try { raw = JSON.parse(raw) } catch { raw = [raw] }
+        }
+        // Handle nested array from double-encoding
+        if (Array.isArray(raw)) {
+            const flat = []
+            raw.forEach(item => {
+                if (typeof item === 'string') {
+                    try {
+                        const parsed = JSON.parse(item)
+                        if (Array.isArray(parsed)) flat.push(...parsed)
+                        else flat.push(item)
+                    } catch {
+                        flat.push(item)
+                    }
+                } else if (Array.isArray(item)) {
+                    flat.push(...item)
+                } else {
+                    flat.push(String(item))
+                }
+            })
+            form.audio_format = [...new Set(flat)] // deduplicate
+        } else {
+            form.audio_format = []
+        }
     } else {
         form.audio_format = []
     }
