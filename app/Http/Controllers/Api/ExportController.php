@@ -42,9 +42,13 @@ class ExportController extends Controller
                 'Video Quality',
                 'Audio Format',
                 'Language',
+                'Actors',
+                'Trailer URL',
                 'Seen',
                 'Date Seen',
                 'Personal Rating',
+                'Franchise',
+                'Franchise Position',
                 'Status',
                 'Condition',
                 'Purchase Date',
@@ -60,9 +64,13 @@ class ExportController extends Controller
                 'Pages',
                 'Genre',
                 'Release Year',
+                'Series',
+                'Series Position',
                 'Read',
                 'Date Finished',
                 'Personal Rating',
+                'Franchise',
+                'Franchise Position',
                 'Status',
                 'Condition',
                 'Purchase Date',
@@ -80,6 +88,8 @@ class ExportController extends Controller
                 'Completed',
                 'Completion Date',
                 'Personal Rating',
+                'Franchise',
+                'Franchise Position',
                 'Status',
                 'Condition',
                 'Purchase Date',
@@ -97,6 +107,8 @@ class ExportController extends Controller
                 'Vinyl Speed',
                 'Release Year',
                 'Personal Rating',
+                'Franchise',
+                'Franchise Position',
                 'Status',
                 'Condition',
                 'Purchase Date',
@@ -108,11 +120,36 @@ class ExportController extends Controller
         };
     }
 
+    private function flattenArrayField($value): string
+    {
+        if (is_array($value)) {
+            // Actors: extract names
+            if (isset($value[0]['name'])) {
+                return implode(', ', array_column($value, 'name'));
+            }
+            // Plain arrays like audio_format
+            return implode(', ', $value);
+        }
+        return (string) ($value ?? '');
+    }
+
+    private function getFranchiseName($detail): string
+    {
+        if ($detail->franchise)
+            return $detail->franchise->name;
+        return '';
+    }
+
+    private function getSeriesName($detail): string
+    {
+        if ($detail->series)
+            return $detail->series->name;
+        return '';
+    }
+
     private function mapRow(array $item, object $detail, string $type): array
     {
-        $base = [
-            $item['title'],
-        ];
+        $base = [$item['title']];
 
         return match ($type) {
             'movie' => [
@@ -124,11 +161,15 @@ class ExportController extends Controller
                 $detail->runtime_minutes ?? '',
                 $detail->imdb_id ?? '',
                 $detail->video_quality ?? '',
-                $detail->audio_format ?? '',
+                $this->flattenArrayField($detail->audio_format),
                 $detail->language ?? '',
+                $this->flattenArrayField($detail->actors),
+                $detail->trailer_url ?? '',
                 $detail->seen ? 'Yes' : 'No',
                 $detail->date_seen ?? '',
                 $detail->personal_rating ?? '',
+                $this->getFranchiseName($detail),
+                $detail->franchise_position ?? '',
                 $item['status'],
                 $item['condition'],
                 $item['purchase_date'] ?? '',
@@ -144,9 +185,13 @@ class ExportController extends Controller
                 $detail->page_count ?? '',
                 $detail->genre ?? '',
                 $detail->release_year ?? '',
+                $this->getSeriesName($detail),
+                $detail->series_position ?? '',
                 $detail->read ? 'Yes' : 'No',
                 $detail->date_finished ?? '',
                 $detail->personal_rating ?? '',
+                $this->getFranchiseName($detail),
+                $detail->franchise_position ?? '',
                 $item['status'],
                 $item['condition'],
                 $item['purchase_date'] ?? '',
@@ -164,6 +209,8 @@ class ExportController extends Controller
                 $detail->completed ? 'Yes' : 'No',
                 $detail->completion_date ?? '',
                 $detail->personal_rating ?? '',
+                $this->getFranchiseName($detail),
+                $detail->franchise_position ?? '',
                 $item['status'],
                 $item['condition'],
                 $item['purchase_date'] ?? '',
@@ -181,6 +228,8 @@ class ExportController extends Controller
                 $detail->vinyl_speed ?? '',
                 $detail->release_year ?? '',
                 $detail->personal_rating ?? '',
+                $this->getFranchiseName($detail),
+                $detail->franchise_position ?? '',
                 $item['status'],
                 $item['condition'],
                 $item['purchase_date'] ?? '',
@@ -229,16 +278,23 @@ class ExportController extends Controller
 
         return Response::stream(function () use ($type, $modelClass, $columns) {
             $file = fopen('php://output', 'w');
-            // BOM for Excel UTF-8 compatibility
             fwrite($file, "\xEF\xBB\xBF");
             fputcsv($file, $columns);
+
+            $detailQuery = $modelClass::whereIn('collection_item_id', []);
+            if ($type === 'book') {
+                $detailQuery = $modelClass::query()->with('series', 'franchise');
+            } else {
+                $detailQuery = $modelClass::query()->with('franchise');
+            }
 
             CollectionItem::where('user_id', Auth::id())
                 ->where('type', $type)
                 ->orderBy('title', 'asc')
-                ->chunk(200, function ($items) use ($type, $modelClass, $file) {
+                ->chunk(200, function ($items) use ($type, $detailQuery, $file) {
                     $ids = $items->pluck('id');
-                    $details = $modelClass::whereIn('collection_item_id', $ids)
+                    $details = (clone $detailQuery)
+                        ->whereIn('collection_item_id', $ids)
                         ->get()
                         ->keyBy('collection_item_id');
 
@@ -274,6 +330,7 @@ class ExportController extends Controller
 
         $ids = $items->pluck('id');
         $details = $modelClass::whereIn('collection_item_id', $ids)
+            ->with('franchise')
             ->get()
             ->keyBy('collection_item_id');
 
@@ -288,7 +345,9 @@ class ExportController extends Controller
                 'barcode' => $item->barcode,
                 'notes' => $item->notes,
                 'details' => $detail ? [
+                    'format' => $detail->format,
                     'network' => $detail->network,
+                    'director' => $detail->director,
                     'total_seasons' => $detail->total_seasons,
                     'total_episodes' => $detail->total_episodes,
                     'genre' => $detail->genre,
@@ -298,7 +357,10 @@ class ExportController extends Controller
                     'current_episode' => $detail->current_episode,
                     'personal_rating' => $detail->personal_rating,
                     'trailer_url' => $detail->trailer_url,
+                    'actors' => $detail->actors,
                     'seasons' => $detail->seasons,
+                    'franchise' => $detail->franchise ? $detail->franchise->name : null,
+                    'franchise_position' => $detail->franchise_position,
                 ] : null,
             ];
         });
@@ -332,13 +394,35 @@ class ExportController extends Controller
             ->get();
 
         $ids = $items->pluck('id');
-        $details = $modelClass::whereIn('collection_item_id', $ids)->get()->keyBy('collection_item_id');
 
-        // Prepare data array, injecting the old ID so import can map covers
+        $detailQuery = $modelClass::query();
+        if ($type === 'book') {
+            $detailQuery->with('series', 'franchise');
+        } else {
+            $detailQuery->with('franchise');
+        }
+        $details = $detailQuery->whereIn('collection_item_id', $ids)->get()->keyBy('collection_item_id');
+
         $exportData = $items->map(function ($item) use ($details) {
             $detail = $details->get($item->id);
-            $row = [
-                '_old_id' => $item->id, // Crucial for mapping covers on import
+            $detailArray = $detail ? $detail->toArray() : null;
+
+            // Replace franchise_id/series_id with human-readable names
+            if ($detailArray) {
+                unset($detailArray['collection_item_id']);
+                unset($detailArray['franchise_id']);
+                unset($detailArray['series_id']);
+
+                if ($detail->franchise) {
+                    $detailArray['franchise'] = $detail->franchise->name;
+                }
+                if ($detail->series) {
+                    $detailArray['series'] = $detail->series->name;
+                }
+            }
+
+            return [
+                '_old_id' => $item->id,
                 'title' => $item->title,
                 'status' => $item->status,
                 'condition' => $item->condition,
@@ -346,18 +430,10 @@ class ExportController extends Controller
                 'purchase_price' => $item->purchase_price,
                 'barcode' => $item->barcode,
                 'notes' => $item->notes,
-                'details' => $detail ? $detail->toArray() : null,
+                'details' => $detailArray,
             ];
-
-            // Don't include the base collection_item_id in the details payload
-            if (isset($row['details']['collection_item_id'])) {
-                unset($row['details']['collection_item_id']);
-            }
-
-            return $row;
         })->toArray();
 
-        // Create Zip in memory/temp
         $tempFile = tempnam(sys_get_temp_dir(), 'vault_export_') . '.zip';
         $zip = new \ZipArchive();
 
@@ -365,16 +441,13 @@ class ExportController extends Controller
             return response()->json(['error' => 'Failed to create zip file'], 500);
         }
 
-        // Add data file
         $zip->addFromString('data.json', json_encode($exportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
-        // Add covers
         $zip->addEmptyDir('covers');
         foreach ($items as $item) {
             if ($item->cover_image) {
                 $path = storage_path('app/public/' . $item->cover_image);
                 if (File::exists($path)) {
-                    // Name it by the OLD database ID so it's unique and mapable
                     $ext = pathinfo($path, PATHINFO_EXTENSION);
                     $zip->addFile($path, 'covers/' . $item->id . '.' . $ext);
                 }
@@ -387,7 +460,6 @@ class ExportController extends Controller
             $stream = fopen($tempFile, 'r');
             fpassthru($stream);
             fclose($stream);
-            // Cleanup temp file after streaming
             unlink($tempFile);
         }, 200, [
             'Content-Type' => 'application/zip',
