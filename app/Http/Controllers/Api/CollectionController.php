@@ -630,6 +630,7 @@ class CollectionController extends Controller
                 'franchise_position' => 'nullable|integer|min:1',
             ],
             'tv_show' => $base + [
+                'format' => 'required|in:Digital,DVD,Blu-ray,4K UHD,VHS,HDD',
                 'total_seasons' => 'nullable|integer|min:1',
                 'total_episodes' => 'nullable|integer|min:1',
                 'network' => 'nullable|string|max:255',

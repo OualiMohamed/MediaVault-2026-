@@ -5,6 +5,7 @@ import { useCollectionStore } from '../stores/collection'
 import MediaCard from '../components/MediaCard.vue'
 import ItemFormModal from '../components/ItemFormModal.vue'
 import api from '../api' // Make sure this is imported
+import QuickAdd from '../components/QuickAdd.vue'
 
 const route = useRoute()
 const store = useCollectionStore()
@@ -384,6 +385,9 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
         <!-- Form Modal -->
         <ItemFormModal v-if="showForm" :type="type" :item="editItem" @close="showForm = false"
             @saved="handleFormSaved" />
+
+        <!-- Quick Add FAB -->
+        <QuickAdd :type="type" />
     </div>
 </template>
 
