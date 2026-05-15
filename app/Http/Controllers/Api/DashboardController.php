@@ -142,6 +142,11 @@ class DashboardController extends Controller
             ->where('status', 'wishlist')
             ->count();
 
+        // 11. Borrowed out count
+        $borrowedCount = CollectionItem::where('user_id', $userId)
+            ->where('status', 'borrowed')
+            ->count();
+
         return response()->json([
             'total_items' => $totalItems,
             'total_value' => (float) $totalValue,
@@ -158,6 +163,7 @@ class DashboardController extends Controller
             'wishlist_count' => $wishlistCount,
             'rating_distribution' => $this->getRatingDistribution(),
             'loaned_out' => $this->getLoanedOutItems(),
+            'borrowed_count' => $borrowedCount,
         ]);
     }
 
