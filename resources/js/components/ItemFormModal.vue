@@ -84,6 +84,8 @@ const form = reactive({
     series_position: '',
     franchise_name: '',
     franchise_position: '',
+    borrowed_to: '',
+    due_back_date: '',
 })
 
 const formatOptions = computed(() => {
@@ -143,6 +145,9 @@ watch(() => props.item, (item) => {
         title: item.title || '',
         cover_image: null,
         audio_format: [],  // Add this line
+        borrowed_to: item.borrowed_to || '',
+        due_back_date: item.due_back_date || '',
+        purchase_date: item.purchase_date || '',
         purchase_date: item.purchase_date || '',
         purchase_price: item.purchase_price ?? '',
         condition: item.condition || 'near_mint',
@@ -231,6 +236,14 @@ watch(() => props.item, (item) => {
         seasons.value = [{ season: 1, format: 'Digital', video_quality: '', audio_format: [], language: '' }]
     }
 }, { immediate: true })
+
+// Add a watcher for status
+watch(() => form.status, (status) => {
+    if (status !== 'borrowed') {
+        form.borrowed_to = ''
+        form.due_back_date = ''
+    }
+})
 
 watch(() => props.type, (type) => {
     if (!isEditing.value) {
@@ -1077,17 +1090,31 @@ function removeSeason(index) {
                         </div>
 
                         <!-- Watch Status -->
+                        <!-- Status -->
                         <div>
-                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Watch Status</label>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Status</label>
                             <div class="flex flex-wrap gap-2">
-                                <button v-for="s in ['watching', 'completed', 'dropped', 'plan_to_watch']" :key="s"
-                                    type="button" @click="form.watch_status = s"
-                                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all" :class="form.watch_status === s
-                                        ? 'bg-rose-500 text-white'
-                                        : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
-                                    {{ s === 'plan_to_watch' ? 'Plan to Watch' : s.charAt(0).toUpperCase() + s.slice(1)
-                                    }}
+                                <button v-for="s in ['owned', 'wishlist', 'borrowed', 'sold', 'lost']" :key="s"
+                                    type="button" @click="form.status = s"
+                                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                                    :class="form.status === s ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
+                                    {{ s.charAt(0).toUpperCase() + s.slice(1) }}
                                 </button>
+                            </div>
+                        </div>
+
+                        <!-- Borrowed fields (shown only when status = borrowed) -->
+                        <div v-if="form.status === 'borrowed'" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Borrowed To</label>
+                                <input v-model="form.borrowed_to" type="text"
+                                    class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                    placeholder="Person's name" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Due Back Date</label>
+                                <input v-model="form.due_back_date" type="date"
+                                    class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm" />
                             </div>
                         </div>
 
