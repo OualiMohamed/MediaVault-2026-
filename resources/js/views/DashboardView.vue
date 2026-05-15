@@ -8,6 +8,7 @@ import FormatBreakdown from '../components/FormatBreakdown.vue'
 import RecentItems from '../components/RecentItems.vue'
 import DoughnutChart from '../components/DoughnutChart.vue'
 import RatingBarChart from '../components/RatingBarChart.vue'
+import LoanedOutWidget from '../components/LoanedOutWidget.vue'
 
 
 const dashboard = useDashboardStore()
@@ -157,7 +158,7 @@ async function handleConfirmImport() {
                 <FormatBreakdown title="Movies by Format" :data="dashboard.stats.movies_by_format" color="amber" />
                 <FormatBreakdown title="Games by Platform" :data="dashboard.stats.games_by_platform" color="sky" />
                 <FormatBreakdown title="Music by Format" :data="dashboard.stats.music_by_format" color="violet" />
-
+                <LoanedOutWidget :items="dashboard.stats?.loaned_out ?? []" />
                 <div class="bg-vault-800 border border-vault-700 rounded-2xl p-6">
                     <h2 class="text-white font-semibold mb-4">Collection Breakdown</h2>
                     <DoughnutChart :movie="dashboard.stats?.by_type?.movie?.count ?? 0"
