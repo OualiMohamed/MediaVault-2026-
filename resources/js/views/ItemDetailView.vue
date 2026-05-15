@@ -175,6 +175,21 @@ const metadata = computed(() => {
         if (d.vinyl_speed) rows.push({ label: 'Vinyl Speed', value: `${d.vinyl_speed} RPM` })
     }
 
+    if (item.borrowed_to) {
+        rows.push({ label: 'Borrowed To', value: item.borrowed_to })
+    }
+    if (item.due_back_date) {
+        const due = new Date(item.due_back_date + 'T00:00:00')
+        const now = new Date()
+        const diffDays = Math.ceil((due - now) / (1000 * 60 * 60 * 24))
+        let label = ''
+        if (diffDays < 0) label = `${Math.abs(diffDays)} day${Math.abs(diffDays) !== 1 ? 's' : ''} overdue`
+        else if (diffDays === 0) label = 'Due today'
+        else if (diffDays === 1) label = 'Due tomorrow'
+        else label = `${diffDays} days left`
+        rows.push({ label: 'Due Back', value: `${item.due_back_date} (${label})` })
+    }
+
     return rows
 })
 
@@ -380,6 +395,10 @@ watch(() => route.params.id, (newId, oldId) => {
                             <span v-if="item.status"
                                 :class="['px-3 py-1 rounded-full text-xs font-medium border', statusColors[item.status] || '']">{{
                                     item.status.charAt(0).toUpperCase() + item.status.slice(1) }}</span>
+                            <span v-if="item.borrowed_to"
+                                class="px-3 py-1 rounded-full text-xs font-medium border border-sky-500/20 bg-sky-500/15 text-sky-400">
+                                {{ item.borrowed_to }}
+                            </span>
                             <span v-if="type === 'tv_show' && item.details?.watch_status"
                                 :class="['px-3 py-1 rounded-full text-xs font-medium border', watchStatusColors[item.details.watch_status] || '']">{{
                                     item.details.watch_status === 'plan_to_watch' ? 'Plan to Watch' :
@@ -429,7 +448,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                             d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                     </svg>
                                 </button>
-                                
+
                                 <button v-else-if="row.copyable" @click="navigator.clipboard.writeText(row.value)"
                                     class="text-left text-white text-sm font-mono hover:text-amber-400 transition-colors group flex items-center gap-1.5"
                                     title="Click to copy">
@@ -528,7 +547,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                 </div>
                             </div>
                         </div>
-
+                        <!-- Collection Details -->
                         <div class="bg-vault-800/70 backdrop-blur-sm border border-vault-700 rounded-2xl p-6 mb-8">
                             <h3 class="text-sm font-semibold text-vault-300 uppercase tracking-wider mb-4">Collection
                                 Details</h3>
