@@ -55,6 +55,8 @@ class ExportController extends Controller
                 'Purchase Price',
                 'Barcode',
                 'Notes',
+                'Borrowed To',
+                'Due Back Date',
             ],
             'book' => [
                 'Title',
@@ -77,6 +79,8 @@ class ExportController extends Controller
                 'Purchase Price',
                 'Barcode',
                 'Notes',
+                'Borrowed To',
+                'Due Back Date',
             ],
             'game' => [
                 'Title',
@@ -96,6 +100,8 @@ class ExportController extends Controller
                 'Purchase Price',
                 'Barcode',
                 'Notes',
+                'Borrowed To',
+                'Due Back Date',
             ],
             'music' => [
                 'Title',
@@ -115,6 +121,8 @@ class ExportController extends Controller
                 'Purchase Price',
                 'Barcode',
                 'Notes',
+                'Borrowed To',
+                'Due Back Date',
             ],
             default => [],
         };
@@ -176,6 +184,8 @@ class ExportController extends Controller
                 $item['purchase_price'] ?? '',
                 $item['barcode'] ?? '',
                 $item['notes'] ?? '',
+                $item['borrowed_to'] ?? '',
+                $item['due_back_date'] ?? '',
             ],
             'book' => [
                 ...$base,
@@ -198,6 +208,8 @@ class ExportController extends Controller
                 $item['purchase_price'] ?? '',
                 $item['barcode'] ?? '',
                 $item['notes'] ?? '',
+                $item['borrowed_to'] ?? '',
+                $item['due_back_date'] ?? '',
             ],
             'game' => [
                 ...$base,
@@ -217,6 +229,8 @@ class ExportController extends Controller
                 $item['purchase_price'] ?? '',
                 $item['barcode'] ?? '',
                 $item['notes'] ?? '',
+                $item['borrowed_to'] ?? '',
+                $item['due_back_date'] ?? '',
             ],
             'music' => [
                 ...$base,
@@ -236,6 +250,8 @@ class ExportController extends Controller
                 $item['purchase_price'] ?? '',
                 $item['barcode'] ?? '',
                 $item['notes'] ?? '',
+                $item['borrowed_to'] ?? '',
+                $item['due_back_date'] ?? '',
             ],
             default => $base,
         };
