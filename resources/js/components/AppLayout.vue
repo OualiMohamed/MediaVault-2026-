@@ -91,7 +91,7 @@ const bottomNavItems = computed(() => navItems.slice(0, 6)) // Show first 6 item
                     </router-link>
 
                     <!-- Desktop nav links -->
-                    <nav class="hidden md:flex items-center gap-1">
+                    <nav class="hidden lg:flex items-center gap-1">
                         <router-link v-for="item in navItems" :key="item.path" :to="item.path"
                             class="px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200" :class="currentPath === item.path
                                 ? 'text-amber-400 bg-amber-500/10'
@@ -132,7 +132,7 @@ const bottomNavItems = computed(() => navItems.slice(0, 6)) // Show first 6 item
 
                         <!-- Mobile user menu button -->
                         <button @click="toggleMobileMenu"
-                            class="sm:hidden w-9 h-9 rounded-lg flex items-center justify-center text-vault-300 hover:text-white hover:bg-vault-700 transition-all relative flex-shrink-0">
+                            class="lg:hidden w-9 h-9 rounded-lg flex items-center justify-center text-vault-300 hover:text-white hover:bg-vault-700 transition-all relative flex-shrink-0">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -146,7 +146,7 @@ const bottomNavItems = computed(() => navItems.slice(0, 6)) // Show first 6 item
 
             <!-- Mobile dropdown menu (unchanged) -->
             <transition name="mobile-menu">
-                <div v-if="mobileMenuOpen" class="sm:hidden bg-vault-800 border-b border-vault-700 shadow-xl"
+                <div v-if="mobileMenuOpen" class="md:hidden bg-vault-800 border-b border-vault-700 shadow-xl"
                     @click.stop>
                     <div class="px-4 py-3 border-b border-vault-700">
                         <p v-if="auth.user" class="text-white text-sm font-medium">{{ auth.user.name }}</p>
@@ -181,7 +181,7 @@ const bottomNavItems = computed(() => navItems.slice(0, 6)) // Show first 6 item
 
         <!-- ═══ Mobile Bottom Navigation ═══ -->
         <nav v-if="isAuth"
-            class="sm:hidden fixed bottom-0 left-0 right-0 bg-vault-900/95 backdrop-blur-xl border-t border-vault-700 z-50">
+            class="lg:hidden fixed bottom-0 left-0 right-0 bg-vault-900/95 backdrop-blur-xl border-t border-vault-700 z-50">
             <div class="flex justify-around py-1.5 px-1">
                 <router-link v-for="item in bottomNavItems" :key="item.path" :to="item.path"
                     class="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-colors min-w-0"
@@ -193,7 +193,7 @@ const bottomNavItems = computed(() => navItems.slice(0, 6)) // Show first 6 item
         </nav>
 
         <!-- ═══ Main Content ═══ -->
-        <main :class="isAuth ? 'pt-14 sm:pt-16 pb-16 sm:pb-0' : ''">
+        <main :class="isAuth ? 'pt-14 sm:pt-16 pb-16 lg:pb-0' : ''">
             <slot />
         </main>
     </div>
