@@ -157,6 +157,7 @@ class DashboardController extends Controller
             'recent_additions' => $recent,
             'wishlist_count' => $wishlistCount,
             'rating_distribution' => $this->getRatingDistribution(),
+            'loaned_out' => $this->getLoanedOutItems(),
         ]);
     }
 
@@ -201,5 +202,36 @@ class DashboardController extends Controller
         ];
 
         return $distribution;
+    }
+
+    // New method to get loaned out items
+    private function getLoanedOutItems(): array
+    {
+        $items = CollectionItem::where('user_id', Auth::id())
+            ->where('status', 'borrowed')
+            ->whereNotNull('due_back_date')
+            ->orderBy('due_back_date', 'asc')
+            ->limit(10)
+            ->get();
+
+        $result = [];
+        foreach ($items as $item) {
+            $dueDate = \Carbon\Carbon::parse($item->due_back_date);
+            $daysUntil = now()->diffInDays($dueDate, false);
+            $isOverdue = $dueDate->isPast();
+
+            $result[] = [
+                'id' => $item->id,
+                'type' => $item->type,
+                'title' => $item->title,
+                'cover_image' => $item->cover_image,
+                'borrowed_to' => $item->borrowed_to,
+                'due_back_date' => $item->due_back_date,
+                'days_until_due' => $daysUntil,
+                'is_overdue' => $isOverdue,
+            ];
+        }
+
+        return $result;
     }
 }
