@@ -6,6 +6,7 @@ import MediaCard from '../components/MediaCard.vue'
 import ItemFormModal from '../components/ItemFormModal.vue'
 import api from '../api' // Make sure this is imported
 import QuickAdd from '../components/QuickAdd.vue'
+import EmptyState from '../components/EmptyState.vue'
 
 const route = useRoute()
 const store = useCollectionStore()
@@ -351,11 +352,7 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
         </div>
 
         <!-- Empty -->
-        <div v-else-if="store.items.length === 0" class="text-center py-20">
-            <p class="text-5xl mb-4">{{ config.icon }}</p>
-            <h3 class="text-xl font-semibold text-white mb-2">No {{ config.label.toLowerCase() }} yet</h3>
-            <p class="text-vault-400">Click the button above to start building your collection.</p>
-        </div>
+        <EmptyState v-else-if="store.items.length === 0" :type="type" action="Add First Item" @action="openAddForm" />
 
         <!-- Grid -->
         <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">

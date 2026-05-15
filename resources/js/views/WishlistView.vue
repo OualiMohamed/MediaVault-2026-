@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api'
 import ItemFormModal from '../components/ItemFormModal.vue'
+import EmptyState from '../components/EmptyState.vue'
 
 const router = useRouter()
 
@@ -102,25 +103,7 @@ onMounted(fetchWishlist)
         </div>
 
         <!-- Empty state -->
-        <div v-else-if="items.length === 0" class="text-center py-16">
-            <p class="text-6xl mb-5 opacity-40">&#10084;</p>
-            <h3 class="text-xl font-semibold text-white mb-2">Your wishlist is empty</h3>
-            <p class="text-vault-400 max-w-md mx-auto mb-8">
-                When adding a movie, book, game, or album, change the status to "Wishlist" to save it here.
-                Or add one now:
-            </p>
-
-            <!-- Quick add buttons -->
-            <div class="flex flex-wrap justify-center gap-3">
-                <button v-for="(cfg, type) in typeConfig" :key="type" @click="openAddForm(type)"
-                    class="inline-flex items-center gap-2 px-5 py-3 bg-vault-800 border border-vault-600 rounded-xl hover:border-vault-500 hover:bg-vault-700 transition-all group">
-                    <span class="text-lg">{{ cfg.icon }}</span>
-                    <span class="text-sm font-medium text-vault-200 group-hover:text-white transition-colors">
-                        Add {{ cfg.label }}
-                    </span>
-                </button>
-            </div>
-        </div>
+        <EmptyState v-if="!items.length" type="wishlist" />
 
         <!-- Wishlist items -->
         <div v-else class="space-y-3">

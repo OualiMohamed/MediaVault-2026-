@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '../api'
+import EmptyState from '../components/EmptyState.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -89,7 +90,7 @@ onMounted(fetchFranchise)
                     <!-- Position number -->
                     <div class="w-10 h-10 rounded-full bg-vault-700 flex items-center justify-center flex-shrink-0">
                         <span class="text-vault-300 font-bold text-sm">{{ item.detail?.franchise_position || idx + 1
-                            }}</span>
+                        }}</span>
                     </div>
 
                     <!-- Cover -->
@@ -135,11 +136,7 @@ onMounted(fetchFranchise)
             </div>
 
             <!-- Empty -->
-            <div v-else class="text-center py-20">
-                <p class="text-5xl mb-4">🎞️</p>
-                <h3 class="text-xl font-semibold text-white mb-2">No items yet</h3>
-                <p class="text-vault-400">Add movies, books, or games to this franchise.</p>
-            </div>
+            <EmptyState v-if="!franchise.items.length" type="franchise" />
         </template>
     </div>
 </template>
