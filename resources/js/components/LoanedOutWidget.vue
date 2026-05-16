@@ -1,15 +1,10 @@
 <script setup>
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 const props = defineProps({
     items: { type: Array, default: () => [] },
 })
-
-const typeConfig = {
-    movie: { icon: '🎬', color: 'text-amber-400', bg: 'bg-amber-500/15' },
-    book: { icon: '📖', color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
-    game: { icon: '🎮', color: 'text-sky-400', bg: 'bg-sky-500/15' },
-    tv_show: { icon: '📺', color: 'text-rose-400', bg: 'bg-rose-500/15' },
-    music: { icon: '🎵', color: 'text-violet-400', bg: 'bg-violet-500/15' },
-}
 
 const typePaths = {
     movie: '/movies',
@@ -17,6 +12,18 @@ const typePaths = {
     game: '/games',
     tv_show: '/tv-shows',
     music: '/music',
+}
+
+function goTo(item) {
+    router.push(typePaths[item.type] + '/' + item.id)
+}
+
+const typeConfig = {
+    movie: { icon: '🎬', color: 'text-amber-400', bg: 'bg-amber-500/15' },
+    book: { icon: '📖', color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
+    game: { icon: '🎮', color: 'text-sky-400', bg: 'bg-sky-500/15' },
+    tv_show: { icon: '📺', color: 'text-rose-400', bg: 'bg-rose-500/15' },
+    music: { icon: '🎵', color: 'text-violet-400', bg: 'bg-violet-500/15' },
 }
 
 function dueLabel(item) {
@@ -54,8 +61,8 @@ function dueColor(item) {
         </div>
 
         <div v-else class="space-y-3">
-            <a v-for="item in items" :key="item.id" :href="typePaths[item.type] + '/' + item.id"
-                class="flex items-center gap-3 p-3 rounded-xl hover:bg-vault-700/50 transition-colors group">
+            <div v-for="item in items" :key="item.id" @click="goTo(item)"
+                class="flex items-center gap-3 p-3 rounded-xl hover:bg-vault-700/50 transition-colors cursor-pointer group">
                 <div class="w-10 h-10 rounded-lg bg-vault-700 overflow-hidden flex-shrink-0 border border-vault-600">
                     <img v-if="item.cover_image" :src="'/storage/' + item.cover_image"
                         class="w-full h-full object-cover" loading="lazy" />
@@ -76,7 +83,7 @@ function dueColor(item) {
                         {{ dueLabel(item) }}
                     </span>
                 </div>
-            </a>
+            </div>
         </div>
     </div>
 </template>
