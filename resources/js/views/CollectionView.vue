@@ -95,7 +95,7 @@ const typeConfig = {
 const config = computed(() => typeConfig[type.value])
 
 function loadItems() {
-    console.log('Genre value:', filterGenre.value) // Add this line
+    // console.log('Genre value:', filterGenre.value) // Add this line
     const params = {
         page: currentPage.value,
         search: search.value || undefined,
@@ -209,7 +209,7 @@ watch(() => route.path, (newPath) => {
 })
 
 watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, filterVideoQuality, filterAudioFormat, filterLanguage, filterLetter, sortValue, filterGenre], () => {
-    console.log('>>> Watcher fired! Genre is:', filterGenre.value) // Add this
+    // console.log('>>> Watcher fired! Genre is:', filterGenre.value) // Add this
     currentPage.value = 1
     loadItems()
 })

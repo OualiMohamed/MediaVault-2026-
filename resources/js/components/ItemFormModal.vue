@@ -124,7 +124,7 @@ const typeFieldMap = {
     tv_show: ['format', 'total_seasons', 'total_episodes', 'network', 'network_logo', 'director', 'genre', 'personal_rating', 'release_year', 'watch_status', 'current_season', 'current_episode', 'seasons', 'trailer_url', 'actors', 'franchise_name', 'franchise_position'],
 }
 
-const baseFields = ['title', 'barcode', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes']
+const baseFields = ['title', 'barcode', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'borrowed_to', 'due_back_date']
 const booleanFields = ['read', 'completed', 'seen']
 
 const validationErrors = computed(() => {
@@ -463,6 +463,12 @@ async function handleSubmit() {
         const formData = new FormData()
         const activeFields = [...baseFields, ...(typeFieldMap[props.type] || [])]
 
+        for (const [key, val] of formData.entries()) {
+            if (key.includes('borrow') || key.includes('due') || key === 'status') {
+                console.log(`FormData: ${key} = ${val}`)
+            }
+        }
+
         activeFields.forEach(field => {
             const value = form[field]
             if (booleanFields.includes(field)) {
@@ -503,6 +509,8 @@ async function handleSubmit() {
 
         emit('saved')
     } catch (err) {
+        console.log("test");
+
         console.error('Full error response:', err.response?.data)
 
         if (err.response?.status === 422) {
@@ -672,7 +680,7 @@ function removeSeason(index) {
                                 d="M9 12l2 2 4-4m6 2a2 2 0 012-2H4m6 0h8a2 2 0 002 2v4a2 2 0 002-2H6a2 2 0 00-2-2H4" />
                         </svg>
                         <span class="text-xs" :class="existingCover ? 'text-sky-400' : 'text-amber-400'">{{ tmdbMessage
-                        }}</span>
+                            }}</span>
                     </div>
 
                     <!-- Title -->
@@ -1089,35 +1097,6 @@ function removeSeason(index) {
                             </div>
                         </div>
 
-                        <!-- Watch Status -->
-                        <!-- Status -->
-                        <div>
-                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Status</label>
-                            <div class="flex flex-wrap gap-2">
-                                <button v-for="s in ['owned', 'wishlist', 'borrowed', 'sold', 'lost']" :key="s"
-                                    type="button" @click="form.status = s"
-                                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
-                                    :class="form.status === s ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
-                                    {{ s.charAt(0).toUpperCase() + s.slice(1) }}
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Borrowed fields (shown only when status = borrowed) -->
-                        <div v-if="form.status === 'borrowed'" class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Borrowed To</label>
-                                <input v-model="form.borrowed_to" type="text"
-                                    class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                    placeholder="Person's name" />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Due Back Date</label>
-                                <input v-model="form.due_back_date" type="date"
-                                    class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm" />
-                            </div>
-                        </div>
-
                         <!-- Current progress -->
                         <div v-if="form.watch_status === 'watching'"
                             class="bg-vault-700/50 border border-vault-600 rounded-xl p-4">
@@ -1205,6 +1184,40 @@ function removeSeason(index) {
                         </div>
                     </template>
 
+                    <!-- Watch Status -->
+                    <!-- Status -->
+                    <div>
+                        <label class="block text-sm font-medium text-vault-200 mb-1.5">Status</label>
+                        <div class="flex flex-wrap gap-2">
+                            <button v-for="s in ['owned', 'wishlist', 'borrowed', 'sold', 'lost']" :key="s"
+                                type="button" @click="form.status = s"
+                                class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                                :class="form.status === s ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
+                                {{ s.charAt(0).toUpperCase() + s.slice(1) }}
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <!-- Borrowed fields (shown only when status = borrowed) -->
+                    <div v-if="form.status === 'borrowed'" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Borrowed To</label>
+                            <input v-model="form.borrowed_to" type="text"
+                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                placeholder="Person's name" />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Due Back Date</label>
+                            <input v-model="form.due_back_date" type="date"
+                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm" />
+                            <p v-if="form.due_back_date && new Date(form.due_back_date + 'T00:00:00') < new Date(new Date().toDateString())"
+                                class="text-amber-400 text-xs mt-1.5">
+                                This date is in the past — the item will show as overdue
+                            </p>
+                        </div>
+                    </div>
+
                     <!-- Genre -->
                     <div>
                         <label class="block text-sm font-medium text-vault-200 mb-1.5">Genre</label>
@@ -1269,18 +1282,6 @@ function removeSeason(index) {
                         </div>
                     </div>
 
-                    <!-- Status -->
-                    <div>
-                        <label class="block text-sm font-medium text-vault-200 mb-1.5">Status</label>
-                        <div class="flex flex-wrap gap-2">
-                            <button v-for="s in ['owned', 'wishlist', 'borrowed', 'sold', 'lost']" :key="s"
-                                type="button" @click="form.status = s"
-                                class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
-                                :class="form.status === s ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">{{
-                                    s.charAt(0).toUpperCase() + s.slice(1) }}</button>
-                        </div>
-                    </div>
-
                     <!-- Notes -->
                     <div>
                         <label class="block text-sm font-medium text-vault-200 mb-1.5">Notes</label>
@@ -1299,7 +1300,7 @@ function removeSeason(index) {
                                 class="text-rose-300 text-sm flex items-start gap-2">
                                 <span class="text-rose-500 mt-0.5">&#8226;</span>
                                 <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                                    }}</span>
+                                }}</span>
                             </li>
                         </ul>
                     </div>

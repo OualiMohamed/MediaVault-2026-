@@ -18,6 +18,8 @@ class CollectionItem extends Model
         'purchase_price',
         'condition',
         'status',
+        'borrowed_to',
+        'due_back_date',
         'notes',
     ];
 

@@ -46,12 +46,11 @@ class CollectionController extends Controller
             'title' => $item->title,
             'cover_image' => $item->cover_image,
             'barcode' => $item->barcode,
+            // 'purchase_date' => $item->purchase_date?->format('Y-m-d'),
             'purchase_date' => $item->purchase_date ? \Carbon\Carbon::parse($item->purchase_date)->format('Y-m-d') : null,
             'purchase_price' => $item->purchase_price,
             'condition' => $item->condition,
             'status' => $item->status,
-            'borrowed_to' => $item->borrowed_to,
-            'due_back_date' => $item->due_back_date ? \Carbon\Carbon::parse($item->due_back_date)->format('Y-m-d') : null,
             'notes' => $item->notes,
             'details' => $details,
             'created_at' => $item->created_at->format('Y-m-d H:i:s'),
@@ -299,8 +298,8 @@ class CollectionController extends Controller
                 'purchase_price' => $validated['purchase_price'] ?? null,
                 'condition' => $validated['condition'] ?? 'near_mint',
                 'status' => $validated['status'] ?? 'owned',
-                'borrowed_to' => $validated['status'] === 'borrowed' ? ($validated['borrowed_to'] ?? null) : null,
-                'due_back_date' => $validated['status'] === 'borrowed' ? ($validated['due_back_date'] ?? null) : null,
+                'borrowed_to' => $validated['status'] === 'borrowed' ? ($validated['borrowed_to'] ?? null) : null, // Set borrowed_to only if status is borrowed
+                'due_back_date' => $validated['status'] === 'borrowed' ? ($validated['due_back_date'] ?? null) : null, // Set due_back_date only if status is borrowed
                 'notes' => $validated['notes'] ?? null,
             ]);
 
@@ -456,7 +455,7 @@ class CollectionController extends Controller
                 'notes' => $validated['notes'] ?? $item->notes,
             ]);
 
-            $baseFields = ['title', 'barcode', 'cover_image', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'series_name', 'franchise_name'];
+            $baseFields = ['title', 'barcode', 'cover_image', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'series_name', 'franchise_name', 'borrowed_to', 'due_back_date'];
 
             $detailData = array_filter(
                 $validated,
@@ -573,7 +572,7 @@ class CollectionController extends Controller
             'condition' => 'nullable|in:mint,near_mint,good,fair,poor',
             'status' => 'nullable|in:owned,wishlist,borrowed,sold,lost',
             'borrowed_to' => 'nullable|string|max:255',
-            'due_back_date' => 'nullable|date|after:today',
+            'due_back_date' => 'nullable|date',
             'notes' => 'nullable|string|max:2000',
         ];
 

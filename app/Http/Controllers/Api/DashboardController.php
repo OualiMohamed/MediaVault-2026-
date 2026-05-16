@@ -221,10 +221,12 @@ class DashboardController extends Controller
             ->get();
 
         $result = [];
+        $today = now()->startOfDay();
+
         foreach ($items as $item) {
-            $dueDate = \Carbon\Carbon::parse($item->due_back_date);
-            $daysUntil = now()->diffInDays($dueDate, false);
-            $isOverdue = $dueDate->isPast();
+            $dueDate = \Carbon\Carbon::parse($item->due_back_date)->startOfDay();
+            $daysUntil = (int) $today->diffInDays($dueDate);
+            $isOverdue = $dueDate->lt($today);
 
             $result[] = [
                 'id' => $item->id,
