@@ -300,6 +300,27 @@ function toggleSeasonAudio(season, format) {
     }
 }
 
+function toggleBluRayTier(zone) {
+    if (form.video_tier.includes(zone)) {
+        form.video_tier = form.video_tier.replace(zone, '')
+    } else {
+        form.video_tier += zone
+    }
+    form.video_tier = form.video_tier.split('').sort().join('')
+    if (!form.video_tier) form.video_tier = ''
+}
+
+function toggleSeasonBluRayTier(season, zone) {
+    const current = season.video_tier || ''
+    if (current.includes(zone)) {
+        season.video_tier = current.replace(zone, '')
+    } else {
+        season.video_tier = current + zone
+    }
+    season.video_tier = (season.video_tier || '').split('').sort().join('')
+    if (!season.video_tier) season.video_tier = ''
+}
+
 async function handleBarcodeScanned(code) {
     showScanner.value = false
     form.barcode = code
@@ -692,7 +713,7 @@ function removeSeason(index) {
                                 d="M9 12l2 2 4-4m6 2a2 2 0 012-2H4m6 0h8a2 2 0 002 2v4a2 2 0 002-2H6a2 2 0 00-2-2H4" />
                         </svg>
                         <span class="text-xs" :class="existingCover ? 'text-sky-400' : 'text-amber-400'">{{ tmdbMessage
-                            }}</span>
+                        }}</span>
                     </div>
 
                     <!-- Title -->
@@ -809,26 +830,26 @@ function removeSeason(index) {
                         <!-- Video Tier -->
                         <div v-if="form.format === 'Blu-ray' || form.format === 'DVD'">
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">
-                                {{ form.format === 'Blu-ray' ? 'Blu-ray Tier' : 'DVD Zone' }}
+                                {{ form.format === 'Blu-ray' ? 'Blu-ray Zone' : 'DVD Region' }}
                             </label>
                             <div class="flex flex-wrap gap-2">
                                 <template v-if="form.format === 'Blu-ray'">
                                     <button v-for="t in ['A', 'B', 'C']" :key="t" type="button"
-                                        @click="form.video_tier = form.video_tier === t ? '' : t"
-                                        class="px-4 py-1.5 rounded-lg text-sm font-bold transition-all" :class="form.video_tier === t
+                                        @click="toggleBluRayTier(t)"
+                                        class="px-4 py-1.5 rounded-lg text-sm font-bold transition-all" :class="form.video_tier.includes(t)
                                             ? 'bg-amber-500 text-white'
                                             : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
                                         {{ t }}
                                     </button>
                                 </template>
                                 <template v-else>
-                                    <button v-for="n in 9" :key="n" type="button"
-                                        @click="form.video_tier = form.video_tier === String(n) ? '' : String(n)"
+                                    <button v-for="n in 7" :key="n" type="button"
+                                        @click="form.video_tier = form.video_tier === String(n - 1) ? '' : String(n - 1)"
                                         class="w-9 h-9 rounded-lg text-sm font-bold transition-all flex items-center justify-center"
-                                        :class="form.video_tier === String(n)
+                                        :class="form.video_tier === String(n - 1)
                                             ? 'bg-amber-500 text-white'
                                             : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
-                                        {{ n }}
+                                        {{ n - 1 }}
                                     </button>
                                 </template>
                             </div>
@@ -1138,22 +1159,22 @@ function removeSeason(index) {
                                             <div class="flex items-center gap-1.5 mt-2">
                                                 <span
                                                     class="text-[10px] font-medium text-vault-500 uppercase tracking-wider w-12 flex-shrink-0">
-                                                    {{ s.format === 'Blu-ray' ? 'Tier' : 'Zone' }}
+                                                    {{ s.format === 'Blu-ray' ? 'Zone' : 'Region' }}
                                                 </span>
                                                 <template v-if="s.format === 'Blu-ray'">
                                                     <button v-for="t in ['A', 'B', 'C']" :key="t" type="button"
-                                                        @click="s.video_tier = s.video_tier === t ? '' : t"
+                                                        @click="toggleSeasonBluRayTier(s, t)"
                                                         class="px-2 py-0.5 rounded text-[11px] font-bold transition-all"
-                                                        :class="s.video_tier === t ? 'bg-amber-500/20 text-amber-400' : 'bg-vault-600 text-vault-500 hover:bg-vault-500'">
+                                                        :class="(s.video_tier || '').includes(t) ? 'bg-amber-500/20 text-amber-400' : 'bg-vault-600 text-vault-500 hover:bg-vault-500'">
                                                         {{ t }}
                                                     </button>
                                                 </template>
                                                 <template v-else>
-                                                    <button v-for="n in 9" :key="n" type="button"
-                                                        @click="s.video_tier = s.video_tier === String(n) ? '' : String(n)"
+                                                    <button v-for="n in 7" :key="n" type="button"
+                                                        @click="s.video_tier = s.video_tier === String(n - 1) ? '' : String(n - 1)"
                                                         class="w-6 h-6 rounded text-[11px] font-bold flex items-center justify-center transition-all"
-                                                        :class="s.video_tier === String(n) ? 'bg-amber-500/20 text-amber-400' : 'bg-vault-600 text-vault-500 hover:bg-vault-500'">
-                                                        {{ n }}
+                                                        :class="s.video_tier === String(n - 1) ? 'bg-amber-500/20 text-amber-400' : 'bg-vault-600 text-vault-500 hover:bg-vault-500'">
+                                                        {{ n - 1 }}
                                                     </button>
                                                 </template>
                                             </div>
@@ -1379,7 +1400,7 @@ function removeSeason(index) {
                                 class="text-rose-300 text-sm flex items-start gap-2">
                                 <span class="text-rose-500 mt-0.5">&#8226;</span>
                                 <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                                }}</span>
+                                    }}</span>
                             </li>
                         </ul>
                     </div>

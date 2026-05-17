@@ -643,7 +643,7 @@ class CollectionController extends Controller
                 'actors' => 'nullable|string|max:2000',  // add this
                 'franchise_name' => 'nullable|string|max:255',
                 'franchise_position' => 'nullable|integer|min:1',
-                'video_tier' => 'nullable|string|in:A,B,C,1,2,3,4,5,6,7,8,9',
+                'video_tier' => 'nullable|string|in:A,B,C,AB,AC,BC,ABC,0,2,3,4,5,6',
             ],
             'book' => $base + [
                 'author' => 'required|string|max:255',
