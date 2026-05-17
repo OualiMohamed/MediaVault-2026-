@@ -131,17 +131,37 @@ class CollectionController extends Controller
             );
         }
 
-        // Language filter for books
-        if ($type === 'book' && $request->filled('language')) {
-            $query->whereExists(
-                fn($q) =>
-                $q->selectRaw(1)
-                    ->from($detailTable)
-                    ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
-                    ->where('language', $request->language)
-            );
+        // Language filter — movies (top-level) and TV shows (per-season JSON)
+        if ($request->filled('language')) {
+            if ($type === 'book') {
+                $query->whereExists(
+                    fn($q) =>
+                    $q->selectRaw(1)
+                        ->from($detailTable)
+                        ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                        ->where('language', $request->language)
+                );
+            } elseif ($type === 'tv_show') {
+                $query->whereExists(
+                    fn($q) =>
+                    $q->selectRaw(1)
+                        ->from($detailTable)
+                        ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                        ->whereRaw(
+                            'JSON_SEARCH(' . $detailTable . '.seasons, \'one\', ?, NULL, \'$[*].language\') IS NOT NULL',
+                            [$request->language]
+                        )
+                );
+            } else { // For movies, it's a top-level column
+                $query->whereExists(
+                    fn($q) =>
+                    $q->selectRaw(1)
+                        ->from($detailTable)
+                        ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                        ->where('language', $request->language)
+                );
+            }
         }
-
         // Video tier filter for TV shows (inside seasons JSON)
         if ($type === 'tv_show' && $request->filled('video_tier')) {
             $query->whereExists(
@@ -219,15 +239,7 @@ class CollectionController extends Controller
                         )
                 );
             }
-            if ($request->filled('language')) {
-                $query->whereExists(
-                    fn($q) =>
-                    $q->selectRaw(1)
-                        ->from($detailTable)
-                        ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
-                        ->where('language', $request->language)
-                );
-            }
+
         }
 
         if ($request->filled('search')) {

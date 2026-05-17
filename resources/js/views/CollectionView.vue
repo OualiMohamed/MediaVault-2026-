@@ -98,7 +98,7 @@ const typeConfig = {
 const config = computed(() => typeConfig[type.value])
 
 function loadItems() {
-    // console.log('Genre value:', filterGenre.value) // Add this line
+    // Only include filters that have a value to avoid sending empty params
     const params = {
         page: currentPage.value,
         search: search.value || undefined,
@@ -377,7 +377,7 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
                 <option value="">All Audio Format</option>
                 <option v-for="a in audioFormatOptions" :key="a" :value="a">{{ a }}</option>
             </select>
-            <select v-if="type === 'movie'" v-model="filterLanguage"
+            <select v-if="type === 'movie' || type === 'tv_show'" v-model="filterLanguage"
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                 <option value="">All Languages</option>
                 <option v-for="l in languageOptions" :key="l" :value="l">{{ l }}</option>
