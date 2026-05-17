@@ -131,6 +131,7 @@ const metadata = computed(() => {
         }
         if (d.language) rows.push({ label: 'Language', value: d.language })
         if (d.seen) rows.push({ label: 'Seen', value: d.date_seen ? `Seen on ${d.date_seen}` : 'Yes' })
+        if (d.video_tier) rows.push({ label: 'Video Tier', value: `${form.format === 'Blu-ray' ? 'Blu-ray ' : 'DVD '}${d.video_tier}` })
     }
 
     if (type.value === 'book') {
@@ -138,6 +139,7 @@ const metadata = computed(() => {
         if (d.author) rows.push({ label: 'Author', value: d.author })
         if (d.publisher) rows.push({ label: 'Publisher', value: d.publisher })
         if (d.page_count) rows.push({ label: 'Pages', value: d.page_count })
+        if (d.language) rows.push({ label: 'Language', value: d.language })
         if (d.release_year) rows.push({ label: 'Year', value: d.release_year })
         if (d.read) rows.push({ label: 'Read', value: d.date_finished ? `Finished ${d.date_finished}` : 'Yes' })
     }
@@ -544,6 +546,10 @@ watch(() => route.params.id, (newId, oldId) => {
                                             class="text-amber-400 text-xs font-semibold uppercase">{{ s.language
                                             }}</span>
                                     </template>
+                                    <span v-if="s.video_tier"
+                                        class="text-amber-400 text-xs font-bold px-1.5 py-0.5 rounded bg-amber-500/15">
+                                        {{ s.video_tier }}
+                                    </span>
                                 </div>
                             </div>
                         </div>

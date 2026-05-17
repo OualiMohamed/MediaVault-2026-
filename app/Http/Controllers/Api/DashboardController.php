@@ -242,4 +242,23 @@ class DashboardController extends Controller
 
         return $result;
     }
+
+    // New method to get book language distribution
+    public function bookLanguages(): JsonResponse
+    {
+        $languages = Book::whereExists(
+            fn($q) =>
+            $q->selectRaw(1)
+                ->from('collection_items')
+                ->whereColumn('collection_items.id', 'books.collection_item_id')
+                ->where('user_id', Auth::id())
+        )
+            ->whereNotNull('language')
+            ->selectRaw('language, COUNT(*) as count')
+            ->groupBy('language')
+            ->orderByDesc('count')
+            ->get();
+
+        return response()->json($languages);
+    }
 }

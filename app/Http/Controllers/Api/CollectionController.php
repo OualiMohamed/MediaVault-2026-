@@ -51,6 +51,7 @@ class CollectionController extends Controller
             'purchase_price' => $item->purchase_price,
             'condition' => $item->condition,
             'status' => $item->status,
+            'language' => $item->language,
             'notes' => $item->notes,
             'details' => $details,
             'created_at' => $item->created_at->format('Y-m-d H:i:s'),
@@ -116,6 +117,42 @@ class CollectionController extends Controller
                     ->from($detailTable)
                     ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
                     ->whereRaw('LOWER(' . $detailTable . '.genre) LIKE ?', ['%' . strtolower($request->genre) . '%'])
+            );
+        }
+
+        // Video tier filter for movies
+        if ($type === 'movie' && $request->filled('video_tier')) {
+            $query->whereExists(
+                fn($q) =>
+                $q->selectRaw(1)
+                    ->from($detailTable)
+                    ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                    ->where('video_tier', $request->video_tier)
+            );
+        }
+
+        // Language filter for books
+        if ($type === 'book' && $request->filled('language')) {
+            $query->whereExists(
+                fn($q) =>
+                $q->selectRaw(1)
+                    ->from($detailTable)
+                    ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                    ->where('language', $request->language)
+            );
+        }
+
+        // Video tier filter for TV shows (inside seasons JSON)
+        if ($type === 'tv_show' && $request->filled('video_tier')) {
+            $query->whereExists(
+                fn($q) =>
+                $q->selectRaw(1)
+                    ->from($detailTable)
+                    ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                    ->whereRaw(
+                        'JSON_SEARCH(' . $detailTable . '.seasons, \'one\', ?, NULL, \'$[*].video_tier\') IS NOT NULL',
+                        [$request->video_tier]
+                    )
             );
         }
 
@@ -594,6 +631,7 @@ class CollectionController extends Controller
                 'actors' => 'nullable|string|max:2000',  // add this
                 'franchise_name' => 'nullable|string|max:255',
                 'franchise_position' => 'nullable|integer|min:1',
+                'video_tier' => 'nullable|string|in:A,B,C,1,2,3,4,5,6,7,8,9',
             ],
             'book' => $base + [
                 'author' => 'required|string|max:255',
@@ -608,6 +646,7 @@ class CollectionController extends Controller
                 'series_name' => 'nullable|string|max:255',
                 'series_position' => 'nullable|integer|min:1',
                 'franchise_name' => 'nullable|string|max:255',
+                'language' => 'nullable|in:English,French,Arabic,Other',
                 'franchise_position' => 'nullable|integer|min:1',
             ],
             'game' => $base + [
@@ -894,5 +933,23 @@ class CollectionController extends Controller
             ->values();
 
         return response()->json($genres);
+    }
+
+    public function bookLanguages(): JsonResponse
+    {
+        $languages = Book::whereExists(
+            fn($q) =>
+            $q->selectRaw(1)
+                ->from('collection_items')
+                ->whereColumn('collection_items.id', 'books.collection_item_id')
+                ->where('user_id', Auth::id())
+        )
+            ->whereNotNull('language')
+            ->selectRaw('language, COUNT(*) as count')
+            ->groupBy('language')
+            ->orderByDesc('count')
+            ->get();
+
+        return response()->json($languages);
     }
 }

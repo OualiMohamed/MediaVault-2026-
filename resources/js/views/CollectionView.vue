@@ -26,12 +26,15 @@ const currentPage = ref(1)
 const filterVideoQuality = ref('')
 const filterAudioFormat = ref('')
 const filterLanguage = ref('')
+const filterBookLanguage = ref('')
 const bookGenres = ref([])
 const filterGenre = ref('')
 const musicGenres = ref([])
 const movieGenres = ref([])
 const tvShowGenres = ref([])
 const gameGenres = ref([])
+const filterVideoTier = ref('')
+const bookLanguages = ref([])
 
 const videoQualityOptions = [
     'Ultra HDLight', 'HDLight 1080p', 'HDLight 1080p (x265)', 'HDLight 720p', 'HDLight 720p (x265)',
@@ -105,11 +108,12 @@ function loadItems() {
         watch_status: filterWatchStatus.value || undefined,
         video_quality: filterVideoQuality.value || undefined,
         audio_format: filterAudioFormat.value || undefined,
-        language: filterLanguage.value || undefined,
+        language: (type.value === 'book' && filterBookLanguage.value) ? filterBookLanguage.value : (type.value !== 'book' && filterLanguage.value) ? filterLanguage.value : undefined,
         genre: filterGenre.value || undefined,
         letter: filterLetter.value || undefined,
         sort_by: sortBy.value,
         sort_dir: sortDir.value,
+        video_tier: filterVideoTier.value || undefined,
     }
     store.fetchItems(type.value, params)
 }
@@ -151,6 +155,13 @@ async function fetchGameGenres() {
     } catch (e) { }
 }
 
+async function fetchBookLanguages() {
+    try {
+        const { data } = await api.get('/filters/languages/book')
+        bookLanguages.value = data
+    } catch (e) { }
+}
+
 function handlePageChange(page) {
     currentPage.value = page
     loadItems()
@@ -170,7 +181,7 @@ function handleFormSaved() {
     showForm.value = false
     editItem.value = null
     loadItems()
-    if (route.path === '/books') fetchBookGenres()
+    if (route.path === '/books') { fetchBookGenres(); fetchBookLanguages() }
     if (route.path === '/music') fetchMusicGenres()
     if (route.path === '/movies') fetchMovieGenres()
     if (route.path === '/tv-shows') fetchTvShowGenres()
@@ -180,6 +191,7 @@ function handleFormSaved() {
 onMounted(() => {
     loadItems()
     if (route.path === '/books') fetchBookGenres()
+    if (route.path === '/books') fetchBookLanguages()
     if (route.path === '/music') fetchMusicGenres()
     if (route.path === '/movies') fetchMovieGenres()
     if (route.path === '/tv-shows') fetchTvShowGenres()
@@ -195,9 +207,11 @@ watch(() => route.path, (newPath) => {
     filterVideoQuality.value = ''
     filterAudioFormat.value = ''
     filterLanguage.value = ''
+    filterBookLanguage.value = ''
     filterGenre.value = ''
     filterLetter.value = ''
-    sortBy.value = 'created_at'
+    filterVideoTier.value = '',
+        sortBy.value = 'created_at'
     sortDir.value = 'desc'
     currentPage.value = 1
     loadItems()
@@ -208,8 +222,7 @@ watch(() => route.path, (newPath) => {
     if (newPath === '/games') fetchGameGenres()
 })
 
-watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, filterVideoQuality, filterAudioFormat, filterLanguage, filterLetter, sortValue, filterGenre], () => {
-    // console.log('>>> Watcher fired! Genre is:', filterGenre.value) // Add this
+watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, filterVideoQuality, filterAudioFormat, filterLanguage, filterLetter, sortValue, filterGenre, filterVideoTier, filterBookLanguage], () => {
     currentPage.value = 1
     loadItems()
 })
@@ -262,6 +275,15 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
                 <option v-for="g in bookGenres" :key="g" :value="g">{{ g }}</option>
             </select>
 
+            <!-- Language (Books) -->
+            <select v-if="type === 'book'" v-model="filterBookLanguage"
+                class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                <option value="">All Languages</option>
+                <option v-for="lang in bookLanguages" :key="lang.language" :value="lang.language">
+                    {{ lang.language }} ({{ lang.count }})
+                </option>
+            </select>
+
             <select v-if="type === 'music' && musicGenres.length" v-model="filterGenre"
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                 <option value="">All Genres</option>
@@ -299,6 +321,49 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
                 <option value="completed">Completed</option>
                 <option value="dropped">Dropped</option>
                 <option value="plan_to_watch">Plan to Watch</option>
+            </select>
+            <!-- Video Tier (Movies) -->
+            <select v-if="type === 'movie'" v-model="filterVideoTier"
+                class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                <option value="">All Tiers</option>
+                <optgroup label="Blu-ray">
+                    <option value="A">Blu-ray A</option>
+                    <option value="B">Blu-ray B</option>
+                    <option value="C">Blu-ray C</option>
+                </optgroup>
+                <optgroup label="DVD">
+                    <option value="1">DVD 1</option>
+                    <option value="2">DVD 2</option>
+                    <option value="3">DVD 3</option>
+                    <option value="4">DVD 4</option>
+                    <option value="5">DVD 5</option>
+                    <option value="6">DVD 6</option>
+                    <option value="7">DVD 7</option>
+                    <option value="8">DVD 8</option>
+                    <option value="9">DVD 9</option>
+                </optgroup>
+            </select>
+
+            <!-- Video Tier (TV Shows) -->
+            <select v-if="type === 'tv_show'" v-model="filterVideoTier"
+                class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                <option value="">All Tiers</option>
+                <optgroup label="Blu-ray">
+                    <option value="A">Blu-ray A</option>
+                    <option value="B">Blu-ray B</option>
+                    <option value="C">Blu-ray C</option>
+                </optgroup>
+                <optgroup label="DVD">
+                    <option value="1">DVD 1</option>
+                    <option value="2">DVD 2</option>
+                    <option value="3">DVD 3</option>
+                    <option value="4">DVD 4</option>
+                    <option value="5">DVD 5</option>
+                    <option value="6">DVD 6</option>
+                    <option value="7">DVD 7</option>
+                    <option value="8">DVD 8</option>
+                    <option value="9">DVD 9</option>
+                </optgroup>
             </select>
 
             <!-- Movie tech filters -->

@@ -86,6 +86,7 @@ const form = reactive({
     franchise_position: '',
     borrowed_to: '',
     due_back_date: '',
+    video_tier: '',
 })
 
 const formatOptions = computed(() => {
@@ -117,14 +118,15 @@ const languageOptions = [
 ]
 
 const typeFieldMap = {
-    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'seen', 'date_seen', 'video_quality', 'language', 'actors', 'franchise_name', 'franchise_position'],
-    book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'read', 'date_finished', 'series_name', 'series_position', 'franchise_name', 'franchise_position'],
+    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'seen', 'date_seen', 'video_quality', 'language', 'actors', 'video_tier', 'franchise_name', 'franchise_position'],
+    book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'anguage', 'read', 'date_finished', 'series_name', 'series_position', 'franchise_name', 'franchise_position'],
     game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'completed', 'completion_date', 'franchise_name', 'franchise_position'],
     music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed', 'franchise_name', 'franchise_position'],
     tv_show: ['format', 'total_seasons', 'total_episodes', 'network', 'network_logo', 'director', 'genre', 'personal_rating', 'release_year', 'watch_status', 'current_season', 'current_episode', 'seasons', 'trailer_url', 'actors', 'franchise_name', 'franchise_position'],
 }
 
-const baseFields = ['title', 'barcode', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'borrowed_to', 'due_back_date']
+const baseFields = ['title', 'barcode', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'borrowed_to', 'due_back_date', 'video_tier', 'language',]
+// const baseFields = ['title', 'barcode', 'cover_image', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'borrowed_to', 'due_back_date', 'video_tier', 'language', 'series_name', 'franchise_name']
 const booleanFields = ['read', 'completed', 'seen']
 
 const validationErrors = computed(() => {
@@ -139,6 +141,7 @@ const validationErrors = computed(() => {
     return list
 })
 
+// When editing an existing item, populate the form with its data
 watch(() => props.item, (item) => {
     if (!item) return
     Object.assign(form, {
@@ -210,6 +213,10 @@ watch(() => props.item, (item) => {
         form.audio_format = []
     }
 
+    // Map new video_tier field (added after initial details loop)
+    form.video_tier = item.details?.video_tier || ''
+    form.language = item.details?.language || ''
+
     // Map series relationship to form field
     if (item.details?.series?.name) {
         form.series_name = item.details.series.name
@@ -231,9 +238,10 @@ watch(() => props.item, (item) => {
             video_quality: s.video_quality || '',
             audio_format: Array.isArray(s.audio_format) ? s.audio_format : (s.audio_format ? [s.audio_format] : []),
             language: s.language || '',
+            video_tier: s.video_tier || '',
         }))
     } else {
-        seasons.value = [{ season: 1, format: 'Digital', video_quality: '', audio_format: [], language: '' }]
+        seasons.value = [{ season: 1, format: 'Digital', video_quality: '', audio_format: [], language: '', video_tier: '' }]
     }
 }, { immediate: true })
 
@@ -494,6 +502,10 @@ async function handleSubmit() {
             formData.append('tracks', JSON.stringify(form.tracks))
         }
 
+        // After the tracks handler, before cover handler:
+        if (props.type === 'book' && form.language) {
+            formData.append('language', form.language)
+        }
         // ✅ FIXED — new file takes priority over existing
         if (form.cover_image instanceof File) {
             formData.append('cover_image', form.cover_image)
@@ -560,7 +572,7 @@ function addSeason() {
     const nextNum = seasons.value.length > 0
         ? Math.max(...seasons.value.map(s => s.season)) + 1
         : 1
-    seasons.value.push({ season: nextNum, format: 'Digital', video_quality: '', audio_format: [], language: '' })
+    seasons.value.push({ season: nextNum, format: 'Digital', video_quality: '', audio_format: [], language: '', video_tier: '' })
 }
 
 function removeSeason(index) {
@@ -794,6 +806,33 @@ function removeSeason(index) {
                             </div>
                         </div>
 
+                        <!-- Video Tier -->
+                        <div v-if="form.format === 'Blu-ray' || form.format === 'DVD'">
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">
+                                {{ form.format === 'Blu-ray' ? 'Blu-ray Tier' : 'DVD Zone' }}
+                            </label>
+                            <div class="flex flex-wrap gap-2">
+                                <template v-if="form.format === 'Blu-ray'">
+                                    <button v-for="t in ['A', 'B', 'C']" :key="t" type="button"
+                                        @click="form.video_tier = form.video_tier === t ? '' : t"
+                                        class="px-4 py-1.5 rounded-lg text-sm font-bold transition-all" :class="form.video_tier === t
+                                            ? 'bg-amber-500 text-white'
+                                            : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
+                                        {{ t }}
+                                    </button>
+                                </template>
+                                <template v-else>
+                                    <button v-for="n in 9" :key="n" type="button"
+                                        @click="form.video_tier = form.video_tier === String(n) ? '' : String(n)"
+                                        class="w-9 h-9 rounded-lg text-sm font-bold transition-all flex items-center justify-center"
+                                        :class="form.video_tier === String(n)
+                                            ? 'bg-amber-500 text-white'
+                                            : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
+                                        {{ n }}
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
                         <!-- Actors -->
                         <div>
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Actors</label>
@@ -1087,11 +1126,38 @@ function removeSeason(index) {
                                                 </button>
                                             </div>
                                         </div>
+
                                         <select v-model="s.language"
                                             class="px-2 py-1.5 bg-vault-700 border border-vault-600 rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50">
                                             <option value="">Language</option>
                                             <option v-for="l in languageOptions" :key="l" :value="l">{{ l }}</option>
                                         </select>
+
+                                        <!-- Video tier per season -->
+                                        <div v-if="s.format === 'Blu-ray' || s.format === 'DVD'" class="pl-12">
+                                            <div class="flex items-center gap-1.5 mt-2">
+                                                <span
+                                                    class="text-[10px] font-medium text-vault-500 uppercase tracking-wider w-12 flex-shrink-0">
+                                                    {{ s.format === 'Blu-ray' ? 'Tier' : 'Zone' }}
+                                                </span>
+                                                <template v-if="s.format === 'Blu-ray'">
+                                                    <button v-for="t in ['A', 'B', 'C']" :key="t" type="button"
+                                                        @click="s.video_tier = s.video_tier === t ? '' : t"
+                                                        class="px-2 py-0.5 rounded text-[11px] font-bold transition-all"
+                                                        :class="s.video_tier === t ? 'bg-amber-500/20 text-amber-400' : 'bg-vault-600 text-vault-500 hover:bg-vault-500'">
+                                                        {{ t }}
+                                                    </button>
+                                                </template>
+                                                <template v-else>
+                                                    <button v-for="n in 9" :key="n" type="button"
+                                                        @click="s.video_tier = s.video_tier === String(n) ? '' : String(n)"
+                                                        class="w-6 h-6 rounded text-[11px] font-bold flex items-center justify-center transition-all"
+                                                        :class="s.video_tier === String(n) ? 'bg-amber-500/20 text-amber-400' : 'bg-vault-600 text-vault-500 hover:bg-vault-500'">
+                                                        {{ n }}
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1224,6 +1290,19 @@ function removeSeason(index) {
                         <input v-model="form.genre" type="text"
                             class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
                             placeholder="e.g. Action, Sci-Fi, Rock" />
+                    </div>
+
+                    <!-- Language -->
+                    <div v-if="type === 'book'">
+                        <label class="block text-sm font-medium text-vault-200 mb-1.5">Language</label>
+                        <div class="flex flex-wrap gap-2">
+                            <button v-for="lang in ['English', 'French', 'Arabic', 'Other']" :key="lang" type="button"
+                                @click="form.language = form.language === lang ? '' : lang"
+                                class="px-3.5 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all"
+                                :class="form.language === lang ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
+                                {{ lang }}
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Franchise -->

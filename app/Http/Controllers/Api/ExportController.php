@@ -44,6 +44,7 @@ class ExportController extends Controller
                 'Language',
                 'Actors',
                 'Trailer URL',
+                'Video Tier',
                 'Seen',
                 'Date Seen',
                 'Personal Rating',
@@ -55,8 +56,6 @@ class ExportController extends Controller
                 'Purchase Price',
                 'Barcode',
                 'Notes',
-                'Borrowed To',
-                'Due Back Date',
             ],
             'book' => [
                 'Title',
@@ -65,6 +64,7 @@ class ExportController extends Controller
                 'Publisher',
                 'Pages',
                 'Genre',
+                'Language',
                 'Release Year',
                 'Series',
                 'Series Position',
@@ -170,6 +170,7 @@ class ExportController extends Controller
                 $detail->imdb_id ?? '',
                 $detail->video_quality ?? '',
                 $this->flattenArrayField($detail->audio_format),
+                $detail->video_tier ?? '',
                 $detail->language ?? '',
                 $this->flattenArrayField($detail->actors),
                 $detail->trailer_url ?? '',
@@ -194,6 +195,7 @@ class ExportController extends Controller
                 $detail->publisher ?? '',
                 $detail->page_count ?? '',
                 $detail->genre ?? '',
+                $detail->language ?? '',
                 $detail->release_year ?? '',
                 $this->getSeriesName($detail),
                 $detail->series_position ?? '',
@@ -377,6 +379,7 @@ class ExportController extends Controller
                     'seasons' => $detail->seasons,
                     'franchise' => $detail->franchise ? $detail->franchise->name : null,
                     'franchise_position' => $detail->franchise_position,
+                    'video_tier' => $detail->video_tier,
                 ] : null,
             ];
         });

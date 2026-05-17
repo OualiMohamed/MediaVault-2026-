@@ -26,6 +26,7 @@ class Movie extends Model
         'actors',
         'franchise_id',
         'franchise_position',
+        'video_tier',
     ];
 
     // cast attributes to appropriate data types

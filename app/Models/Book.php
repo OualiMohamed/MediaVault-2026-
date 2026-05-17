@@ -22,6 +22,7 @@ class Book extends Model
         'series_position',
         'franchise_id',
         'franchise_position',
+        'language',
     ];
 
     protected $casts = [
