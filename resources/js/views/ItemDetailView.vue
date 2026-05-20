@@ -111,6 +111,9 @@ const metadata = computed(() => {
     }
 
     if (type.value === 'movie') {
+        if (d.original_title && d.original_title !== item.value.title) {
+            rows.push({ label: 'Original Title', value: d.original_title })
+        }
         if (item.value.barcode) rows.push({ label: 'Barcode', value: item.value.barcode, copyable: true })
         if (d.director) rows.push({ label: 'Director', value: d.director })
         if (d.runtime_minutes) {
@@ -135,6 +138,9 @@ const metadata = computed(() => {
     }
 
     if (type.value === 'book') {
+        if (d.original_title && d.original_title !== item.value.title) {
+            rows.push({ label: 'Original Title', value: d.original_title })
+        }
         if (item.value.barcode) rows.push({ label: 'ISBN', value: item.value.barcode, copyable: true })
         if (d.author) rows.push({ label: 'Author', value: d.author })
         if (d.publisher) rows.push({ label: 'Publisher', value: d.publisher })
@@ -153,6 +159,9 @@ const metadata = computed(() => {
     }
 
     if (type.value === 'tv_show') {
+        if (d.original_title && d.original_title !== item.value.title) {
+            rows.push({ label: 'Original Title', value: d.original_title })
+        }
         if (item.value.barcode) rows.push({ label: 'Barcode', value: item.value.barcode, copyable: true })
         if (d.network) rows.push({ label: 'Network', value: d.network })
         if (d.director) rows.push({ label: 'Creator', value: d.director }) // Add this
@@ -382,7 +391,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                     </svg>
                                     <div class="absolute inset-0 flex items-center justify-center">
                                         <span class="text-lg font-bold" :style="{ color: ratingColor }">{{ ratingPercent
-                                        }}%</span>
+                                            }}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -476,7 +485,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                     <img v-if="networkLogo" :src="networkLogo" :alt="row.value"
                                         class="h-6 w-auto object-contain rounded bg-white/15 p-1 flex-shrink-0" />
                                     <span v-if="!networkLogo" class="text-white text-sm font-medium">{{ row.value
-                                        }}</span>
+                                    }}</span>
                                 </div>
 
                                 <!-- Default fallback -->
@@ -529,7 +538,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                 <div v-for="s in item.details.seasons" :key="s.season"
                                     class="inline-flex items-center gap-2 px-4 py-2.5 bg-vault-800 border border-vault-600 rounded-xl">
                                     <span class="text-white font-bold text-sm">S{{ String(s.season).padStart(2, '0')
-                                    }}</span>
+                                        }}</span>
                                     <span class="w-px h-4 bg-vault-600"></span>
                                     <span class="text-vault-300 text-sm">{{ s.format }}</span>
                                     <template v-if="s.video_quality || s.audio_format || s.language">
@@ -575,7 +584,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                         class="text-vault-500 text-xs font-medium uppercase tracking-wider block mb-1">Condition</span>
                                     <span class="text-white text-sm font-medium">{{ item.condition === 'near_mint' ?
                                         'Near Mint' : item.condition?.charAt(0).toUpperCase() + item.condition?.slice(1)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div>
                                     <span

@@ -186,6 +186,10 @@ async function handleDelete() {
         <!-- Info area -->
         <div class="p-3 flex-shrink-0">
             <h3 class="text-white text-sm font-semibold truncate" :title="item.title">{{ item.title }}</h3>
+            <p v-if="item.details?.original_title && item.details.original_title !== item.title"
+                class="text-vault-400 text-xs truncate mt-0.5" :title="item.details.original_title">
+                {{ item.details.original_title }}
+            </p>
             <p class="text-vault-400 text-xs truncate mt-0.5">{{ subtitle }}</p>
             <div class="mt-2 flex items-center justify-between gap-2">
                 <span v-if="item.details?.platform"

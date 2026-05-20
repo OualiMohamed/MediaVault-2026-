@@ -39,6 +39,7 @@ const isEditing = computed(() => !!props.item)
 
 const form = reactive({
     title: '',
+    original_title: '',  // add this
     cover_image: null,
     purchase_date: '',
     purchase_price: '',
@@ -118,11 +119,11 @@ const languageOptions = [
 ]
 
 const typeFieldMap = {
-    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'seen', 'date_seen', 'video_quality', 'language', 'actors', 'video_tier', 'franchise_name', 'franchise_position'],
-    book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'anguage', 'read', 'date_finished', 'series_name', 'series_position', 'franchise_name', 'franchise_position'],
+    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'seen', 'date_seen', 'video_quality', 'language', 'actors', 'video_tier', 'franchise_name', 'franchise_position', 'original_title'],
+    book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'anguage', 'read', 'date_finished', 'series_name', 'series_position', 'franchise_name', 'franchise_position', 'original_title'],
     game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'completed', 'completion_date', 'franchise_name', 'franchise_position'],
     music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed', 'franchise_name', 'franchise_position'],
-    tv_show: ['format', 'total_seasons', 'total_episodes', 'network', 'network_logo', 'director', 'genre', 'personal_rating', 'release_year', 'watch_status', 'current_season', 'current_episode', 'seasons', 'trailer_url', 'actors', 'franchise_name', 'franchise_position'],
+    tv_show: ['format', 'total_seasons', 'total_episodes', 'network', 'network_logo', 'director', 'genre', 'personal_rating', 'release_year', 'watch_status', 'current_season', 'current_episode', 'seasons', 'trailer_url', 'actors', 'franchise_name', 'franchise_position', 'original_title'],
 }
 
 const baseFields = ['title', 'barcode', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'borrowed_to', 'due_back_date', 'video_tier', 'language',]
@@ -375,6 +376,7 @@ async function applyTmdbData(data) {
     existingCover.value = ''
 
     if (data.title) form.title = data.title
+    if (data.original_title) form.original_title = data.original_title  // add this
     if (data.director) form.director = data.director
     if (data.network) form.network = data.network
     if (data.network_logo) form.network_logo = data.network_logo  // Add this
@@ -433,6 +435,7 @@ async function applyGoogleBooksData(data) {
     existingCover.value = ''
 
     if (data.title) form.title = data.title
+    if (data.original_title) form.original_title = data.original_title  // add this
     if (data.author) form.author = data.author
     if (data.isbn) form.isbn = data.isbn
     if (data.publisher) form.publisher = data.publisher
@@ -730,6 +733,14 @@ function removeSeason(index) {
                     <!-- Movie Fields -->
                     <template v-if="type === 'movie'">
                         <div class="grid grid-cols-2 gap-4">
+                            <!-- Original Title — add HERE -->
+                            <div>
+                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Original Title</label>
+                                <input v-model="form.original_title" type="text"
+                                    class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                    placeholder="Leave empty if same as title" />
+                                <p class="text-vault-500 text-xs mt-1">Auto-filled by TMDB when different</p>
+                            </div>
                             <div>
                                 <label class="block text-sm font-medium text-vault-200 mb-1.5">Format <span
                                         class="text-rose-400">*</span></label>
@@ -866,6 +877,14 @@ function removeSeason(index) {
 
                     <!-- Book Fields -->
                     <template v-if="type === 'book'">
+                        <!-- Original Title — add HERE -->
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Original Title</label>
+                            <input v-model="form.original_title" type="text"
+                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                placeholder="Leave empty if same as title" />
+                            <p class="text-vault-500 text-xs mt-1">Auto-filled by Google Books when different</p>
+                        </div>
                         <div>
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Author <span
                                     class="text-rose-400">*</span></label>
@@ -1006,6 +1025,14 @@ function removeSeason(index) {
 
                     <!-- ─── TV Show Fields ─── -->
                     <template v-if="type === 'tv_show'">
+                        <!-- Original Title — add HERE -->
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Original Title</label>
+                            <input v-model="form.original_title" type="text"
+                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                placeholder="Leave empty if same as title" />
+                            <p class="text-vault-500 text-xs mt-1">Auto-filled by TMDB when different</p>
+                        </div>
                         <!-- Actors -->
                         <div>
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Actors</label>

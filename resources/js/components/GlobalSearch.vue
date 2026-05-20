@@ -109,7 +109,17 @@ function handleKeydown(e) {
                     <div>
                         <button v-for="item in results" :key="item.id + '-' + item.type" @click="goTo(item.url)"
                             class="w-full flex items-center gap-3 px-4 py-3 hover:bg-vault-700/50 transition-colors text-left group">
-                            <!-- ... rest unchanged ... -->
+                            <span class="text-lg flex-shrink-0">{{ typeConfig[item.type]?.icon }}</span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-white text-sm font-medium truncate">{{ item.title }}</p>
+                                <p v-if="item.original_title && item.original_title !== item.title"
+                                    class="text-vault-400 text-xs truncate">{{ item.original_title }}</p>
+                                <p v-else class="text-vault-500 text-xs truncate">{{ item.subtitle }}</p>
+                            </div>
+                            <span
+                                class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-vault-700 text-vault-300 flex-shrink-0">
+                                {{ typeConfig[item.type]?.label }}
+                            </span>
                         </button>
                     </div>
                 </template>

@@ -249,6 +249,16 @@ class CollectionController extends Controller
             $query->where(function ($q) use ($like, $type, $detailTable) {
                 $q->whereRaw('LOWER(title) LIKE ?', [$like]);
 
+                if (in_array($type, ['movie', 'tv_show', 'book'])) {
+                    $q->orWhereExists(
+                        fn($sq) =>
+                        $sq->selectRaw(1)
+                            ->from($detailTable)
+                            ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                            ->whereRaw('LOWER(original_title) LIKE ?', [$like])
+                    );
+                }
+
                 if ($type === 'book') {
                     $q->orWhereExists(
                         fn($sq) =>
@@ -643,6 +653,7 @@ class CollectionController extends Controller
                 'actors' => 'nullable|string|max:2000',  // add this
                 'franchise_name' => 'nullable|string|max:255',
                 'franchise_position' => 'nullable|integer|min:1',
+                'original_title' => 'nullable|string|max:255',
                 'video_tier' => 'nullable|string|in:A,B,C,AB,AC,BC,ABC,0,2,3,4,5,6',
             ],
             'book' => $base + [
@@ -660,6 +671,7 @@ class CollectionController extends Controller
                 'franchise_name' => 'nullable|string|max:255',
                 'language' => 'nullable|in:English,French,Arabic,Other',
                 'franchise_position' => 'nullable|integer|min:1',
+                'original_title' => 'nullable|string|max:255',
             ],
             'game' => $base + [
                 'platform' => 'required|in:PS5,PS4,PS3,PS Vita,Switch,Wii U,Wii,Nintendo DS,Xbox Series X,Xbox One,PC,Steam,Other',
@@ -704,6 +716,7 @@ class CollectionController extends Controller
                 'network_logo' => 'nullable|string|max:255',
                 'franchise_name' => 'nullable|string|max:255',
                 'franchise_position' => 'nullable|integer|min:1',
+                'original_title' => 'nullable|string|max:255',
             ],
         };
     }
@@ -774,6 +787,30 @@ class CollectionController extends Controller
                         ->whereRaw('LOWER(author) LIKE ?', [$like])
                 );
 
+                // Movies — original title
+                $q->orWhereExists(
+                    fn($sq) =>
+                    $sq->selectRaw(1)->from('movies')
+                        ->whereColumn('movies.collection_item_id', 'collection_items.id')
+                        ->whereRaw('LOWER(original_title) LIKE ?', [$like])
+                );
+
+                // TV Shows — original title
+                $q->orWhereExists(
+                    fn($sq) =>
+                    $sq->selectRaw(1)->from('tv_shows')
+                        ->whereColumn('tv_shows.collection_item_id', 'collection_items.id')
+                        ->whereRaw('LOWER(original_title) LIKE ?', [$like])
+                );
+
+                // Books — original title
+                $q->orWhereExists(
+                    fn($sq) =>
+                    $sq->selectRaw(1)->from('books')
+                        ->whereColumn('books.collection_item_id', 'collection_items.id')
+                        ->whereRaw('LOWER(original_title) LIKE ?', [$like])
+                );
+
                 // Music
                 $q->orWhereExists(
                     fn($sq) =>
@@ -828,6 +865,7 @@ class CollectionController extends Controller
                 'id' => $item->id,
                 'type' => $item->type,
                 'title' => $item->title,
+                'original_title' => $d->original_title ?? null,
                 'cover_image' => $item->cover_image ? '/storage/' . $item->cover_image : null,
                 'subtitle' => $subtitle,
                 'url' => ($typeRoutes[$item->type] ?? '/') . '/' . $item->id,
