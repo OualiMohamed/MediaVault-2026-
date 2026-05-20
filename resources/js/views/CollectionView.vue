@@ -325,44 +325,40 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
             <!-- Video Tier (Movies) -->
             <select v-if="type === 'movie'" v-model="filterVideoTier"
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
-                <option value="">All Tiers</option>
+                <option value="">All Zones</option>
                 <optgroup label="Blu-ray">
                     <option value="A">Blu-ray A</option>
                     <option value="B">Blu-ray B</option>
                     <option value="C">Blu-ray C</option>
                 </optgroup>
                 <optgroup label="DVD">
+                    <option value="0">DVD 0</option>
                     <option value="1">DVD 1</option>
                     <option value="2">DVD 2</option>
                     <option value="3">DVD 3</option>
                     <option value="4">DVD 4</option>
                     <option value="5">DVD 5</option>
                     <option value="6">DVD 6</option>
-                    <option value="7">DVD 7</option>
-                    <option value="8">DVD 8</option>
-                    <option value="9">DVD 9</option>
                 </optgroup>
             </select>
 
             <!-- Video Tier (TV Shows) -->
             <select v-if="type === 'tv_show'" v-model="filterVideoTier"
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
-                <option value="">All Tiers</option>
+                <option value="">All Zones</option>
                 <optgroup label="Blu-ray">
                     <option value="A">Blu-ray A</option>
                     <option value="B">Blu-ray B</option>
                     <option value="C">Blu-ray C</option>
                 </optgroup>
                 <optgroup label="DVD">
+                    <option value="0">DVD 0</option>
                     <option value="1">DVD 1</option>
                     <option value="2">DVD 2</option>
                     <option value="3">DVD 3</option>
                     <option value="4">DVD 4</option>
                     <option value="5">DVD 5</option>
                     <option value="6">DVD 6</option>
-                    <option value="7">DVD 7</option>
-                    <option value="8">DVD 8</option>
-                    <option value="9">DVD 9</option>
                 </optgroup>
             </select>
 
