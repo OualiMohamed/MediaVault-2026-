@@ -319,7 +319,7 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
                 <option value="">All Platforms</option>
                 <option v-for="p in platformOptions" :key="p" :value="p">{{ p }}</option>
             </select>
-            
+
             <!-- Watch Status (TV Shows) -->
             <select v-if="type === 'tv_show'" v-model="filterWatchStatus"
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
@@ -356,6 +356,8 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
                     <option value="A">Blu-ray A</option>
                     <option value="B">Blu-ray B</option>
                     <option value="C">Blu-ray C</option>
+                    <option value="AB">Blu-ray A+B</option>
+                    <option value="ABC">Blu-ray A+B+C</option>
                 </optgroup>
                 <optgroup label="DVD">
                     <option value="0">DVD 0</option>
@@ -376,6 +378,8 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
                     <option value="A">Blu-ray A</option>
                     <option value="B">Blu-ray B</option>
                     <option value="C">Blu-ray C</option>
+                    <option value="AB">Blu-ray A+B</option>
+                    <option value="ABC">Blu-ray A+B+C</option>
                 </optgroup>
                 <optgroup label="DVD">
                     <option value="0">DVD 0</option>

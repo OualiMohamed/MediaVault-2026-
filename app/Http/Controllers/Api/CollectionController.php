@@ -127,7 +127,7 @@ class CollectionController extends Controller
                 $q->selectRaw(1)
                     ->from($detailTable)
                     ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
-                    ->where('video_tier', $request->video_tier)
+                    ->whereRaw('LOWER(video_tier) LIKE ?', ['%' . strtolower($request->video_tier) . '%'])
             );
         }
 
@@ -170,8 +170,7 @@ class CollectionController extends Controller
                     ->from($detailTable)
                     ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
                     ->whereRaw(
-                        'JSON_SEARCH(' . $detailTable . '.seasons, \'one\', ?, NULL, \'$[*].video_tier\') IS NOT NULL',
-                        [$request->video_tier]
+                        "JSON_SEARCH(LOWER({$detailTable}.seasons), 'one', '%" . strtolower($request->video_tier) . "%', NULL, '$[*].video_tier') IS NOT NULL"
                     )
             );
         }
