@@ -719,7 +719,7 @@ function removeSeason(index) {
                                 d="M9 12l2 2 4-4m6 2a2 2 0 012-2H4m6 0h8a2 2 0 002 2v4a2 2 0 002-2H6a2 2 0 00-2-2H4" />
                         </svg>
                         <span class="text-xs" :class="existingCover ? 'text-sky-400' : 'text-amber-400'">{{ tmdbMessage
-                            }}</span>
+                        }}</span>
                     </div>
 
                     <!-- Title -->
@@ -1154,6 +1154,21 @@ function removeSeason(index) {
                                 placeholder="2024" />
                         </div>
 
+                        <!-- Watch Status -->
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Watch Status</label>
+                            <div class="flex flex-wrap gap-2">
+                                <button v-for="s in ['watching', 'completed', 'dropped', 'plan_to_watch']" :key="s"
+                                    type="button" @click="form.watch_status = s"
+                                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all" :class="form.watch_status === s
+                                        ? 'bg-rose-500 text-white'
+                                        : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
+                                    {{ s === 'plan_to_watch' ? 'Plan to Watch' : s.charAt(0).toUpperCase() + s.slice(1)
+                                    }}
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- ── Owned Seasons ── -->
                         <div>
                             <div class="flex items-center justify-between mb-3">
@@ -1482,7 +1497,7 @@ function removeSeason(index) {
                                 class="text-rose-300 text-sm flex items-start gap-2">
                                 <span class="text-rose-500 mt-0.5">&#8226;</span>
                                 <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                                }}</span>
+                                    }}</span>
                             </li>
                         </ul>
                     </div>
