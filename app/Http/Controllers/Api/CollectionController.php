@@ -207,6 +207,7 @@ class CollectionController extends Controller
             );
         }
 
+        // watch status filter for TV shows
         if ($type === 'tv_show' && $request->filled('watch_status')) {
             $query->whereExists(
                 fn($q) =>
@@ -214,6 +215,29 @@ class CollectionController extends Controller
                     ->from($detailTable)
                     ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
                     ->where('watch_status', $request->watch_status)
+            );
+        }
+
+        // Reading status filter for books
+        if ($type === 'book' && $request->filled('reading_status')) {
+            $query->whereExists(
+                fn($q) =>
+                $q->selectRaw(1)
+                    ->from($detailTable)
+                    ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                    ->where('reading_status', $request->reading_status)
+            );
+        }
+
+
+        // Playing status filter for games
+        if ($type === 'game' && $request->filled('playing_status')) {
+            $query->whereExists(
+                fn($q) =>
+                $q->selectRaw(1)
+                    ->from($detailTable)
+                    ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                    ->where('playing_status', $request->playing_status)
             );
         }
 
@@ -664,7 +688,8 @@ class CollectionController extends Controller
                 'genre' => 'nullable|string|max:255',
                 'personal_rating' => 'nullable|integer|min:1|max:10',
                 'release_year' => 'nullable|integer|min:1000|max:' . (date('Y') + 2),
-                'read' => 'nullable|boolean',
+                'reading_status' => 'nullable|in:not_started,reading,read',
+                'current_page' => 'nullable|integer|min:0',
                 'date_finished' => 'nullable|date',
                 'series_name' => 'nullable|string|max:255',
                 'series_position' => 'nullable|integer|min:1',
@@ -680,7 +705,8 @@ class CollectionController extends Controller
                 'publisher' => 'nullable|string|max:255',
                 'personal_rating' => 'nullable|integer|min:1|max:10',
                 'release_year' => 'nullable|integer|min:1970|max:' . (date('Y') + 2),
-                'completed' => 'nullable|boolean',
+                'playing_status' => 'nullable|in:not_started,playing,completed,dropped',
+                'progress_percent' => 'nullable|integer|min:0|max:100',
                 'completion_date' => 'nullable|date',
                 'franchise_name' => 'nullable|string|max:255',
                 'franchise_position' => 'nullable|integer|min:1',

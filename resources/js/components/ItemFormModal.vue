@@ -58,10 +58,12 @@ const form = reactive({
     isbn: '',
     page_count: '',
     publisher: '',
-    read: false,
+    reading_status: 'not_started',
+    current_page: '',                // new
     date_finished: '',
     platform: 'PS5',
-    completed: false,
+    playing_status: 'not_started',
+    progress_percent: '',            // new
     completion_date: '',
     artist: '',
     label: '',
@@ -120,15 +122,15 @@ const languageOptions = [
 
 const typeFieldMap = {
     movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'seen', 'date_seen', 'video_quality', 'language', 'actors', 'video_tier', 'franchise_name', 'franchise_position', 'original_title'],
-    book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'anguage', 'read', 'date_finished', 'series_name', 'series_position', 'franchise_name', 'franchise_position', 'original_title'],
-    game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'completed', 'completion_date', 'franchise_name', 'franchise_position'],
-    music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed', 'franchise_name', 'franchise_position'],
+    book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'language', 'reading_status', 'current_page', 'date_finished', 'series_name', 'series_position', 'franchise_name', 'franchise_position', 'original_title'],
+    game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'playing_status', 'progress_percent', 'completion_date', 'franchise_name', 'franchise_position'],
+    music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed', 'tracks', 'franchise_name', 'franchise_position'],
     tv_show: ['format', 'total_seasons', 'total_episodes', 'network', 'network_logo', 'director', 'genre', 'personal_rating', 'release_year', 'watch_status', 'current_season', 'current_episode', 'seasons', 'trailer_url', 'actors', 'franchise_name', 'franchise_position', 'original_title'],
 }
 
 const baseFields = ['title', 'barcode', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'borrowed_to', 'due_back_date', 'video_tier', 'language',]
 // const baseFields = ['title', 'barcode', 'cover_image', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'borrowed_to', 'due_back_date', 'video_tier', 'language', 'series_name', 'franchise_name']
-const booleanFields = ['read', 'completed', 'seen']
+const booleanFields = ['seen']
 
 const validationErrors = computed(() => {
     const list = []
@@ -257,9 +259,10 @@ watch(() => form.status, (status) => {
 watch(() => props.type, (type) => {
     if (!isEditing.value) {
         if (type === 'movie') form.format = 'Blu-ray'
-        if (type === 'game') { form.platform = 'PS5'; form.format = 'Physical' }
+        if (type === 'game') { form.platform = 'PS5'; form.format = 'Physical'; form.playing_status = 'not_started'; form.progress_percent = ''; }
         if (type === 'music') form.format = 'CD'
         if (type === 'tv_show') { form.format = 'Digital'; form.watch_status = 'plan_to_watch' }
+        if (type === 'book') { form.reading_status = 'not_started'; form.current_page = ''; }
     }
     // Force wishlist status when opened from /wishlist
     if (!isEditing.value && route.path === '/wishlist') {
@@ -932,11 +935,47 @@ function removeSeason(index) {
                                     v-model="form.publisher" type="text"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
                                     placeholder="Publisher" /></div>
-                            <div class="flex items-end pb-2.5"><label
-                                    class="flex items-center gap-2 cursor-pointer"><input v-model="form.read"
-                                        type="checkbox"
-                                        class="w-4 h-4 rounded bg-vault-700 border-vault-600 text-amber-500 focus:ring-amber-500/50" /><span
-                                        class="text-sm text-vault-200">Mark as Read</span></label></div>
+                            <!-- Reading Status -->
+                            <div>
+                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Reading Status</label>
+                                <div class="flex flex-wrap gap-2">
+                                    <button
+                                        v-for="s in [{ v: 'not_started', l: 'Not Started' }, { v: 'reading', l: 'Reading' }, { v: 'read', l: 'Read' }]"
+                                        :key="s.v" type="button" @click="form.reading_status = s.v"
+                                        class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all"
+                                        :class="form.reading_status === s.v ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
+                                        {{ s.l }}
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Current page (only when reading) -->
+                            <div v-if="form.reading_status === 'reading'">
+                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Current Page</label>
+                                <div class="relative">
+                                    <input v-model.number="form.current_page" type="number" min="0"
+                                        class="w-full px-4 py-2.5 pr-28 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                        placeholder="142" />
+                                    <span v-if="form.page_count"
+                                        class="absolute right-4 top-1/2 -translate-y-1/2 text-vault-500 text-sm pointer-events-none">of
+                                        {{ form.page_count }}</span>
+                                </div>
+                                <!-- Mini progress preview -->
+                                <div v-if="form.current_page && form.page_count" class="mt-2">
+                                    <div class="w-full h-1.5 rounded-full bg-vault-600 overflow-hidden">
+                                        <div class="h-full rounded-full bg-amber-500 transition-all duration-300"
+                                            :style="{ width: Math.min(100, Math.round((form.current_page / form.page_count) * 100)) + '%' }">
+                                        </div>
+                                    </div>
+                                    <p class="text-vault-500 text-xs mt-1">{{ Math.min(100,
+                                        Math.round((form.current_page / form.page_count) * 100)) }}% complete</p>
+                                </div>
+                            </div>
+                            <!-- Date finished (only when read) -->
+                            <div v-if="form.reading_status === 'read'">
+                                <label class="block text-sm font-medium text-vault-200 mb-1.5">Date Finished</label>
+                                <input v-model="form.date_finished" type="date"
+                                    class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm" />
+                            </div>
                         </div>
                         <!-- Series -->
                         <div class="grid grid-cols-3 gap-4">
@@ -952,10 +991,6 @@ function removeSeason(index) {
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
                                     placeholder="1" />
                             </div>
-                        </div>
-                        <div v-if="form.read"><label class="block text-sm font-medium text-vault-200 mb-1.5">Date
-                                Finished</label><input v-model="form.date_finished" type="date"
-                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm" />
                         </div>
                     </template>
 
@@ -1010,15 +1045,36 @@ function removeSeason(index) {
                                     v-model="form.publisher" type="text"
                                     class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
                                     placeholder="Publisher" /></div>
-                            <div class="flex items-end pb-2.5"><label
-                                    class="flex items-center gap-2 cursor-pointer"><input v-model="form.completed"
-                                        type="checkbox"
-                                        class="w-4 h-4 rounded bg-vault-700 border-vault-600 text-amber-500 focus:ring-amber-500/50" /><span
-                                        class="text-sm text-vault-200">Completed</span></label></div>
                         </div>
-                        <div v-if="form.completed"><label
-                                class="block text-sm font-medium text-vault-200 mb-1.5">Completion Date</label><input
-                                v-model="form.completion_date" type="date"
+                        <!-- Playing Status -->
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Playing Status</label>
+                            <div class="flex flex-wrap gap-2">
+                                <button
+                                    v-for="s in [{ v: 'not_started', l: 'Not Started' }, { v: 'playing', l: 'Playing' }, { v: 'completed', l: 'Completed' }, { v: 'dropped', l: 'Dropped' }]"
+                                    :key="s.v" type="button" @click="form.playing_status = s.v"
+                                    class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all"
+                                    :class="form.playing_status === s.v ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
+                                    {{ s.l }}
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Progress (only when playing) -->
+                        <div v-if="form.playing_status === 'playing'">
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Progress — {{
+                                form.progress_percent || 0 }}%</label>
+                            <input v-model.number="form.progress_percent" type="range" min="0" max="100" step="5"
+                                class="w-full h-2 rounded-full appearance-none bg-vault-600 accent-amber-500 cursor-pointer" />
+                            <div class="flex justify-between text-vault-500 text-xs mt-1">
+                                <span>0%</span>
+                                <span>50%</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+                        <!-- Completion date (only when completed) -->
+                        <div v-if="form.playing_status === 'completed'">
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Completion Date</label>
+                            <input v-model="form.completion_date" type="date"
                                 class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm" />
                         </div>
                     </template>
@@ -1298,20 +1354,6 @@ function removeSeason(index) {
                         </div>
                     </template>
 
-                    <!-- Watch Status -->
-                    <div>
-                        <label class="block text-sm font-medium text-vault-200 mb-1.5">Watch Status</label>
-                        <div class="flex flex-wrap gap-2">
-                            <button v-for="s in ['watching', 'completed', 'dropped', 'plan_to_watch']" :key="s"
-                                type="button" @click="form.watch_status = s"
-                                class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all" :class="form.watch_status === s
-                                    ? 'bg-rose-500 text-white'
-                                    : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
-                                {{ s === 'plan_to_watch' ? 'Plan to Watch' : s.charAt(0).toUpperCase() + s.slice(1)
-                                }}
-                            </button>
-                        </div>
-                    </div>
                     <!-- Status -->
                     <div>
                         <label class="block text-sm font-medium text-vault-200 mb-1.5">Status</label>

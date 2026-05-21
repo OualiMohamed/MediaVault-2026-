@@ -34,6 +34,8 @@ const movieGenres = ref([])
 const tvShowGenres = ref([])
 const gameGenres = ref([])
 const filterVideoTier = ref('')
+const filterReadingStatus = ref('')
+const filterPlayingStatus = ref('')
 const bookLanguages = ref([])
 
 const videoQualityOptions = [
@@ -114,6 +116,8 @@ function loadItems() {
         sort_by: sortBy.value,
         sort_dir: sortDir.value,
         video_tier: filterVideoTier.value || undefined,
+        reading_status: filterReadingStatus.value || undefined,
+        playing_status: filterPlayingStatus.value || undefined,
     }
     store.fetchItems(type.value, params)
 }
@@ -211,7 +215,9 @@ watch(() => route.path, (newPath) => {
     filterGenre.value = ''
     filterLetter.value = ''
     filterVideoTier.value = '',
-        sortBy.value = 'created_at'
+        filterReadingStatus.value = ''
+    filterPlayingStatus.value = ''
+    sortBy.value = 'created_at'
     sortDir.value = 'desc'
     currentPage.value = 1
     loadItems()
@@ -222,7 +228,7 @@ watch(() => route.path, (newPath) => {
     if (newPath === '/games') fetchGameGenres()
 })
 
-watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, filterVideoQuality, filterAudioFormat, filterLanguage, filterLetter, sortValue, filterGenre, filterVideoTier, filterBookLanguage], () => {
+watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, filterVideoQuality, filterAudioFormat, filterLanguage, filterLetter, sortValue, filterGenre, filterVideoTier, filterBookLanguage, filterReadingStatus, filterPlayingStatus], () => {
     currentPage.value = 1
     loadItems()
 })
@@ -313,7 +319,8 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
                 <option value="">All Platforms</option>
                 <option v-for="p in platformOptions" :key="p" :value="p">{{ p }}</option>
             </select>
-
+            
+            <!-- Watch Status (TV Shows) -->
             <select v-if="type === 'tv_show'" v-model="filterWatchStatus"
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                 <option value="">All Watch Status</option>
@@ -321,6 +328,25 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
                 <option value="completed">Completed</option>
                 <option value="dropped">Dropped</option>
                 <option value="plan_to_watch">Plan to Watch</option>
+            </select>
+
+            <!-- Reading Status (Books) -->
+            <select v-if="type === 'book'" v-model="filterReadingStatus"
+                class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                <option value="">All Reading Status</option>
+                <option value="reading">Reading</option>
+                <option value="read">Read</option>
+                <option value="not_started">Not Started</option>
+            </select>
+
+            <!-- Playing Status (Games) -->
+            <select v-if="type === 'game'" v-model="filterPlayingStatus"
+                class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                <option value="">All Playing Status</option>
+                <option value="playing">Playing</option>
+                <option value="completed">Completed</option>
+                <option value="dropped">Dropped</option>
+                <option value="not_started">Not Started</option>
             </select>
             <!-- Video Tier (Movies) -->
             <select v-if="type === 'movie'" v-model="filterVideoTier"

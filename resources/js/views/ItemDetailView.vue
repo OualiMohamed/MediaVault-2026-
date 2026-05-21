@@ -147,7 +147,17 @@ const metadata = computed(() => {
         if (d.page_count) rows.push({ label: 'Pages', value: d.page_count })
         if (d.language) rows.push({ label: 'Language', value: d.language })
         if (d.release_year) rows.push({ label: 'Year', value: d.release_year })
-        if (d.read) rows.push({ label: 'Read', value: d.date_finished ? `Finished ${d.date_finished}` : 'Yes' })
+        if (d.reading_status) {
+            const label = d.reading_status === 'not_started' ? 'Not Started' : d.reading_status === 'reading' ? 'Reading' : 'Read'
+            rows.push({ label: 'Status', value: label })
+        }
+        if (d.reading_status === 'reading' && d.current_page) {
+            const pct = d.page_count ? Math.round((d.current_page / d.page_count) * 100) : 0
+            rows.push({ label: 'Progress', value: `Page ${d.current_page} of ${d.page_count || '?'} (${pct}%)` })
+        }
+        if (d.reading_status === 'read' && d.date_finished) {
+            rows.push({ label: 'Finished', value: new Date(d.date_finished).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) })
+        }
     }
 
     if (type.value === 'game') {
@@ -155,7 +165,17 @@ const metadata = computed(() => {
         if (d.platform) rows.push({ label: 'Platform', value: d.platform })
         if (d.publisher) rows.push({ label: 'Publisher', value: d.publisher })
         if (d.release_year) rows.push({ label: 'Year', value: d.release_year })
-        if (d.completed) rows.push({ label: 'Completed', value: d.completion_date ? `Finished ${d.completion_date}` : 'Yes' })
+        if (d.playing_status) {
+            const label = d.playing_status === 'not_started' ? 'Not Started' : d.playing_status === 'playing' ? 'Playing' : d.playing_status === 'completed' ? 'Completed' : 'Dropped'
+            rows.push({ label: 'Status', value: label })
+        }
+        if (d.playing_status === 'playing' && d.progress_percent != null) {
+            rows.push({ label: 'Progress', value: d.progress_percent + '%' })
+        }
+        if (d.playing_status === 'completed' && d.completion_date) {
+            const date = new Date(d.completion_date)
+            rows.push({ label: 'Completed On', value: isNaN(date.getTime()) ? d.completion_date : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) })
+        }
     }
 
     if (type.value === 'tv_show') {
@@ -391,7 +411,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                     </svg>
                                     <div class="absolute inset-0 flex items-center justify-center">
                                         <span class="text-lg font-bold" :style="{ color: ratingColor }">{{ ratingPercent
-                                            }}%</span>
+                                        }}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -485,7 +505,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                     <img v-if="networkLogo" :src="networkLogo" :alt="row.value"
                                         class="h-6 w-auto object-contain rounded bg-white/15 p-1 flex-shrink-0" />
                                     <span v-if="!networkLogo" class="text-white text-sm font-medium">{{ row.value
-                                    }}</span>
+                                        }}</span>
                                 </div>
 
                                 <!-- Default fallback -->
@@ -538,7 +558,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                 <div v-for="s in item.details.seasons" :key="s.season"
                                     class="inline-flex items-center gap-2 px-4 py-2.5 bg-vault-800 border border-vault-600 rounded-xl">
                                     <span class="text-white font-bold text-sm">S{{ String(s.season).padStart(2, '0')
-                                        }}</span>
+                                    }}</span>
                                     <span class="w-px h-4 bg-vault-600"></span>
                                     <span class="text-vault-300 text-sm">{{ s.format }}</span>
                                     <template v-if="s.video_quality || s.audio_format || s.language">
@@ -584,7 +604,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                         class="text-vault-500 text-xs font-medium uppercase tracking-wider block mb-1">Condition</span>
                                     <span class="text-white text-sm font-medium">{{ item.condition === 'near_mint' ?
                                         'Near Mint' : item.condition?.charAt(0).toUpperCase() + item.condition?.slice(1)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div>
                                     <span
