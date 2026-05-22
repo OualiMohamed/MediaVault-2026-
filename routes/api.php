@@ -58,6 +58,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/filters/genres/tv_show', [CollectionController::class, 'tvShowGenres']);
     Route::get('/filters/genres/game', [CollectionController::class, 'gameGenres']);
     Route::get('/filters/languages/book', [CollectionController::class, 'bookLanguages']);
+    Route::get('/filters/editions/book', [CollectionController::class, 'bookEditions']);
 
     Route::post('/google-books/search', [GoogleBooksController::class, 'search']);
     Route::post('/google-books/details', [GoogleBooksController::class, 'details']);

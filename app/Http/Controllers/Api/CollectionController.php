@@ -228,6 +228,16 @@ class CollectionController extends Controller
             );
         }
 
+        // Edition filter for books
+        if ($type === 'book' && $request->filled('edition')) {
+            $query->whereExists(
+                fn($q) =>
+                $q->selectRaw(1)
+                    ->from($detailTable)
+                    ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                    ->where('edition', $request->edition)
+            );
+        }
 
         // Playing status filter for games
         if ($type === 'game' && $request->filled('playing_status')) {
@@ -681,6 +691,7 @@ class CollectionController extends Controller
             ],
             'book' => $base + [
                 'author' => 'required|string|max:255',
+                'edition' => 'nullable|in:Hardcover,Paperback,Special Edition,Deluxe Edition,Box Set,Digital,Other',
                 'isbn' => 'nullable|string|max:20',
                 'page_count' => 'nullable|integer|min:1',
                 'publisher' => 'nullable|string|max:255',
@@ -1026,5 +1037,23 @@ class CollectionController extends Controller
             ->get();
 
         return response()->json($languages);
+    }
+
+    // book editions with counts for the authenticated user  
+    public function bookEditions(): JsonResponse
+    {
+        $editions = Book::whereExists(
+            fn($q) =>
+            $q->selectRaw(1)
+                ->from('collection_items')
+                ->whereColumn('collection_items.id', 'books.collection_item_id')
+                ->where('user_id', Auth::id())
+        )
+            ->selectRaw('edition, COUNT(*) as count')
+            ->groupBy('edition')
+            ->orderByDesc('count')
+            ->get();
+
+        return response()->json($editions);
     }
 }

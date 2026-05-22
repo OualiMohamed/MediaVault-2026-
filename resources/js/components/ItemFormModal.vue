@@ -90,6 +90,7 @@ const form = reactive({
     borrowed_to: '',
     due_back_date: '',
     video_tier: '',
+    edition: 'Paperback',
 })
 
 const formatOptions = computed(() => {
@@ -122,7 +123,7 @@ const languageOptions = [
 
 const typeFieldMap = {
     movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'seen', 'date_seen', 'video_quality', 'language', 'actors', 'video_tier', 'franchise_name', 'franchise_position', 'original_title'],
-    book: ['author', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'language', 'reading_status', 'current_page', 'date_finished', 'series_name', 'series_position', 'franchise_name', 'franchise_position', 'original_title'],
+    book: ['author', 'edition', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'language', 'reading_status', 'current_page', 'date_finished', 'series_name', 'series_position', 'franchise_name', 'franchise_position', 'original_title'],
     game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'playing_status', 'progress_percent', 'completion_date', 'franchise_name', 'franchise_position'],
     music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed', 'tracks', 'franchise_name', 'franchise_position'],
     tv_show: ['format', 'total_seasons', 'total_episodes', 'network', 'network_logo', 'director', 'genre', 'personal_rating', 'release_year', 'watch_status', 'current_season', 'current_episode', 'seasons', 'trailer_url', 'actors', 'franchise_name', 'franchise_position', 'original_title'],
@@ -719,7 +720,7 @@ function removeSeason(index) {
                                 d="M9 12l2 2 4-4m6 2a2 2 0 012-2H4m6 0h8a2 2 0 002 2v4a2 2 0 002-2H6a2 2 0 00-2-2H4" />
                         </svg>
                         <span class="text-xs" :class="existingCover ? 'text-sky-400' : 'text-amber-400'">{{ tmdbMessage
-                        }}</span>
+                            }}</span>
                     </div>
 
                     <!-- Title -->
@@ -897,6 +898,19 @@ function removeSeason(index) {
                                 placeholder="Author name" />
                             <p v-if="fieldError('author')" class="text-rose-500 text-xs mt-1">{{ fieldError('author') }}
                             </p>
+                        </div>
+                        <!-- Edition -->
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Edition</label>
+                            <div class="flex flex-wrap gap-2">
+                                <button
+                                    v-for="e in ['Hardcover', 'Paperback', 'Special Edition', 'Deluxe Edition', 'Box Set', 'Digital', 'Other']"
+                                    :key="e" type="button" @click="form.edition = e"
+                                    class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all"
+                                    :class="form.edition === e ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
+                                    {{ e }}
+                                </button>
+                            </div>
                         </div>
                         <!-- ═══ Google Books Auto-fill ═══ -->
                         <div class="mt-4">
@@ -1497,7 +1511,7 @@ function removeSeason(index) {
                                 class="text-rose-300 text-sm flex items-start gap-2">
                                 <span class="text-rose-500 mt-0.5">&#8226;</span>
                                 <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                                    }}</span>
+                                }}</span>
                             </li>
                         </ul>
                     </div>

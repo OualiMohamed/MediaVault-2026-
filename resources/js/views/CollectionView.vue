@@ -37,6 +37,8 @@ const filterVideoTier = ref('')
 const filterReadingStatus = ref('')
 const filterPlayingStatus = ref('')
 const bookLanguages = ref([])
+const filterEdition = ref('')
+const bookEditions = ref([])
 
 const videoQualityOptions = [
     'Ultra HDLight', 'HDLight 1080p', 'HDLight 1080p (x265)', 'HDLight 720p', 'HDLight 720p (x265)',
@@ -118,6 +120,7 @@ function loadItems() {
         video_tier: filterVideoTier.value || undefined,
         reading_status: filterReadingStatus.value || undefined,
         playing_status: filterPlayingStatus.value || undefined,
+        edition: filterEdition.value || undefined,
     }
     store.fetchItems(type.value, params)
 }
@@ -166,6 +169,13 @@ async function fetchBookLanguages() {
     } catch (e) { }
 }
 
+async function fetchBookEditions() {
+    try {
+        const { data } = await api.get('/filters/editions/book')
+        bookEditions.value = data
+    } catch (e) { }
+}
+
 function handlePageChange(page) {
     currentPage.value = page
     loadItems()
@@ -196,6 +206,7 @@ onMounted(() => {
     loadItems()
     if (route.path === '/books') fetchBookGenres()
     if (route.path === '/books') fetchBookLanguages()
+    if (route.path === '/books') fetchBookEditions()
     if (route.path === '/music') fetchMusicGenres()
     if (route.path === '/movies') fetchMovieGenres()
     if (route.path === '/tv-shows') fetchTvShowGenres()
@@ -212,6 +223,8 @@ watch(() => route.path, (newPath) => {
     filterAudioFormat.value = ''
     filterLanguage.value = ''
     filterBookLanguage.value = ''
+    filterEdition.value = ''
+    filterReadingStatus.value = ''
     filterGenre.value = ''
     filterLetter.value = ''
     filterVideoTier.value = '',
@@ -228,7 +241,7 @@ watch(() => route.path, (newPath) => {
     if (newPath === '/games') fetchGameGenres()
 })
 
-watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, filterVideoQuality, filterAudioFormat, filterLanguage, filterLetter, sortValue, filterGenre, filterVideoTier, filterBookLanguage, filterReadingStatus, filterPlayingStatus], () => {
+watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, filterVideoQuality, filterAudioFormat, filterLanguage, filterLetter, sortValue, filterGenre, filterVideoTier, filterBookLanguage, filterReadingStatus, filterPlayingStatus, filterEdition], () => {
     currentPage.value = 1
     loadItems()
 })
@@ -287,6 +300,15 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
                 <option value="">All Languages</option>
                 <option v-for="lang in bookLanguages" :key="lang.language" :value="lang.language">
                     {{ lang.language }} ({{ lang.count }})
+                </option>
+            </select>
+
+            <!-- Edition (Books) -->
+            <select v-if="type === 'book' && bookEditions.length" v-model="filterEdition"
+                class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                <option value="">All Editions</option>
+                <option v-for="e in bookEditions" :key="e.edition" :value="e.edition">
+                    {{ e.edition }} ({{ e.count }})
                 </option>
             </select>
 
