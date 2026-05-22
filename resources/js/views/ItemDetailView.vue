@@ -134,7 +134,7 @@ const metadata = computed(() => {
         }
         if (d.language) rows.push({ label: 'Language', value: d.language })
         if (d.seen) rows.push({ label: 'Seen', value: d.date_seen ? `Seen on ${d.date_seen}` : 'Yes' })
-        if (d.video_tier) rows.push({ label: 'Zone', value: `${d.format === 'Blu-ray' ? 'Blu-ray ' : 'DVD Region '}${d.video_tier}` })
+        // if (d.video_tier) rows.push({ label: 'Zone', value: `${d.format === 'Blu-ray' ? 'Blu-ray ' : 'DVD Region '}${d.video_tier}` })
     }
 
     if (type.value === 'book') {
@@ -229,6 +229,14 @@ const tags = computed(() => {
     if (!d) return []
     const list = []
     if (d.format) list.push({ label: d.format, color: 'bg-vault-600 text-vault-100' })
+
+    // Add this after the format tag
+    if (type.value === 'movie' && d.video_tier) {
+        list.push({
+            label: `${d.video_tier}`,
+            color: 'bg-amber-500/15 text-amber-400'
+        })
+    }
 
     // Change this:
     // if (d.platform) list.push({ label: d.platform, color: 'bg-vault-600 text-vault-100' })
@@ -411,7 +419,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                     </svg>
                                     <div class="absolute inset-0 flex items-center justify-center">
                                         <span class="text-lg font-bold" :style="{ color: ratingColor }">{{ ratingPercent
-                                        }}%</span>
+                                            }}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -505,7 +513,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                     <img v-if="networkLogo" :src="networkLogo" :alt="row.value"
                                         class="h-6 w-auto object-contain rounded bg-white/15 p-1 flex-shrink-0" />
                                     <span v-if="!networkLogo" class="text-white text-sm font-medium">{{ row.value
-                                        }}</span>
+                                    }}</span>
                                 </div>
 
                                 <!-- Default fallback -->
@@ -558,7 +566,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                 <div v-for="s in item.details.seasons" :key="s.season"
                                     class="inline-flex items-center gap-2 px-4 py-2.5 bg-vault-800 border border-vault-600 rounded-xl">
                                     <span class="text-white font-bold text-sm">S{{ String(s.season).padStart(2, '0')
-                                    }}</span>
+                                        }}</span>
                                     <span class="w-px h-4 bg-vault-600"></span>
                                     <span class="text-vault-300 text-sm">{{ s.format }}</span>
                                     <template v-if="s.video_quality || s.audio_format || s.language">
@@ -604,7 +612,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                         class="text-vault-500 text-xs font-medium uppercase tracking-wider block mb-1">Condition</span>
                                     <span class="text-white text-sm font-medium">{{ item.condition === 'near_mint' ?
                                         'Near Mint' : item.condition?.charAt(0).toUpperCase() + item.condition?.slice(1)
-                                    }}</span>
+                                        }}</span>
                                 </div>
                                 <div>
                                     <span
