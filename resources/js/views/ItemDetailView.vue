@@ -153,7 +153,11 @@ const metadata = computed(() => {
         }
         if (d.reading_status === 'reading' && d.current_page) {
             const pct = d.page_count ? Math.round((d.current_page / d.page_count) * 100) : 0
-            rows.push({ label: 'Progress', value: `Page ${d.current_page} of ${d.page_count || '?'} (${pct}%)` })
+            rows.push({
+                label: 'Progress',
+                value: `Page ${d.current_page} of ${d.page_count || '?'} (${pct}%)`,
+                valueHtml: `Page <span class="text-sky-400 font-semibold">${d.current_page}</span> of <span class="text-sky-400 font-semibold">${d.page_count || '?'}</span> <span class="text-amber-400 font-bold">(${pct}%)</span>`
+            })
         }
         if (d.reading_status === 'read' && d.date_finished) {
             rows.push({ label: 'Finished', value: new Date(d.date_finished).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) })
@@ -517,6 +521,8 @@ watch(() => route.params.id, (newId, oldId) => {
                                 </div>
 
                                 <!-- Default fallback -->
+                                <span v-else-if="row.valueHtml" class="text-vault-300 text-sm font-medium"
+                                    v-html="row.valueHtml"></span>
                                 <span v-else class="text-white text-sm font-medium">{{ row.value }}</span>
                             </div>
                         </div>
