@@ -60,19 +60,23 @@ class DashboardController extends Controller
                 ->get();
         }
 
-        // 6. Books read/unread
+        // 6. Books read/reading/not started
         $bookIds = CollectionItem::where('user_id', $userId)->where('type', 'book')->pluck('id');
         $booksRead = 0;
+        $booksReading = 0;
         $booksUnread = 0;
         if ($bookIds->isNotEmpty()) {
-            $booksRead = Book::whereIn('collection_item_id', $bookIds)->where('read', true)->count();
-            $booksUnread = Book::whereIn('collection_item_id', $bookIds)->where('read', false)->count();
+            $booksRead = Book::whereIn('collection_item_id', $bookIds)->where('reading_status', 'read')->count();
+            $booksReading = Book::whereIn('collection_item_id', $bookIds)->where('reading_status', 'reading')->count();
+            $booksUnread = Book::whereIn('collection_item_id', $bookIds)->where('reading_status', 'not_started')->count();
         }
 
-        // 7. Games completed
+
         $gamesCompleted = 0;
+        $gamesPlaying = 0;
         if ($gameIds->isNotEmpty()) {
-            $gamesCompleted = Game::whereIn('collection_item_id', $gameIds)->where('completed', true)->count();
+            $gamesCompleted = Game::whereIn('collection_item_id', $gameIds)->where('playing_status', 'completed')->count();
+            $gamesPlaying = Game::whereIn('collection_item_id', $gameIds)->where('playing_status', 'playing')->count();
         }
 
         // 8. TV Shows watching/completed
@@ -155,8 +159,10 @@ class DashboardController extends Controller
             'games_by_platform' => $gamesByPlatform,
             'music_by_format' => $musicByFormat,
             'books_read' => $booksRead,
+            'books_reading' => $booksReading,
             'books_unread' => $booksUnread,
             'games_completed' => $gamesCompleted,
+            'games_playing' => $gamesPlaying,
             'tv_shows_watching' => $tvShowsWatching,
             'tv_shows_completed' => $tvShowsCompleted,
             'recent_additions' => $recent,
