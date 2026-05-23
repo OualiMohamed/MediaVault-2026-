@@ -275,6 +275,17 @@ class CollectionController extends Controller
 
         }
 
+        // Top rated filter (9+ rating)
+        if ($request->filled('top_rated') && in_array($type, ['movie', 'book', 'game', 'music', 'tv_show'])) {
+            $query->whereExists(
+                fn($q) =>
+                $q->selectRaw(1)
+                    ->from($detailTable)
+                    ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                    ->where('personal_rating', '>=', 9)
+            );
+        }
+
         if ($request->filled('search')) {
             $search = $request->search;
             $like = '%' . strtolower($search) . '%';

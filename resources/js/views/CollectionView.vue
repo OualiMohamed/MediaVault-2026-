@@ -38,6 +38,7 @@ const filterReadingStatus = ref('')
 const filterPlayingStatus = ref('')
 const bookLanguages = ref([])
 const filterEdition = ref('')
+const topRated = ref(false)
 const bookEditions = ref([])
 
 const videoQualityOptions = [
@@ -120,6 +121,7 @@ function loadItems() {
         video_tier: filterVideoTier.value || undefined,
         reading_status: filterReadingStatus.value || undefined,
         playing_status: filterPlayingStatus.value || undefined,
+        top_rated: topRated.value ? '1' : undefined,
         edition: filterEdition.value || undefined,
     }
     store.fetchItems(type.value, params)
@@ -230,6 +232,7 @@ watch(() => route.path, (newPath) => {
     filterVideoTier.value = '',
         filterReadingStatus.value = ''
     filterPlayingStatus.value = ''
+    topRated.value = false
     sortBy.value = 'created_at'
     sortDir.value = 'desc'
     currentPage.value = 1
@@ -241,7 +244,7 @@ watch(() => route.path, (newPath) => {
     if (newPath === '/games') fetchGameGenres()
 })
 
-watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, filterVideoQuality, filterAudioFormat, filterLanguage, filterLetter, sortValue, filterGenre, filterVideoTier, filterBookLanguage, filterReadingStatus, filterPlayingStatus, filterEdition], () => {
+watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, filterVideoQuality, filterAudioFormat, filterLanguage, filterLetter, sortValue, filterGenre, filterVideoTier, filterBookLanguage, filterReadingStatus, filterPlayingStatus, filterEdition, topRated], () => {
     currentPage.value = 1
     loadItems()
 })
@@ -440,6 +443,21 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
                 <option value="sold">Sold</option>
                 <option value="lost">Lost</option>
             </select>
+
+            <button @click="topRated = !topRated" :class="[
+                'px-4 py-2 rounded-xl text-sm font-medium transition-all border',
+                topRated
+                    ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                    : 'bg-vault-800 border-vault-600 text-vault-300 hover:text-white hover:border-vault-500'
+            ]">
+                <span class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                            d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    Top Rated
+                </span>
+            </button>
         </div>
 
         <!-- A-Z Jump Bar -->
