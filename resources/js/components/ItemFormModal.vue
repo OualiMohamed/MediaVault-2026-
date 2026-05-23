@@ -167,6 +167,16 @@ watch(() => props.item, (item) => {
         Object.keys(item.details).forEach(key => {
             if (key in form) form[key] = item.details[key]
         })
+        // Add this right after the forEach:
+        if (item.details?.date_finished) {
+            form.date_finished = item.details.date_finished.split('T')[0]
+        }
+        if (item.details?.completion_date) {
+            form.completion_date = item.details.completion_date.split('T')[0]
+        }
+        if (item.details?.date_seen) {
+            form.date_seen = item.details.date_seen.split('T')[0]
+        }
         // After the details forEach loop:
         if (item.details?.series?.name) {
             form.series_name = item.details.series.name
@@ -720,7 +730,7 @@ function removeSeason(index) {
                                 d="M9 12l2 2 4-4m6 2a2 2 0 012-2H4m6 0h8a2 2 0 002 2v4a2 2 0 002-2H6a2 2 0 00-2-2H4" />
                         </svg>
                         <span class="text-xs" :class="existingCover ? 'text-sky-400' : 'text-amber-400'">{{ tmdbMessage
-                            }}</span>
+                        }}</span>
                     </div>
 
                     <!-- Title -->
@@ -1511,7 +1521,7 @@ function removeSeason(index) {
                                 class="text-rose-300 text-sm flex items-start gap-2">
                                 <span class="text-rose-500 mt-0.5">&#8226;</span>
                                 <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                                }}</span>
+                                    }}</span>
                             </li>
                         </ul>
                     </div>
