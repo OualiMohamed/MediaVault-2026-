@@ -1235,6 +1235,9 @@ function removeSeason(index) {
                                             <option value="Blu-ray">Blu-ray</option>
                                             <option value="4K UHD">4K UHD</option>
                                             <option value="VHS">VHS</option>
+                                            <option value="HDD">HDD</option>
+                                            <option value="umd">umd</option>
+                                            <option value="HD DVD">HD DVD</option>
                                         </select>
 
                                         <button type="button" @click="removeSeason(index)"
