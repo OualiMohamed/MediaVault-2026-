@@ -1067,4 +1067,25 @@ class CollectionController extends Controller
 
         return response()->json($editions);
     }
+
+    // New method to mark an item as owned (move from wishlist to owned)
+    public function markAsOwned(string $type, int $id): JsonResponse
+    {
+        $validTypes = ['movie', 'book', 'game', 'music', 'tv_show'];
+        if (!in_array($type, $validTypes)) {
+            return response()->json(['message' => 'Invalid collection type'], 422);
+        }
+
+        $item = CollectionItem::where('user_id', Auth::id())
+            ->where('type', $type)
+            ->where('status', 'wishlist')
+            ->findOrFail($id);
+
+        $item->update([
+            'status' => 'owned',
+            'priority' => null,
+        ]);
+
+        return response()->json(['message' => 'Moved to collection']);
+    }
 }

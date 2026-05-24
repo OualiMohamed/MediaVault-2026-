@@ -13,6 +13,17 @@ const errorMsg = ref('')
 const showForm = ref(false)
 const formType = ref('movie')
 const formItem = ref(null)
+const confirmingId = ref(null)
+
+async function markAsOwned(type, id) {
+    confirmingId.value = null
+    try {
+        await api.post(`/collection/${type}/${id}/own`)
+        items.value = items.value.filter(i => !(i.id === id && i._type === type))
+    } catch (err) {
+        console.error('Failed to mark as owned:', err)
+    }
+}
 
 const typeConfig = {
     movie: { label: 'Movie', icon: '\u{1F3AC}', path: '/movies' },
@@ -137,11 +148,31 @@ onMounted(fetchWishlist)
                     {{ typeConfig[item._type]?.label || item._type }}
                 </span>
 
-                <!-- View in collection link -->
-                <router-link :to="typeConfig[item._type]?.path || '/'"
-                    class="text-xs font-medium px-3 py-1.5 rounded-lg bg-vault-700 text-vault-300 hover:text-white hover:bg-vault-600 transition-all flex-shrink-0">
-                    View
-                </router-link>
+                <!-- Actions -->
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <router-link :to="typeConfig[item._type]?.path || '/'"
+                        class="text-xs font-medium px-3 py-1.5 rounded-lg bg-vault-700 text-vault-300 hover:text-white hover:bg-vault-600 transition-all">
+                        View
+                    </router-link>
+
+                    <button v-if="confirmingId !== item.id" @click="confirmingId = item.id"
+                        class="text-xs font-medium px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 transition-all">
+                        Owned
+                    </button>
+                    <template v-else>
+                        <button @click="markAsOwned(item._type, item.id)"
+                            class="text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-400 transition-all">
+                            Confirm
+                        </button>
+                        <button @click="confirmingId = null"
+                            class="text-xs font-medium px-2 py-1.5 rounded-lg bg-vault-700 text-vault-400 hover:text-white hover:bg-vault-600 transition-all">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </template>
+                </div>
             </div>
         </div>
 
