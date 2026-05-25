@@ -77,7 +77,7 @@ const form = reactive({
     total_episodes: '',
     network: '',
     trailer_url: '',
-    seen: false,       // add these two
+    watch_status: 'not_seen',
     date_seen: '',
     video_quality: '',
     audio_format: [], // for multiple audio formats
@@ -122,7 +122,7 @@ const languageOptions = [
 ]
 
 const typeFieldMap = {
-    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'seen', 'date_seen', 'video_quality', 'language', 'actors', 'video_tier', 'franchise_name', 'franchise_position', 'original_title'],
+    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'watch_status', 'date_seen', 'video_quality', 'language', 'actors', 'video_tier', 'franchise_name', 'franchise_position', 'original_title'],
     book: ['author', 'edition', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'language', 'reading_status', 'current_page', 'date_finished', 'series_name', 'series_position', 'franchise_name', 'franchise_position', 'original_title'],
     game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'playing_status', 'progress_percent', 'completion_date', 'franchise_name', 'franchise_position'],
     music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed', 'tracks', 'franchise_name', 'franchise_position'],
@@ -131,7 +131,7 @@ const typeFieldMap = {
 
 const baseFields = ['title', 'barcode', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'borrowed_to', 'due_back_date', 'video_tier', 'language',]
 // const baseFields = ['title', 'barcode', 'cover_image', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'borrowed_to', 'due_back_date', 'video_tier', 'language', 'series_name', 'franchise_name']
-const booleanFields = ['seen']
+const booleanFields = []
 
 const validationErrors = computed(() => {
     const list = []
@@ -269,7 +269,7 @@ watch(() => form.status, (status) => {
 
 watch(() => props.type, (type) => {
     if (!isEditing.value) {
-        if (type === 'movie') form.format = 'Blu-ray'
+        if (type === 'movie') { form.format = 'Blu-ray'; form.watch_status = 'not_seen' }
         if (type === 'game') { form.platform = 'PS5'; form.format = 'Physical'; form.playing_status = 'not_started'; form.progress_percent = ''; }
         if (type === 'music') form.format = 'CD'
         if (type === 'tv_show') { form.format = 'Digital'; form.watch_status = 'plan_to_watch' }
@@ -805,19 +805,24 @@ function removeSeason(index) {
                             <p v-if="fieldError('trailer_url')" class="text-rose-500 text-xs mt-1">{{
                                 fieldError('trailer_url') }}</p>
                         </div>
-                        <!-- Seen toggle + date -->
-                        <div class="flex items-end pb-2.5">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input v-model="form.seen" type="checkbox"
-                                    class="w-4 h-4 rounded bg-vault-700 border-vault-600 text-amber-500 focus:ring-amber-500/50" />
-                                <span class="text-sm text-vault-200">Mark as Seen</span>
-                            </label>
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Watch Status</label>
+                            <div class="flex flex-wrap gap-2">
+                                <button
+                                    v-for="s in [{ v: 'not_seen', l: 'Not Seen' }, { v: 'to_be_seen', l: 'To Be Seen' }, { v: 'seen', l: 'Seen' }]"
+                                    :key="s.v" type="button" @click="form.watch_status = s.v"
+                                    class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all"
+                                    :class="form.watch_status === s.v ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
+                                    {{ s.l }}
+                                </button>
+                            </div>
                         </div>
-                        <div v-if="form.seen">
+                        <div v-if="form.watch_status === 'seen'">
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Date Seen</label>
                             <input v-model="form.date_seen" type="date"
                                 class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm" />
                         </div>
+
                         <!-- Video Quality -->
                         <div>
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Video Quality</label>
@@ -964,7 +969,7 @@ function removeSeason(index) {
                                 <label class="block text-sm font-medium text-vault-200 mb-1.5">Reading Status</label>
                                 <div class="flex flex-wrap gap-2">
                                     <button
-                                        v-for="s in [{ v: 'not_started', l: 'Not Started' }, { v: 'reading', l: 'Reading' }, { v: 'read', l: 'Read' }]"
+                                        v-for="s in [{ v: 'not_started', l: 'Not Started' }, { v: 'tbr', l: 'TBR' }, { v: 'reading', l: 'Reading' }, { v: 'read', l: 'Read' }]"
                                         :key="s.v" type="button" @click="form.reading_status = s.v"
                                         class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all"
                                         :class="form.reading_status === s.v ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
@@ -1182,15 +1187,20 @@ function removeSeason(index) {
                         <div>
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Watch Status</label>
                             <div class="flex flex-wrap gap-2">
-                                <button v-for="s in ['watching', 'completed', 'dropped', 'plan_to_watch']" :key="s"
-                                    type="button" @click="form.watch_status = s"
-                                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition-all" :class="form.watch_status === s
-                                        ? 'bg-rose-500 text-white'
-                                        : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
-                                    {{ s === 'plan_to_watch' ? 'Plan to Watch' : s.charAt(0).toUpperCase() + s.slice(1)
-                                    }}
+                                <button
+                                    v-for="s in [{ v: 'not_seen', l: 'Not Seen' }, { v: 'to_be_seen', l: 'To Be Seen' }, { v: 'seen', l: 'Seen' }]"
+                                    :key="s.v" type="button" @click="form.watch_status = s.v"
+                                    class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all"
+                                    :class="form.watch_status === s.v ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
+                                    {{ s.l }}
                                 </button>
                             </div>
+                        </div>
+                        <!-- Date seen (only when seen) -->
+                        <div v-if="form.watch_status === 'seen'">
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Date Seen</label>
+                            <input v-model="form.date_seen" type="date"
+                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm" />
                         </div>
 
                         <!-- ── Owned Seasons ── -->

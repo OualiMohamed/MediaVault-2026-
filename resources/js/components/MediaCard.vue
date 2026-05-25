@@ -22,7 +22,7 @@ const consumedBadge = computed(() => {
     if (props.type === 'book' && d.reading_status === 'read') {
         return { label: 'Read', classes: 'text-emerald-200 bg-emerald-600/85 backdrop-blur-sm' }
     }
-    if (props.type === 'movie' && d.seen) {
+    if (props.type === 'movie' && d.watch_status === 'seen') {
         return { label: 'Seen', classes: 'text-emerald-200 bg-emerald-600/85 backdrop-blur-sm' }
     }
     if (props.type === 'tv_show' && d.watch_status === 'completed') {
@@ -45,6 +45,22 @@ const inProgressBadge = computed(() => {
     }
     if (props.type === 'game' && d.playing_status === 'playing') {
         return { label: (d.progress_percent || 0) + '%', classes: 'text-amber-200 bg-amber-600/85 backdrop-blur-sm' }
+    }
+    return null
+})
+
+const upNextBadge = computed(() => {
+    const d = props.item.details
+    if (!d) return null
+
+    if (props.type === 'book' && d.reading_status === 'tbr') {
+        return { label: 'TBR', classes: 'text-sky-200 bg-sky-600/85 backdrop-blur-sm' }
+    }
+    if (props.type === 'movie' && d.watch_status === 'to_be_seen') {
+        return { label: 'To See', classes: 'text-sky-200 bg-sky-600/85 backdrop-blur-sm' }
+    }
+    if (props.type === 'tv_show' && d.watch_status === 'plan_to_watch') {
+        return { label: 'To See', classes: 'text-sky-200 bg-sky-600/85 backdrop-blur-sm' }
     }
     return null
 })
@@ -189,6 +205,17 @@ async function handleDelete() {
                     <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 {{ inProgressBadge.label }}
+            </div>
+
+            <!-- Up Next badge (TBR / To Be Seen) -->
+            <div v-if="upNextBadge"
+                class="absolute bottom-2 left-2 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide opacity-90 group-hover:opacity-0 transition-opacity"
+                :class="upNextBadge.classes">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                {{ upNextBadge.label }}
             </div>
 
             <!-- Hover overlay with action buttons -->

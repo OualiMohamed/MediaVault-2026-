@@ -133,7 +133,14 @@ const metadata = computed(() => {
             rows.push({ label: 'Audio', value: formats.join(', ') })
         }
         if (d.language) rows.push({ label: 'Language', value: d.language })
-        if (d.seen) rows.push({ label: 'Seen', value: d.date_seen ? `Seen on ${d.date_seen}` : 'Yes' })
+        if (d.watch_status) {
+            const label = d.watch_status === 'not_seen' ? 'Not Seen' : d.watch_status === 'to_be_seen' ? 'To Be Seen' : 'Seen'
+            rows.push({ label: 'Status', value: label })
+        }
+        if (d.watch_status === 'seen' && d.date_seen) {
+            const date = new Date(d.date_seen)
+            rows.push({ label: 'Seen On', value: isNaN(date.getTime()) ? d.date_seen : date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) })
+        }
         // if (d.video_tier) rows.push({ label: 'Zone', value: `${d.format === 'Blu-ray' ? 'Blu-ray ' : 'DVD Region '}${d.video_tier}` })
     }
 
@@ -149,7 +156,7 @@ const metadata = computed(() => {
         if (d.language) rows.push({ label: 'Language', value: d.language })
         if (d.release_year) rows.push({ label: 'Year', value: d.release_year })
         if (d.reading_status) {
-            const label = d.reading_status === 'not_started' ? 'Not Started' : d.reading_status === 'reading' ? 'Reading' : 'Read'
+            const label = d.reading_status === 'not_started' ? 'Not Started' : d.reading_status === 'tbr' ? 'TBR' : d.reading_status === 'reading' ? 'Reading' : 'Read'
             rows.push({ label: 'Status', value: label })
         }
         if (d.reading_status === 'reading' && d.current_page) {

@@ -250,6 +250,28 @@ class CollectionController extends Controller
             );
         }
 
+        // TBR filter for books
+        if ($type === 'book' && $request->filled('reading_status')) {
+            $query->whereExists(
+                fn($q) =>
+                $q->selectRaw(1)
+                    ->from($detailTable)
+                    ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                    ->where('reading_status', $request->reading_status)
+            );
+        }
+
+        // To Be Seen filter for movies
+        if ($type === 'movie' && $request->filled('watch_status')) {
+            $query->whereExists(
+                fn($q) =>
+                $q->selectRaw(1)
+                    ->from($detailTable)
+                    ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                    ->where('watch_status', $request->watch_status)
+            );
+        }
+
         if ($type === 'movie') {
             if ($request->filled('video_quality')) {
                 $query->whereExists(
@@ -689,8 +711,8 @@ class CollectionController extends Controller
                 'release_year' => 'nullable|integer|min:1888|max:' . (date('Y') + 2),
                 'imdb_id' => 'nullable|string|max:20',
                 'trailer_url' => 'nullable|url|max:500',
-                'seen' => 'nullable|boolean',          // add
-                'date_seen' => 'nullable|date',         // add
+                'watch_status' => 'nullable|in:not_seen,to_be_seen,seen',
+                'date_seen' => 'nullable|date',
                 'video_quality' => 'nullable|string|max:50',   // add
                 'audio_format' => 'nullable|json',
                 'language' => 'nullable|string|max:50',         // add
@@ -709,7 +731,7 @@ class CollectionController extends Controller
                 'genre' => 'nullable|string|max:255',
                 'personal_rating' => 'nullable|integer|min:1|max:10',
                 'release_year' => 'nullable|integer|min:1000|max:' . (date('Y') + 2),
-                'reading_status' => 'nullable|in:not_started,reading,read',
+                'reading_status' => 'nullable|in:not_started,tbr,reading,read',
                 'current_page' => 'nullable|integer|min:0',
                 'date_finished' => 'nullable|date',
                 'series_name' => 'nullable|string|max:255',

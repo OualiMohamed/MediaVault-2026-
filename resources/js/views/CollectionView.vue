@@ -359,9 +359,19 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
             <select v-if="type === 'book'" v-model="filterReadingStatus"
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                 <option value="">All Reading Status</option>
+                <option value="tbr">TBR</option>
                 <option value="reading">Reading</option>
                 <option value="read">Read</option>
                 <option value="not_started">Not Started</option>
+            </select>
+
+            <!-- Watch Status (Movies) -->
+            <select v-if="type === 'movie'" v-model="filterWatchStatus"
+                class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                <option value="">All Watch Status</option>
+                <option value="to_be_seen">To Be Seen</option>
+                <option value="seen">Seen</option>
+                <option value="not_seen">Not Seen</option>
             </select>
 
             <!-- Playing Status (Games) -->
