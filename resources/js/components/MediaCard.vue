@@ -3,16 +3,18 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCollectionStore } from '../stores/collection'
+import api from '../api'  // Make sure to import the API module for status updates
 
 const props = defineProps({
     item: Object,
     type: String,
 })
 
-const emit = defineEmits(['edit', 'deleted'])
+const emit = defineEmits(['edit', 'deleted', 'statusChanged'])
 const store = useCollectionStore()
 const router = useRouter()
 const confirmingDelete = ref(false)
+const statusLoading = ref(false)
 
 // For consumed items, show a badge indicating "Read", "Seen", or "Completed"
 const consumedBadge = computed(() => {
@@ -141,6 +143,28 @@ async function handleDelete() {
     await store.deleteItem(props.type, props.item.id)
     emit('deleted')
 }
+
+async function quickStatus(e) {
+    e.stopPropagation()
+    statusLoading.value = true
+    try {
+        const d = props.item.details
+        if (props.type === 'movie') {
+            const next = d.watch_status === 'to_be_seen' ? 'seen' : 'to_be_seen'
+            await api.patch(`/collection/${props.type}/${props.item.id}/status`, { watch_status: next })
+            props.item.details.watch_status = next
+        } else if (props.type === 'book') {
+            const next = d.reading_status === 'tbr' ? 'reading' : 'tbr'
+            await api.patch(`/collection/${props.type}/${props.item.id}/status`, { reading_status: next })
+            props.item.details.reading_status = next
+        }
+        emit('statusChanged')
+    } catch (err) {
+        console.error('Status update failed:', err)
+    } finally {
+        statusLoading.value = false
+    }
+}
 </script>
 
 <template>
@@ -229,6 +253,35 @@ async function handleDelete() {
                             d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                     </svg>
                 </button>
+
+                <!-- To See / TBR button -->
+                <button v-if="type === 'movie' && item.details?.watch_status !== 'seen'" @click="quickStatus"
+                    :disabled="statusLoading"
+                    class="w-10 h-10 rounded-xl bg-sky-500/30 backdrop-blur-sm flex items-center justify-center text-sky-300 hover:bg-sky-500/50 transition-all"
+                    :title="item.details?.watch_status === 'to_be_seen' ? 'Mark as Seen' : 'To Be Seen'">
+                    <svg v-if="!statusLoading" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <div v-else class="w-4 h-4 border-2 border-sky-300 border-t-transparent rounded-full animate-spin">
+                    </div>
+                </button>
+
+                <button v-if="type === 'book' && item.details?.reading_status !== 'read'" @click="quickStatus"
+                    :disabled="statusLoading"
+                    class="w-10 h-10 rounded-xl bg-sky-500/30 backdrop-blur-sm flex items-center justify-center text-sky-300 hover:bg-sky-500/50 transition-all"
+                    :title="item.details?.reading_status === 'tbr' ? 'Start Reading' : 'Add to TBR'">
+                    <svg v-if="!statusLoading" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    <div v-else class="w-4 h-4 border-2 border-sky-300 border-t-transparent rounded-full animate-spin">
+                    </div>
+                </button>
+
                 <button v-if="!confirmingDelete" @click="onConfirmDelete"
                     class="w-10 h-10 rounded-xl bg-rose-500/30 backdrop-blur-sm flex items-center justify-center text-rose-400 hover:bg-rose-500/50 transition-all"
                     title="Delete">

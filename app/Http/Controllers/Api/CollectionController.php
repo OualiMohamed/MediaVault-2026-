@@ -1110,4 +1110,35 @@ class CollectionController extends Controller
 
         return response()->json(['message' => 'Moved to collection']);
     }
+
+    // New method to update watch/reading/playing status for movies/books/games/TV shows
+    public function updateStatus(Request $request, string $type, int $id): JsonResponse
+    {
+        $validTypes = ['movie', 'book', 'game', 'music', 'tv_show'];
+        if (!in_array($type, $validTypes)) {
+            return response()->json(['message' => 'Invalid collection type'], 422);
+        }
+
+        $item = CollectionItem::where('user_id', Auth::id())
+            ->where('type', $type)
+            ->findOrFail($id);
+
+        $modelClass = $this->getModelClass($type);
+
+        if ($type === 'movie') {
+            $validated = $request->validate(['watch_status' => 'required|in:not_seen,to_be_seen,seen']);
+            $modelClass::where('collection_item_id', $item->id)->update($validated);
+        } elseif ($type === 'book') {
+            $validated = $request->validate(['reading_status' => 'required|in:not_started,tbr,reading,read']);
+            $modelClass::where('collection_item_id', $item->id)->update($validated);
+        } elseif ($type === 'tv_show') {
+            $validated = $request->validate(['watch_status' => 'required|in:watching,completed,dropped,plan_to_watch']);
+            $modelClass::where('collection_item_id', $item->id)->update($validated);
+        } elseif ($type === 'game') {
+            $validated = $request->validate(['playing_status' => 'required|in:not_started,playing,completed,dropped']);
+            $modelClass::where('collection_item_id', $item->id)->update($validated);
+        }
+
+        return response()->json(['message' => 'Status updated']);
+    }
 }

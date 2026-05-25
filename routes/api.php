@@ -35,6 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/collection/{type}/{id}', [CollectionController::class, 'update']); // for _method=PUT via FormData
     Route::delete('/collection/{type}/{id}', [CollectionController::class, 'destroy']);
     Route::post('/collection/{type}/{id}/own', [CollectionController::class, 'markAsOwned']);
+    Route::patch('/collection/{type}/{id}/status', [CollectionController::class, 'updateStatus']);
 
     // routes/api.php — add inside the auth:sanctum group
     Route::post('/barcode/lookup', [BarcodeLookupController::class, 'lookup']);

@@ -498,7 +498,7 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
         <!-- Grid -->
         <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             <MediaCard v-for="item in store.items" :key="item.id" :item="item" :type="type" @edit="openEditForm(item)"
-                @deleted="loadItems" />
+                @deleted="loadItems" @status-changed="loadItems" />
         </div>
 
         <!-- Pagination -->
