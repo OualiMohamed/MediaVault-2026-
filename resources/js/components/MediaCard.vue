@@ -48,6 +48,12 @@ const inProgressBadge = computed(() => {
     if (props.type === 'game' && d.playing_status === 'playing') {
         return { label: (d.progress_percent || 0) + '%', classes: 'text-amber-200 bg-amber-600/85 backdrop-blur-sm' }
     }
+    if (props.type === 'tv_show' && d.watch_status === 'watching') {
+        const ep = (d.current_season && d.current_episode)
+            ? `S${String(d.current_season).padStart(2, '0')}E${String(d.current_episode).padStart(2, '0')}`
+            : 'Watching'
+        return { label: ep, classes: 'text-amber-200 bg-amber-600/85 backdrop-blur-sm' }
+    }
     return null
 })
 
