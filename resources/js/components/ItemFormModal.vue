@@ -1241,19 +1241,6 @@ function removeSeason(index) {
                                 placeholder="2024" />
                         </div>
 
-                        <!-- Watch Status -->
-                        <div>
-                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Watch Status</label>
-                            <div class="flex flex-wrap gap-2">
-                                <button
-                                    v-for="s in [{ v: 'not_seen', l: 'Not Seen' }, { v: 'to_be_seen', l: 'To Be Seen' }, { v: 'seen', l: 'Seen' }]"
-                                    :key="s.v" type="button" @click="form.watch_status = s.v"
-                                    class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all"
-                                    :class="form.watch_status === s.v ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
-                                    {{ s.l }}
-                                </button>
-                            </div>
-                        </div>
                         <!-- Date seen (only when seen) -->
                         <div v-if="form.watch_status === 'seen'">
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Date Seen</label>
@@ -1396,6 +1383,21 @@ function removeSeason(index) {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+
+                        <!-- Watch Status -->
+                        <div>
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">Watch Status</label>
+                            <div class="flex flex-wrap gap-2">
+                                <button
+                                    v-for="s in [{ v: 'plan_to_watch', l: 'To See' }, { v: 'watching', l: 'Watching' }, { v: 'completed', l: 'Completed' }, { v: 'dropped', l: 'Dropped' }]"
+                                    :key="s.v" type="button" @click="form.watch_status = s.v"
+                                    class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all"
+                                    :class="form.watch_status === s.v ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-300 hover:bg-vault-600'">
+                                    {{ s.l }}
+                                </button>
                             </div>
                         </div>
 

@@ -157,6 +157,10 @@ async function quickStatus(e) {
             const next = d.reading_status === 'tbr' ? 'reading' : 'tbr'
             await api.patch(`/collection/${props.type}/${props.item.id}/status`, { reading_status: next })
             props.item.details.reading_status = next
+        } else if (props.type === 'tv_show') {
+            const next = d.watch_status === 'plan_to_watch' ? 'watching' : 'plan_to_watch'
+            await api.patch(`/collection/${props.type}/${props.item.id}/status`, { watch_status: next })
+            props.item.details.watch_status = next
         }
         emit('statusChanged')
     } catch (err) {
@@ -259,6 +263,21 @@ async function quickStatus(e) {
                     :disabled="statusLoading"
                     class="w-10 h-10 rounded-xl bg-sky-500/30 backdrop-blur-sm flex items-center justify-center text-sky-300 hover:bg-sky-500/50 transition-all"
                     :title="item.details?.watch_status === 'to_be_seen' ? 'Mark as Seen' : 'To Be Seen'">
+                    <svg v-if="!statusLoading" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <div v-else class="w-4 h-4 border-2 border-sky-300 border-t-transparent rounded-full animate-spin">
+                    </div>
+                </button>
+
+                <button
+                    v-if="type === 'tv_show' && item.details?.watch_status !== 'completed' && item.details?.watch_status !== 'dropped'"
+                    @click="quickStatus" :disabled="statusLoading"
+                    class="w-10 h-10 rounded-xl bg-sky-500/30 backdrop-blur-sm flex items-center justify-center text-sky-300 hover:bg-sky-500/50 transition-all"
+                    :title="item.details?.watch_status === 'plan_to_watch' ? 'Start Watching' : 'To Be Seen'">
                     <svg v-if="!statusLoading" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                         stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
