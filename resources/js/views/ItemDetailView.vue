@@ -133,6 +133,7 @@ const metadata = computed(() => {
             rows.push({ label: 'Audio', value: formats.join(', ') })
         }
         if (d.language) rows.push({ label: 'Language', value: d.language })
+        if (d.file_size) rows.push({ label: 'File Size', value: d.file_size })
         if (d.watch_status) {
             const label = d.watch_status === 'not_seen' ? 'Not Seen' : d.watch_status === 'to_be_seen' ? 'To Be Seen' : 'Seen'
             rows.push({ label: 'Status', value: label })
@@ -600,6 +601,10 @@ watch(() => route.params.id, (newId, oldId) => {
                                     <span v-if="s.video_tier"
                                         class="text-amber-400 text-xs font-bold px-1.5 py-0.5 rounded bg-amber-500/15">
                                         {{ s.video_tier }}
+                                    </span>
+                                    <span v-if="s.file_size"
+                                        class="text-vault-300 text-xs font-medium px-1.5 py-0.5 rounded bg-vault-600/50">
+                                        {{ s.file_size }}
                                     </span>
                                 </div>
                             </div>

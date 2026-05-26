@@ -91,6 +91,8 @@ const form = reactive({
     due_back_date: '',
     video_tier: '',
     edition: 'Paperback',
+    file_size: '',
+    file_size_unit: 'Go',
 })
 
 const formatOptions = computed(() => {
@@ -122,7 +124,7 @@ const languageOptions = [
 ]
 
 const typeFieldMap = {
-    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'watch_status', 'date_seen', 'video_quality', 'language', 'actors', 'video_tier', 'franchise_name', 'franchise_position', 'original_title'],
+    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'watch_status', 'date_seen', 'video_quality', 'file_size', 'language', 'actors', 'video_tier', 'franchise_name', 'franchise_position', 'original_title'],
     book: ['author', 'edition', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'language', 'reading_status', 'current_page', 'date_finished', 'series_name', 'series_position', 'franchise_name', 'franchise_position', 'original_title'],
     game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'playing_status', 'progress_percent', 'completion_date', 'franchise_name', 'franchise_position'],
     music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed', 'tracks', 'franchise_name', 'franchise_position'],
@@ -230,6 +232,11 @@ watch(() => props.item, (item) => {
     // Map new video_tier field (added after initial details loop)
     form.video_tier = item.details?.video_tier || ''
     form.language = item.details?.language || ''
+    form.file_size = item.details?.file_size || ''
+    if (item.details?.file_size) {
+        form.file_size_unit = item.details.file_size.includes('Mo') ? 'Mo' : 'Go'
+        form.file_size = parseFloat(item.details.file_size) || ''
+    }
 
     // Map series relationship to form field
     if (item.details?.series?.name) {
@@ -245,6 +252,7 @@ watch(() => props.item, (item) => {
         form.franchise_name = ''
     }
 
+    // Map seasons for TV shows
     if (item.details?.seasons && Array.isArray(item.details.seasons)) {
         seasons.value = item.details.seasons.map(s => ({
             season: s.season,
@@ -253,9 +261,11 @@ watch(() => props.item, (item) => {
             audio_format: Array.isArray(s.audio_format) ? s.audio_format : (s.audio_format ? [s.audio_format] : []),
             language: s.language || '',
             video_tier: s.video_tier || '',
+            file_size: s.file_size ? parseFloat(s.file_size) : '',
+            file_size_unit: s.file_size?.includes('Mo') ? 'Mo' : 'Go',
         }))
     } else {
-        seasons.value = [{ season: 1, format: 'Digital', video_quality: '', audio_format: [], language: '', video_tier: '' }]
+        seasons.value = [{ season: 1, format: 'Digital', video_quality: '', audio_format: [], language: '', video_tier: '', file_size: '', file_size_unit: 'Go' }]
     }
 }, { immediate: true })
 
@@ -280,9 +290,17 @@ watch(() => props.type, (type) => {
         form.status = 'wishlist'
     }
     if (type !== 'tv_show') {
-        seasons.value = [{ season: 1, format: 'Digital', video_quality: '', audio_format: '', language: '' }]
+        seasons.value = [{ season: 1, format: 'Digital', video_quality: '', audio_format: '', language: '', video_tier: '', file_size: '', file_size_unit: 'Go' }]
     }
 }, { immediate: true })
+
+// When format changes away from HDD, clear file size fields
+watch(() => form.format, (format) => {
+    if (format !== 'HDD') {
+        form.file_size = ''
+        form.file_size_unit = 'Go'
+    }
+})
 
 function handleCoverChange(e) {
     const file = e.target.files[0]
@@ -515,6 +533,7 @@ async function handleSubmit() {
             }
         }
 
+        // Only append fields that are relevant for this item type, and have a value
         activeFields.forEach(field => {
             const value = form[field]
             if (booleanFields.includes(field)) {
@@ -525,8 +544,20 @@ async function handleSubmit() {
             formData.append(field, value)
         })
 
-        // Send seasons as JSON string
+        // Process season file sizes before sending
         if (props.type === 'tv_show' && seasons.value.length > 0) {
+            const processedSeasons = seasons.value.map(s => {
+                const obj = { ...s }
+                if (s.file_size && s.format === 'HDD') {
+                    obj.file_size = s.file_size + ' ' + (s.file_size_unit || 'Go')
+                } else {
+                    delete obj.file_size
+                }
+                delete obj.file_size_unit
+                return obj
+            })
+            formData.append('seasons', JSON.stringify(processedSeasons))
+        } else if (props.type === 'tv_show') {
             formData.append('seasons', JSON.stringify(seasons.value))
         }
 
@@ -544,6 +575,12 @@ async function handleSubmit() {
         if (props.type === 'book' && form.language) {
             formData.append('language', form.language)
         }
+
+        // Combine file_size value and unit before sending
+        if (form.file_size && form.format === 'HDD') {
+            formData.append('file_size', form.file_size + ' ' + form.file_size_unit)
+        }
+
         // ✅ FIXED — new file takes priority over existing
         if (form.cover_image instanceof File) {
             formData.append('cover_image', form.cover_image)
@@ -610,7 +647,7 @@ function addSeason() {
     const nextNum = seasons.value.length > 0
         ? Math.max(...seasons.value.map(s => s.season)) + 1
         : 1
-    seasons.value.push({ season: nextNum, format: 'Digital', video_quality: '', audio_format: [], language: '', video_tier: '' })
+    seasons.value.push({ season: nextNum, format: 'Digital', video_quality: '', audio_format: [], language: '', video_tier: '', file_size: '', file_size_unit: 'Go' })
 }
 
 function removeSeason(index) {
@@ -884,6 +921,27 @@ function removeSeason(index) {
                                 </template>
                             </div>
                         </div>
+
+                        <!-- File Size (HDD only) -->
+                        <div v-if="form.format === 'HDD'">
+                            <label class="block text-sm font-medium text-vault-200 mb-1.5">File Size</label>
+                            <div class="flex gap-2">
+                                <input v-model.number="form.file_size" type="number" step="0.01" min="0"
+                                    class="flex-1 px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                    placeholder="6.97" />
+                                <div class="flex rounded-xl overflow-hidden border border-vault-600">
+                                    <button type="button" @click="form.file_size_unit = 'Go'" :class="[
+                                        'px-4 py-2.5 text-sm font-medium transition-all',
+                                        form.file_size_unit === 'Go' ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-300 hover:bg-vault-600'
+                                    ]">Go</button>
+                                    <button type="button" @click="form.file_size_unit = 'Mo'" :class="[
+                                        'px-4 py-2.5 text-sm font-medium transition-all border-l border-vault-600',
+                                        form.file_size_unit === 'Mo' ? 'bg-amber-500 text-white' : 'bg-vault-700 text-vault-300 hover:bg-vault-600'
+                                    ]">Mo</button>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Actors -->
                         <div>
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Actors</label>
@@ -1283,11 +1341,33 @@ function removeSeason(index) {
                                             </div>
                                         </div>
 
+                                        <!-- Language Select -->
                                         <select v-model="s.language"
                                             class="px-2 py-1.5 bg-vault-700 border border-vault-600 rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50">
                                             <option value="">Language</option>
                                             <option v-for="l in languageOptions" :key="l" :value="l">{{ l }}</option>
                                         </select>
+
+                                        <!-- File size per season (HDD only) -->
+                                        <div v-if="s.format === 'HDD'" class="col-span-3 pl-12 mt-1">
+                                            <div class="flex items-center gap-2">
+                                                <span
+                                                    class="text-[10px] font-medium text-vault-500 uppercase tracking-wider w-12 flex-shrink-0">Size</span>
+                                                <input v-model.number="s.file_size" type="number" step="0.01" min="0"
+                                                    class="w-24 px-2 py-1.5 bg-vault-700 border border-vault-600 rounded-lg text-white text-xs text-center focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                                                    placeholder="6.97" />
+                                                <div class="flex rounded-lg overflow-hidden border border-vault-600">
+                                                    <button type="button" @click="s.file_size_unit = 'Go'" :class="[
+                                                        'px-2 py-1.5 text-[11px] font-bold transition-all',
+                                                        (s.file_size_unit || 'Go') === 'Go' ? 'bg-amber-500/20 text-amber-400' : 'bg-vault-600 text-vault-500 hover:bg-vault-500'
+                                                    ]">Go</button>
+                                                    <button type="button" @click="s.file_size_unit = 'Mo'" :class="[
+                                                        'px-2 py-1.5 text-[11px] font-bold transition-all border-l border-vault-600',
+                                                        s.file_size_unit === 'Mo' ? 'bg-amber-500/20 text-amber-400' : 'bg-vault-600 text-vault-500 hover:bg-vault-500'
+                                                    ]">Mo</button>
+                                                </div>
+                                            </div>
+                                        </div>
 
                                         <!-- Video tier per season -->
                                         <div v-if="s.format === 'Blu-ray' || s.format === 'DVD'" class="pl-12">

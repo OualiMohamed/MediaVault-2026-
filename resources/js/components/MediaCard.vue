@@ -97,7 +97,7 @@ function getPlatformStyle(platformName) {
 const subtitle = computed(() => {
     const d = props.item.details
     if (!d) return ''
-    if (props.type === 'movie') return [d.director, d.format, d.release_year].filter(Boolean).join(' \u00B7 ')
+    if (props.type === 'movie') return [d.director, d.format, d.release_year, d.file_size].filter(Boolean).join(' \u00B7 ')
     if (props.type === 'book') return [d.author, d.edition, d.release_year].filter(Boolean).join(' \u00B7 ')
     if (props.type === 'game') return [d.platform, d.format, d.release_year].filter(Boolean).join(' \u00B7 ')
     if (props.type === 'music') return [d.artist, d.format, d.release_year].filter(Boolean).join(' \u00B7 ')
