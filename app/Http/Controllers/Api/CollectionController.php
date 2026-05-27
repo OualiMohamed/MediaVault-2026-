@@ -995,12 +995,17 @@ class CollectionController extends Controller
                 'title' => $item->title,
                 'cover_image' => $item->cover_image,
                 'series_position' => $book->series_position,
-                'read' => $book->read,
+                'author' => $book->author,
+                'release_year' => $book->release_year,
+                'edition' => $book->edition,
+                'reading_status' => $book->reading_status,
+                'personal_rating' => $book->personal_rating,
             ];
         });
 
         return response()->json([
-            'series' => $series->name,
+            'id' => $series->id,
+            'name' => $series->name,
             'books' => $books,
         ]);
     }

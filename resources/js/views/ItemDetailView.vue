@@ -432,7 +432,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                     </svg>
                                     <div class="absolute inset-0 flex items-center justify-center">
                                         <span class="text-lg font-bold" :style="{ color: ratingColor }">{{ ratingPercent
-                                            }}%</span>
+                                        }}%</span>
                                     </div>
                                 </div>
                             </div>
@@ -471,10 +471,15 @@ watch(() => route.params.id, (newId, oldId) => {
                             <div v-if="item.details?.series?.name" class="flex flex-col">
                                 <span
                                     class="text-vault-500 text-xs font-medium uppercase tracking-wider mb-0.5">Series</span>
-                                <span
-                                    class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-md bg-violet-500/15 text-violet-400 w-fit">
+                                <button @click="router.push(`/series/${item.details.series.id}`)"
+                                    class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-md bg-violet-500/15 text-violet-400 w-fit hover:bg-violet-500/25 transition-colors">
                                     {{ item.details.series.name }} #{{ item.details.series_position }}
-                                </span>
+                                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                </button>
                             </div>
 
                             <div v-for="row in metadata" :key="row.label" class="flex flex-col">
@@ -526,7 +531,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                     <img v-if="networkLogo" :src="networkLogo" :alt="row.value"
                                         class="h-6 w-auto object-contain rounded bg-white/15 p-1 flex-shrink-0" />
                                     <span v-if="!networkLogo" class="text-white text-sm font-medium">{{ row.value
-                                    }}</span>
+                                        }}</span>
                                 </div>
 
                                 <!-- Default fallback -->
@@ -577,7 +582,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                             </svg>
                                         </a>
                                         <span v-else class="text-white text-sm font-medium truncate block">{{ actor.name
-                                            }}</span>
+                                        }}</span>
                                         <p v-if="actor.character" class="text-vault-500 text-xs truncate">as {{
                                             actor.character }}</p>
                                     </div>
@@ -593,7 +598,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                 <div v-for="s in item.details.seasons" :key="s.season"
                                     class="inline-flex items-center gap-2 px-4 py-2.5 bg-vault-800 border border-vault-600 rounded-xl">
                                     <span class="text-white font-bold text-sm">S{{ String(s.season).padStart(2, '0')
-                                        }}</span>
+                                    }}</span>
                                     <span class="w-px h-4 bg-vault-600"></span>
                                     <span class="text-vault-300 text-sm">{{ s.format }}</span>
                                     <template v-if="s.video_quality || s.audio_format || s.language">
@@ -643,7 +648,7 @@ watch(() => route.params.id, (newId, oldId) => {
                                         class="text-vault-500 text-xs font-medium uppercase tracking-wider block mb-1">Condition</span>
                                     <span class="text-white text-sm font-medium">{{ item.condition === 'near_mint' ?
                                         'Near Mint' : item.condition?.charAt(0).toUpperCase() + item.condition?.slice(1)
-                                        }}</span>
+                                    }}</span>
                                 </div>
                                 <div>
                                     <span

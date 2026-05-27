@@ -50,6 +50,12 @@ const routes = [
         component: () => import("../views/CollectionView.vue"),
         meta: { auth: true, type: "tv_show" },
     },
+    {
+        path: "/series/:id",
+        name: "series",
+        component: () => import("../views/SeriesView.vue"),
+        meta: { auth: true },
+    },
     // item-detail route MUST come after this
     {
         path: "/:type/:id",
