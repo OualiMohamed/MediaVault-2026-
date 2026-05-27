@@ -18,15 +18,17 @@ class Movie extends Model
         'release_year',
         'imdb_id',
         'trailer_url',
-        'seen',
+        'watch_status',      // was: 'seen'
         'date_seen',
         'video_quality',
         'audio_format',
+        'file_size',         // add this
         'language',
         'actors',
         'franchise_id',
         'franchise_position',
         'video_tier',
+        'original_title',    // add this
     ];
 
     // cast attributes to appropriate data types
