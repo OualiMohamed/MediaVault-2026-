@@ -478,8 +478,14 @@ class CollectionController extends Controller
 
             // HANDLE ACTORS (Convert comma-separated string to JSON array for manual entry)
             if (isset($detailData['actors']) && is_string($detailData['actors'])) {
-                $names = explode(',', $detailData['actors']);
-                $detailData['actors'] = array_map(fn($n) => ['name' => trim($n)], array_filter($names));
+                $decoded = json_decode($detailData['actors'], true);
+                if (is_array($decoded)) {
+                    $detailData['actors'] = $decoded;
+                } else {
+                    // Fallback for legacy comma-separated format
+                    $names = explode(',', $detailData['actors']);
+                    $detailData['actors'] = array_map(fn($n) => ['name' => trim($n)], array_filter($names));
+                }
             }
 
             // // Handle series
@@ -630,8 +636,18 @@ class CollectionController extends Controller
 
             // HANDLE ACTORS (Convert comma-separated string to JSON array)
             if (isset($detailData['actors']) && is_string($detailData['actors'])) {
-                $names = explode(',', $detailData['actors']);
-                $detailData['actors'] = array_map(fn($n) => ['name' => trim($n)], array_filter($names));
+                $decoded = json_decode($detailData['actors'], true);
+                if (is_array($decoded)) {
+                    $detailData['actors'] = $decoded;
+                } else {
+                    $names = explode(',', $detailData['actors']);
+                    $detailData['actors'] = array_map(fn($n) => ['name' => trim($n)], array_filter($names));
+                }
+            }
+
+            // Add this right after the handler:
+            if (isset($detailData['actors']) && is_array($detailData['actors'])) {
+                $detailData['actors'] = json_encode($detailData['actors']);
             }
 
             if (!empty($detailData)) {

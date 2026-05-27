@@ -34,6 +34,7 @@ const showGoogleBooksSearch = ref(false)
 const googleBooksMessage = ref('')
 const showDiscogsSearch = ref(false)
 const discogsMessage = ref('')
+const manualActor = ref('')
 
 const isEditing = computed(() => !!props.item)
 
@@ -82,7 +83,7 @@ const form = reactive({
     video_quality: '',
     audio_format: [], // for multiple audio formats
     language: '',
-    actors: '', // Simple string for manual input
+    actors: [],  // was: ''
     series_name: '',
     series_position: '',
     franchise_name: '',
@@ -124,11 +125,11 @@ const languageOptions = [
 ]
 
 const typeFieldMap = {
-    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'watch_status', 'date_seen', 'video_quality', 'file_size', 'language', 'actors', 'video_tier', 'franchise_name', 'franchise_position', 'original_title'],
+    movie: ['format', 'runtime_minutes', 'director', 'genre', 'personal_rating', 'release_year', 'imdb_id', 'trailer_url', 'watch_status', 'date_seen', 'video_quality', 'file_size', 'language', 'video_tier', 'franchise_name', 'franchise_position', 'original_title'],
     book: ['author', 'edition', 'isbn', 'page_count', 'publisher', 'genre', 'personal_rating', 'release_year', 'language', 'reading_status', 'current_page', 'date_finished', 'series_name', 'series_position', 'franchise_name', 'franchise_position', 'original_title'],
     game: ['platform', 'format', 'genre', 'publisher', 'personal_rating', 'release_year', 'playing_status', 'progress_percent', 'completion_date', 'franchise_name', 'franchise_position'],
     music: ['format', 'artist', 'genre', 'label', 'track_count', 'personal_rating', 'release_year', 'vinyl_speed', 'tracks', 'franchise_name', 'franchise_position'],
-    tv_show: ['format', 'total_seasons', 'total_episodes', 'network', 'network_logo', 'director', 'genre', 'personal_rating', 'release_year', 'watch_status', 'current_season', 'current_episode', 'seasons', 'trailer_url', 'actors', 'franchise_name', 'franchise_position', 'original_title'],
+    tv_show: ['format', 'total_seasons', 'total_episodes', 'network', 'network_logo', 'director', 'genre', 'personal_rating', 'release_year', 'watch_status', 'current_season', 'current_episode', 'seasons', 'trailer_url', 'franchise_name', 'franchise_position', 'original_title'],
 }
 
 const baseFields = ['title', 'barcode', 'purchase_date', 'purchase_price', 'condition', 'status', 'notes', 'borrowed_to', 'due_back_date', 'video_tier', 'language',]
@@ -169,6 +170,12 @@ watch(() => props.item, (item) => {
         Object.keys(item.details).forEach(key => {
             if (key in form) form[key] = item.details[key]
         })
+        if (typeof form.actors === 'string') {
+            form.actors = form.actors.split(',').map(n => ({ name: n.trim() })).filter(n => n.name)
+        }
+        if (!Array.isArray(form.actors)) {
+            form.actors = []
+        }
         // Add this right after the forEach:
         if (item.details?.date_finished) {
             form.date_finished = item.details.date_finished.split('T')[0]
@@ -191,9 +198,9 @@ watch(() => props.item, (item) => {
     }
 
     // Convert actors array back to comma string for the input
-    if (item.details?.actors && Array.isArray(item.details.actors)) {
-        form.actors = item.details.actors.map(a => a.name || a).join(', ')
-    }
+    // if (item.details?.actors && Array.isArray(item.details.actors)) {
+    //     form.actors = item.details.actors.map(a => a.name || a).join(', ')
+    // }
 
     // Convert audio_format to array for editing
     // Convert audio_format to flat array for editing
@@ -433,7 +440,7 @@ async function applyTmdbData(data) {
     }
 
     if (data.actors) {
-        form.actors = data.actors.map(a => a.name).join(', ')
+        form.actors = data.actors
     }
 
     if (data.franchise) form.franchise_name = data.franchise
@@ -581,6 +588,12 @@ async function handleSubmit() {
             formData.append('file_size', form.file_size + ' ' + form.file_size_unit)
         }
 
+        // Send actors as JSON (array of objects with name + tmdb_id)
+        console.log('form.actors:', form.actors, 'isArray:', Array.isArray(form.actors), 'length:', form.actors?.length)
+        if (form.actors.length > 0) {
+            formData.append('actors', JSON.stringify(form.actors))
+        }
+
         // ✅ FIXED — new file takes priority over existing
         if (form.cover_image instanceof File) {
             formData.append('cover_image', form.cover_image)
@@ -652,6 +665,17 @@ function addSeason() {
 
 function removeSeason(index) {
     seasons.value.splice(index, 1)
+}
+
+function addManualActor() {
+    const name = manualActor.value.trim()
+    if (!name) return
+    form.actors = [...form.actors, { name }]
+    manualActor.value = ''
+}
+
+function removeActor(index) {
+    form.actors = form.actors.filter((_, i) => i !== index)
 }
 </script>
 
@@ -767,7 +791,7 @@ function removeSeason(index) {
                                 d="M9 12l2 2 4-4m6 2a2 2 0 012-2H4m6 0h8a2 2 0 002 2v4a2 2 0 002-2H6a2 2 0 00-2-2H4" />
                         </svg>
                         <span class="text-xs" :class="existingCover ? 'text-sky-400' : 'text-amber-400'">{{ tmdbMessage
-                        }}</span>
+                            }}</span>
                     </div>
 
                     <!-- Title -->
@@ -945,10 +969,32 @@ function removeSeason(index) {
                         <!-- Actors -->
                         <div>
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Actors</label>
-                            <input v-model="form.actors" type="text"
-                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                placeholder="Keanu Reeves, Carrie-Anne Moss..." />
-                            <p class="text-vault-500 text-xs mt-1">Separated by commas. Auto-filled by TMDB.</p>
+                            <div v-if="form.actors.length" class="flex flex-wrap gap-2 mb-2">
+                                <span v-for="(actor, i) in form.actors" :key="i"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-vault-700 text-vault-200 text-sm">
+                                    {{ actor.name }}
+                                    <button type="button" @click="removeActor(i)"
+                                        class="text-vault-500 hover:text-rose-400 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                            stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </span>
+                            </div>
+                            <div class="flex gap-2">
+                                <input v-model="manualActor" type="button" style="display:none" />
+                                <input v-model="manualActor" type="text"
+                                    class="flex-1 px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                    placeholder="Type actor name..." />
+                                <button type="button" @click="addManualActor"
+                                    class="px-4 py-2.5 bg-vault-600 text-vault-200 rounded-xl text-sm font-medium hover:bg-vault-500 hover:text-white transition-all">
+                                    Add
+                                </button>
+                            </div>
+                            <p class="text-vault-500 text-xs mt-1">Auto-filled by TMDB with links. Manual entries have
+                                no link.</p>
                         </div>
                     </template>
 
@@ -1179,10 +1225,32 @@ function removeSeason(index) {
                         <!-- Actors -->
                         <div>
                             <label class="block text-sm font-medium text-vault-200 mb-1.5">Actors</label>
-                            <input v-model="form.actors" type="text"
-                                class="w-full px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
-                                placeholder="Keanu Reeves, Carrie-Anne Moss..." />
-                            <p class="text-vault-500 text-xs mt-1">Separated by commas. Auto-filled by TMDB.</p>
+                            <div v-if="form.actors.length" class="flex flex-wrap gap-2 mb-2">
+                                <span v-for="(actor, i) in form.actors" :key="i"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-vault-700 text-vault-200 text-sm">
+                                    {{ actor.name }}
+                                    <button type="button" @click="removeActor(i)"
+                                        class="text-vault-500 hover:text-rose-400 transition-colors">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                            stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </span>
+                            </div>
+                            <div class="flex gap-2">
+                                <input v-model="manualActor" type="button" style="display:none" />
+                                <input v-model="manualActor" type="text"
+                                    class="flex-1 px-4 py-2.5 bg-vault-700 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                                    placeholder="Type actor name..." />
+                                <button type="button" @click="addManualActor"
+                                    class="px-4 py-2.5 bg-vault-600 text-vault-200 rounded-xl text-sm font-medium hover:bg-vault-500 hover:text-white transition-all">
+                                    Add
+                                </button>
+                            </div>
+                            <p class="text-vault-500 text-xs mt-1">Auto-filled by TMDB with links. Manual entries have
+                                no link.</p>
                         </div>
 
                         <div>
@@ -1616,7 +1684,7 @@ function removeSeason(index) {
                                 class="text-rose-300 text-sm flex items-start gap-2">
                                 <span class="text-rose-500 mt-0.5">&#8226;</span>
                                 <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                                    }}</span>
+                                }}</span>
                             </li>
                         </ul>
                     </div>
