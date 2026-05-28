@@ -37,7 +37,8 @@ class ImportController extends Controller
         if (!in_array($type, $validTypes))
             return response()->json(['error' => 'Invalid type'], 422);
 
-        $request->validate(['file' => 'required|file|mimes:csv,json,zip|max:51200']);
+        $request->validate(['file' => 'required|file|extensions:csv,json,zip|max:51200']);
+        // $request->validate(['file' => 'required|file|max:51200']);
 
         $file = $request->file('file');
         $isZip = $file->getClientOriginalExtension() === 'zip';
@@ -247,7 +248,7 @@ class ImportController extends Controller
                 $title = mb_substr($itemData['title'], 0, 255);
 
                 // Truncate long detail strings to prevent DB errors
-                $stringFields = ['author', 'director', 'genre', 'imdb_id', 'video_quality', 'language', 'isbn', 'publisher', 'platform', 'artist', 'label', 'network', 'trailer_url'];
+                $stringFields = ['author', 'director', 'genre', 'imdb_id', 'video_quality', 'language', 'isbn', 'publisher', 'platform', 'artist', 'label', 'network', 'trailer_url', 'original_title', 'file_size', 'edition'];
                 foreach ($stringFields as $field) {
                     if (isset($detailData[$field]) && is_string($detailData[$field])) {
                         $detailData[$field] = mb_substr($detailData[$field], 0, 255);
@@ -365,6 +366,8 @@ class ImportController extends Controller
         ];
 
         $movie = [
+            'original title' => 'original_title',
+            'original_title' => 'original_title',
             'format' => 'format',
             'director' => 'director',
             'runtime (min)' => 'runtime_minutes',
@@ -376,25 +379,36 @@ class ImportController extends Controller
             'audio format' => 'audio_format',
             'audio_format' => 'audio_format',
             'language' => 'language',
+            'video tier' => 'video_tier',
+            'video_tier' => 'video_tier',
+            'file size' => 'file_size',
+            'file_size' => 'file_size',
             'actors' => 'actors',
             'trailer url' => 'trailer_url',
             'trailer_url' => 'trailer_url',
-            'seen' => 'seen',
+            'watch status' => 'watch_status',
+            'watch_status' => 'watch_status',
             'date seen' => 'date_seen',
             'date_seen' => 'date_seen',
         ];
 
         $book = [
+            'original title' => 'original_title',
+            'original_title' => 'original_title',
             'author' => 'author',
             'isbn' => 'isbn',
             'publisher' => 'publisher',
             'pages' => 'page_count',
             'page_count' => 'page_count',
+            'edition' => 'edition',
             'series' => 'series_name',
             'series name' => 'series_name',
             'series_position' => 'series_position',
             'series position' => 'series_position',
-            'read' => 'read',
+            'reading status' => 'reading_status',
+            'reading_status' => 'reading_status',
+            'current page' => 'current_page',
+            'current_page' => 'current_page',
             'date finished' => 'date_finished',
             'date_finished' => 'date_finished',
         ];
@@ -403,7 +417,10 @@ class ImportController extends Controller
             'platform' => 'platform',
             'format' => 'format',
             'publisher' => 'publisher',
-            'completed' => 'completed',
+            'playing status' => 'playing_status',
+            'playing_status' => 'playing_status',
+            'progress %' => 'progress_percent',
+            'progress_percent' => 'progress_percent',
             'completion date' => 'completion_date',
             'completion_date' => 'completion_date',
         ];

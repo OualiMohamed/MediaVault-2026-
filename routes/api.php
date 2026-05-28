@@ -80,3 +80,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/franchises/{id}', [FranchiseController::class, 'update']);
     Route::delete('/franchises/{id}', [FranchiseController::class, 'destroy']);
 });
+
+// // routes/api.php — add temporarily inside the auth group
+// Route::get('/php-info', function () {
+//     return response()->json([
+//         'upload_max_filesize' => ini_get('upload_max_filesize'),
+//         'post_max_size' => ini_get('post_max_size'),
+//         'memory_limit' => ini_get('memory_limit'),
+//     ]);
+// });

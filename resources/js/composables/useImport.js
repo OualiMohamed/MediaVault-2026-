@@ -19,9 +19,6 @@ export function useImport() {
             const { data } = await api.post(
                 `/import/validate/${type}`,
                 formData,
-                {
-                    headers: { "Content-Type": "multipart/form-data" },
-                },
             );
 
             if (data.error) {
