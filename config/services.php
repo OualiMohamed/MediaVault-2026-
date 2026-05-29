@@ -35,4 +35,16 @@ return [
         ],
     ],
 
+    'tmdb' => [
+        'key' => env('TMDB_API_KEY'),
+    ],
+
+    'google_books' => [
+        'key' => env('GOOGLE_BOOKS_API_KEY'),
+    ],
+    
+    'rawg' => [
+        'key' => env('RAWG_API_KEY'),
+    ],
+
 ];

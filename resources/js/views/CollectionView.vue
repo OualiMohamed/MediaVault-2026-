@@ -7,6 +7,7 @@ import ItemFormModal from '../components/ItemFormModal.vue'
 import api from '../api' // Make sure this is imported
 import QuickAdd from '../components/QuickAdd.vue'
 import EmptyState from '../components/EmptyState.vue'
+import CoverFetcher from '../components/CoverFetcher.vue'
 
 const route = useRoute()
 const store = useCollectionStore()
@@ -40,6 +41,8 @@ const bookLanguages = ref([])
 const filterEdition = ref('')
 const topRated = ref(false)
 const bookEditions = ref([])
+const showCoverFetcher = ref(false)
+const coverFetchType = ref('movie')
 
 const videoQualityOptions = [
     'Ultra HDLight', 'HDLight 1080p', 'HDLight 1080p (x265)', 'HDLight 720p', 'HDLight 720p (x265)',
@@ -125,6 +128,16 @@ function loadItems() {
         edition: filterEdition.value || undefined,
     }
     store.fetchItems(type.value, params)
+}
+
+function openCoverFetcher(type) {
+    coverFetchType.value = type
+    showCoverFetcher.value = true
+}
+
+function onCoversFetched() {
+    showCoverFetcher.value = false
+    loadItems()
 }
 
 async function fetchBookGenres() {
@@ -269,6 +282,14 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
                 Add {{ config.singular }}
+            </button>
+            <button @click="openCoverFetcher(type)" type="button"
+                class="inline-flex items-center gap-2 px-4 py-2.5 bg-vault-800 border border-vault-600 text-vault-300 font-medium rounded-xl hover:bg-vault-700 hover:text-white hover:border-vault-500 transition-all text-sm">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6l1.586-1.586a2 2 0 012.828 0L18 8m-2-2l2-2m-2 2l-2 2m2-2l2 2M4 16l-2 2m0 0l-2-2m2 2V18" />
+                </svg>
+                Fetch Covers
             </button>
         </div>
 
@@ -526,6 +547,10 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
 
         <!-- Quick Add FAB -->
         <QuickAdd :type="type" />
+
+        <!-- Cover Fetcher -->
+        <CoverFetcher :type="coverFetchType" :open="showCoverFetcher" @close="showCoverFetcher = false"
+            @done="onCoversFetched" />
     </div>
 </template>
 

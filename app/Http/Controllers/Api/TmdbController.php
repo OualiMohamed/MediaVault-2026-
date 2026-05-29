@@ -401,4 +401,21 @@ class TmdbController extends Controller
             return null;
         }
     }
+
+
+    public function testKey(): JsonResponse
+    {
+        $key = env('TMDB_API_KEY', 'NOT_SET');
+
+        $response = Http::timeout(10)->withoutVerifying()->get(
+            "https://api.themoviedb.org/3/movie/550?api_key=" . $key
+        );
+
+        return response()->json([
+            'key_length' => strlen($key),
+            'key_preview' => substr($key, 0, 4) . '***' . substr($key, -4),
+            'movie_550_status' => $response->status(),
+            'movie_550_body' => substr($response->body(), 0, 300),
+        ]);
+    }
 }

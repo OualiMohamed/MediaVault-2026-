@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BarcodeLookupController;
 use App\Http\Controllers\Api\CollectionController;
+use App\Http\Controllers\Api\CoverFetchController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DiscogsController;
 use App\Http\Controllers\Api\ExportController;
@@ -21,8 +22,10 @@ Route::get('/tmdb/poster', [TmdbController::class, 'proxyPoster']);
 Route::get('/rawg/poster', [RawgController::class, 'proxyPoster']);
 Route::get('/google-books/poster', [GoogleBooksController::class, 'proxyPoster']);
 Route::get('/discogs/poster', [DiscogsController::class, 'proxyPoster']);
-
+    Route::get('/tmdb/test-key', [TmdbController::class, 'testKey']);
 Route::middleware('auth:sanctum')->group(function () {
+
+
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
@@ -79,6 +82,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/franchises', [FranchiseController::class, 'store']);
     Route::put('/franchises/{id}', [FranchiseController::class, 'update']);
     Route::delete('/franchises/{id}', [FranchiseController::class, 'destroy']);
+
+    Route::get('/covers/missing/{type}', [CoverFetchController::class, 'missing']);
+    Route::post('/covers/fetch/{type}', [CoverFetchController::class, 'fetch']);
+
+    Route::get('/covers/debug/{type}', [CoverFetchController::class, 'debug']);
+
 });
 
 // // routes/api.php — add temporarily inside the auth group
@@ -89,3 +98,4 @@ Route::middleware('auth:sanctum')->group(function () {
 //         'memory_limit' => ini_get('memory_limit'),
 //     ]);
 // });
+
