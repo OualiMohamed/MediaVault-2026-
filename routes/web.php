@@ -2,5 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 
-// Catch-all route to serve the SPA
-Route::view('/{any}', 'app')->where('any', '.*');
+Route::get('/{any}', function () {
+    return view('welcome');
+})->where('any', '.*');

@@ -11,32 +11,42 @@ return new class extends Migration {
         // ── Books: add 'tbr' to reading_status enum ──
         DB::statement("ALTER TABLE books MODIFY COLUMN reading_status ENUM('not_started', 'tbr', 'reading', 'read') DEFAULT 'not_started'");
 
-        // ── Movies: add watch_status, migrate seen, drop seen ──
+        // ── Movies: add watch_status ──
         Schema::table('movies', function (Blueprint $table) {
-            $table->enum('watch_status', ['not_seen', 'to_be_seen', 'seen'])->default('not_seen')->after('date_seen');
+            if (!Schema::hasColumn('movies', 'watch_status')) {
+                $table->enum('watch_status', ['not_seen', 'to_be_seen', 'seen'])->default('not_seen');
+            }
         });
 
-        DB::table('movies')->where('seen', true)->update(['watch_status' => 'seen']);
-        DB::table('movies')->where('seen', false)->orWhereNull('seen')->update(['watch_status' => 'not_seen']);
+        // ── Migrate old data (ONLY if 'seen' column exists) ──
+        if (Schema::hasColumn('movies', 'seen')) {
+            DB::table('movies')->where('seen', true)->update(['watch_status' => 'seen']);
+            DB::table('movies')->where('seen', false)->orWhereNull('seen')->update(['watch_status' => 'not_seen']);
 
-        Schema::table('movies', function (Blueprint $table) {
-            $table->dropColumn('seen');
-        });
+            // Only drop it if it actually exists
+            Schema::table('movies', function (Blueprint $table) {
+                $table->dropColumn('seen');
+            });
+        }
     }
 
     public function down(): void
     {
-        // ── Movies: restore seen, migrate back, drop watch_status ──
+        // ── Movies: restore seen ──
         Schema::table('movies', function (Blueprint $table) {
-            $table->boolean('seen')->default(false)->after('date_seen');
+            if (!Schema::hasColumn('movies', 'seen')) {
+                $table->boolean('seen')->default(false);
+            }
         });
 
-        DB::table('movies')->where('watch_status', 'seen')->update(['seen' => true]);
-        DB::table('movies')->where('watch_status', '!=', 'seen')->update(['seen' => false]);
+        if (Schema::hasColumn('movies', 'watch_status')) {
+            DB::table('movies')->where('watch_status', 'seen')->update(['seen' => true]);
+            DB::table('movies')->where('watch_status', '!=', 'seen')->update(['seen' => false]);
 
-        Schema::table('movies', function (Blueprint $table) {
-            $table->dropColumn('watch_status');
-        });
+            Schema::table('movies', function (Blueprint $table) {
+                $table->dropColumn('watch_status');
+            });
+        }
 
         // ── Books: revert enum ──
         DB::statement("ALTER TABLE books MODIFY COLUMN reading_status ENUM('not_started', 'reading', 'read') DEFAULT 'not_started'");

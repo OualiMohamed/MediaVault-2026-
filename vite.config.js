@@ -11,6 +11,10 @@ export default defineConfig({
         tailwindcss(),
     ],
     server: {
+        host: "0.0.0.0",
+        hmr: {
+            host: "localhost", // Keeps hot-reload fast on your main PC
+        },
         proxy: {
             "/api": {
                 target: "http://localhost:8000",

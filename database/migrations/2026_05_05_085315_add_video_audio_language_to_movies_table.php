@@ -11,9 +11,9 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('movies', function (Blueprint $table) {
-            $table->string('video_quality')->nullable()->after('date_seen');
-            $table->string('audio_format')->nullable()->after('video_quality');
-            $table->string('language')->nullable()->after('audio_format');
+            $table->string('video_quality')->nullable();
+            $table->string('audio_format')->nullable();
+            $table->string('language')->nullable();
         });
     }
 
