@@ -476,6 +476,14 @@ class CollectionController extends Controller
                 $detailData['franchise_position'] = null;
             }
 
+            // HANDLE AUDIO FORMAT (Normalize to array for Eloquent cast)
+            if (isset($detailData['audio_format']) && is_string($detailData['audio_format'])) {
+                $decoded = json_decode($detailData['audio_format'], true);
+                $detailData['audio_format'] = is_array($decoded) ? $decoded : [$detailData['audio_format']];
+            } elseif (isset($detailData['audio_format']) && !is_array($detailData['audio_format'])) {
+                $detailData['audio_format'] = [$detailData['audio_format']];
+            }
+
             // HANDLE ACTORS (Convert comma-separated string to JSON array for manual entry)
             if (isset($detailData['actors']) && is_string($detailData['actors'])) {
                 $decoded = json_decode($detailData['actors'], true);
@@ -632,6 +640,18 @@ class CollectionController extends Controller
             } else {
                 $detailData['franchise_id'] = null;
                 $detailData['franchise_position'] = null;
+            }
+
+            // HANDLE AUDIO FORMAT (Convert to JSON string since where()->update() bypasses $casts)
+            if (isset($detailData['audio_format']) && is_string($detailData['audio_format'])) {
+                $decoded = json_decode($detailData['audio_format'], true);
+                $detailData['audio_format'] = is_array($decoded) ? $decoded : [$detailData['audio_format']];
+            } elseif (isset($detailData['audio_format']) && !is_array($detailData['audio_format'])) {
+                $detailData['audio_format'] = [$detailData['audio_format']];
+            }
+
+            if (isset($detailData['audio_format']) && is_array($detailData['audio_format'])) {
+                $detailData['audio_format'] = json_encode($detailData['audio_format']);
             }
 
             // HANDLE ACTORS (Convert comma-separated string to JSON array)
