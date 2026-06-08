@@ -121,6 +121,12 @@ onMounted(fetchFranchise)
                         {{ typeConfig[item.media_type]?.icon }} {{ typeConfig[item.media_type]?.label }}
                     </span>
 
+                    <!-- Format / Edition badge -->
+                    <span v-if="item.detail?.format || item.detail?.edition"
+                        class="px-2.5 py-1 rounded-lg text-xs font-medium border flex-shrink-0 border-vault-600 bg-vault-700/50 text-vault-300">
+                        {{ item.media_type === 'book' ? item.detail.edition : item.detail.format }}
+                    </span>
+                    
                     <!-- Year -->
                     <span v-if="item.detail?.release_year"
                         class="text-vault-500 text-sm font-mono w-12 text-right flex-shrink-0">

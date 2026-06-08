@@ -294,9 +294,18 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
         </div>
 
         <!-- Search -->
-        <div class="mb-4">
+        <div class="relative mb-4">
             <input v-model="search" type="text" :placeholder="`Search ${config.label.toLowerCase()}...`"
-                class="w-full px-4 py-2.5 bg-vault-800 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all text-sm" />
+                class="w-full px-4 py-2.5 pr-10 bg-vault-800 border border-vault-600 rounded-xl text-white placeholder-vault-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all text-sm" />
+
+            <!-- Clear Search Button -->
+            <button v-if="search" @click="search = ''" type="button"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-vault-400 hover:text-white transition-colors"
+                aria-label="Clear search">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
         <!-- Filters -->
         <div class="flex flex-wrap items-center gap-3 mb-4">

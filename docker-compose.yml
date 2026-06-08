@@ -15,10 +15,16 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./public/build:/var/www/html/public/build          # Vue updates (fast)
-      - ./storage/app/public:/var/www/html/public/storage   # Uploaded covers (fast)
+      - ./public/build:/var/www/html/public/build
+      - ./storage/app/public:/var/www/html/public/storage
     depends_on:
       - mysql
+
+  cloudflare:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --url http://app:8000
+    depends_on:
+      - app
 
 volumes:
   mysql_data:
