@@ -84,6 +84,8 @@ const sortOptions = [
     { value: 'purchase_price', dir: 'asc', label: 'Price Low → High' },
     { value: 'purchase_date', dir: 'desc', label: 'Newest Purchase' },
     { value: 'purchase_date', dir: 'asc', label: 'Oldest Purchase' },
+    { value: 'file_size', dir: 'desc', label: 'Size (Largest First)' },
+    { value: 'file_size', dir: 'asc', label: 'Size (Smallest First)' },
 ]
 
 const sortValue = computed({

@@ -371,6 +371,15 @@ class CollectionController extends Controller
         $sortDir = $request->input('sort_dir', 'desc');
         if ($sortBy === 'title') {
             $query->orderByRaw('LOWER(title) ' . ($sortDir === 'desc' ? 'DESC' : 'ASC'));
+        } elseif ($sortBy === 'file_size' && $type === 'movie') {
+            // Strip letters, cast to decimal, multiply by 1000 if "Go" to normalize to MB for sorting
+            $query->orderByRaw(
+                "(SELECT 
+                    CAST(REGEXP_REPLACE(file_size, '[^0-9.]', '') AS DECIMAL(10,2)) * 
+                    CASE WHEN file_size LIKE '%Go%' THEN 1000 ELSE 1 END
+                FROM movies WHERE movies.collection_item_id = collection_items.id
+                ) " . ($sortDir === 'desc' ? 'DESC' : 'ASC')
+            );
         } elseif (in_array($sortBy, ['purchase_date', 'purchase_price', 'created_at'])) {
             $query->orderBy($sortBy, $sortDir);
         }
