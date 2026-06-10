@@ -459,6 +459,14 @@ class CollectionController extends Controller
                 }
             }
 
+            // DECODE TRACKS JSON — ADD THESE LINES:
+            if (isset($validated['tracks'])) {
+                $decoded = json_decode($validated['tracks'], true);
+                if (is_array($decoded)) {
+                    $detailData['tracks'] = $decoded;
+                }
+            }
+
             // Handle series — convert name to series_id
             if ($type === 'book') {
                 if (!empty($validated['series_name'])) {
@@ -661,6 +669,16 @@ class CollectionController extends Controller
 
             if (isset($detailData['audio_format']) && is_array($detailData['audio_format'])) {
                 $detailData['audio_format'] = json_encode($detailData['audio_format']);
+            }
+
+            // HANDLE TRACKS (Convert to JSON string since where()->update() bypasses $casts)
+            if (isset($detailData['tracks']) && is_string($detailData['tracks'])) {
+                $decoded = json_decode($detailData['tracks'], true);
+                $detailData['tracks'] = is_array($decoded) ? $decoded : [];
+            }
+
+            if (isset($detailData['tracks']) && is_array($detailData['tracks'])) {
+                $detailData['tracks'] = json_encode($detailData['tracks']);
             }
 
             // HANDLE ACTORS (Convert comma-separated string to JSON array)
