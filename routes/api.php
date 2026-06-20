@@ -30,6 +30,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 
+    Route::post('/collection/{type}/check-duplicate', [CollectionController::class, 'checkDuplicate']);
+
     // Collection routes — {type} is the library, {id} is the item
     Route::get('/collection/{type}', [CollectionController::class, 'index']);
     Route::post('/collection/{type}', [CollectionController::class, 'store']);
@@ -89,7 +91,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/covers/fetch/{type}', [CoverFetchController::class, 'fetch']);
 
     Route::get('/covers/debug/{type}', [CoverFetchController::class, 'debug']);
-
 });
 
 // // routes/api.php — add temporarily inside the auth group

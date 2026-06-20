@@ -9,6 +9,7 @@ import RawgSearchModal from './RawgSearchModal.vue'
 import GoogleBooksSearchModal from './GoogleBooksSearchModal.vue'
 import DiscogsSearchModal from './DiscogsSearchModal.vue'
 
+
 const props = defineProps({
     type: { type: String, required: true },
     item: { type: Object, default: null },
@@ -35,6 +36,9 @@ const googleBooksMessage = ref('')
 const showDiscogsSearch = ref(false)
 const discogsMessage = ref('')
 const manualActor = ref('')
+const duplicateItem = ref(null)
+const showDuplicateWarning = ref(false)
+const skipDuplicateCheck = ref(false)
 
 const isEditing = computed(() => !!props.item)
 
@@ -604,6 +608,25 @@ async function handleSubmit() {
         if (isEditing.value) {
             await store.updateItem(props.type, props.item.id, formData)
         } else {
+            // --- START DUPLICATE CHECK ---
+            if (!skipDuplicateCheck.value) {
+                try {
+                    const { data } = await api.post(`/collection/${props.type}/check-duplicate`, {
+                        title: form.title // Adjust if your title variable is named differently
+                    })
+
+                    if (data.exists) {
+                        duplicateItem.value = data.item
+                        showDuplicateWarning.value = true
+                        return // Stop here and show the warning UI
+                    }
+                } catch (dupErr) {
+                    // If the check fails (e.g. network error), just let them save anyway
+                    console.error('Duplicate check failed, proceeding with save', dupErr)
+                }
+            }
+            // --- END DUPLICATE CHECK ---
+
             await store.createItem(props.type, formData)
         }
 
@@ -634,7 +657,14 @@ async function handleSubmit() {
         }
     } finally {
         submitting.value = false
+        skipDuplicateCheck.value = false // Reset the bypass flag for next time
     }
+}
+
+function forceAddCopy() {
+    showDuplicateWarning.value = false
+    skipDuplicateCheck.value = true
+    Submit() // Re-trigger the save, skipping the duplicate check this time
 }
 
 function fieldError(field) {
@@ -791,7 +821,7 @@ function removeActor(index) {
                                 d="M9 12l2 2 4-4m6 2a2 2 0 012-2H4m6 0h8a2 2 0 002 2v4a2 2 0 002-2H6a2 2 0 00-2-2H4" />
                         </svg>
                         <span class="text-xs" :class="existingCover ? 'text-sky-400' : 'text-amber-400'">{{ tmdbMessage
-                            }}</span>
+                        }}</span>
                     </div>
 
                     <!-- Title -->
@@ -1684,7 +1714,7 @@ function removeActor(index) {
                                 class="text-rose-300 text-sm flex items-start gap-2">
                                 <span class="text-rose-500 mt-0.5">&#8226;</span>
                                 <span><span class="font-medium text-rose-400">{{ err.field }}</span>: {{ err.message
-                                }}</span>
+                                    }}</span>
                             </li>
                         </ul>
                     </div>
@@ -1692,11 +1722,63 @@ function removeActor(index) {
                         class="mx-6 mt-4 p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl">
                         <p class="text-rose-400 text-sm font-medium">{{ serverError }}</p>
                     </div>
+
+                    <!-- Duplicate Warning UI -->
+                    <transition name="slide-fade">
+                        <div v-if="showDuplicateWarning && duplicateItem"
+                            class="mb-4 p-4 bg-vault-900/80 border border-amber-500/30 rounded-2xl shadow-2xl shadow-amber-500/5">
+                            <div class="flex gap-4">
+                                <!-- Existing Item Cover -->
+                                <div
+                                    class="w-16 h-24 rounded-lg bg-vault-800 border border-vault-600 overflow-hidden flex-shrink-0">
+                                    <img v-if="duplicateItem.cover_image" :src="duplicateItem.cover_image"
+                                        class="w-full h-full object-cover" />
+                                    <div v-else class="w-full h-full flex items-center justify-center text-vault-600">
+                                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                            stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                <!-- Warning Text -->
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-amber-400 font-bold text-sm flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd"
+                                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                                clip-rule="evenodd" />
+                                        </svg>
+                                        Duplicate Found
+                                    </h3>
+                                    <p class="text-vault-300 text-sm mt-1 truncate">
+                                        You already own <span class="text-white font-semibold">"{{ duplicateItem.title
+                                            }}"</span>
+                                        <span class="text-vault-500">({{ duplicateItem.status }})</span>
+                                    </p>
+
+                                    <!-- Action Buttons -->
+                                    <div class="flex items-center gap-3 mt-3">
+                                        <button @click="forceAddCopy"
+                                            class="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-vault-950 font-bold text-xs rounded-lg transition-colors">
+                                            Add as New Copy
+                                        </button>
+                                        <button @click="showDuplicateWarning = false"
+                                            class="px-4 py-1.5 bg-vault-800 hover:bg-vault-700 text-vault-300 hover:text-white font-medium text-xs rounded-lg border border-vault-600 transition-colors">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </transition>
+
                     <!-- Submit -->
                     <div class="flex items-center justify-end gap-3 pt-2">
                         <button type="button" @click="emit('close')"
                             class="px-5 py-2.5 rounded-xl text-sm font-medium text-vault-300 hover:text-white hover:bg-vault-700 transition-all">Cancel</button>
-                        <button type="submit" :disabled="submitting"
+                        <button type="submit" :disabled="submitting || showDuplicateWarning"
                             class="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-ember-500 text-white font-semibold rounded-xl hover:from-amber-400 hover:to-ember-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm">{{
                                 submitLabel() }}</button>
                     </div>

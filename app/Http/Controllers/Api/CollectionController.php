@@ -1238,4 +1238,28 @@ class CollectionController extends Controller
 
         return response()->json($years);
     }
+
+    public function checkDuplicate(Request $request, string $type): JsonResponse
+    {
+        $request->validate(['title' => 'required|string']);
+
+        $existing = CollectionItem::where('user_id', Auth::id())
+            ->where('type', $type)
+            ->whereRaw('LOWER(title) = ?', [strtolower(trim($request->title))])
+            ->first();
+
+        if (!$existing) {
+            return response()->json(['exists' => false]);
+        }
+
+        return response()->json([
+            'exists' => true,
+            'item' => [
+                'id' => $existing->id,
+                'title' => $existing->title,
+                'cover_image' => $existing->cover_image ? '/storage/' . $existing->cover_image : null,
+                'status' => $existing->status,
+            ]
+        ]);
+    }
 }
