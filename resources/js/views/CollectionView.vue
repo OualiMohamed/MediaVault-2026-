@@ -43,6 +43,8 @@ const topRated = ref(false)
 const bookEditions = ref([])
 const showCoverFetcher = ref(false)
 const coverFetchType = ref('movie')
+const filterYear = ref('')
+const years = ref([])
 
 const videoQualityOptions = [
     'Ultra HDLight', 'HDLight 1080p', 'HDLight 1080p (x265)', 'HDLight 720p', 'HDLight 720p (x265)',
@@ -128,6 +130,7 @@ function loadItems() {
         playing_status: filterPlayingStatus.value || undefined,
         top_rated: topRated.value ? '1' : undefined,
         edition: filterEdition.value || undefined,
+        year: filterYear.value || undefined, // Add this line
     }
     store.fetchItems(type.value, params)
 }
@@ -193,6 +196,15 @@ async function fetchBookEditions() {
     } catch (e) { }
 }
 
+async function fetchYears() {
+    try {
+        const { data } = await api.get(`/filters/years?type=${type.value}`)
+        years.value = Array.isArray(data) ? data : [] // Safety check
+    } catch (e) {
+        years.value = [] // Fallback to empty on error
+    }
+}
+
 function handlePageChange(page) {
     currentPage.value = page
     loadItems()
@@ -228,6 +240,7 @@ onMounted(() => {
     if (route.path === '/movies') fetchMovieGenres()
     if (route.path === '/tv-shows') fetchTvShowGenres()
     if (route.path === '/games') fetchGameGenres()
+    fetchYears()
 })
 
 watch(() => route.path, (newPath) => {
@@ -251,15 +264,17 @@ watch(() => route.path, (newPath) => {
     sortBy.value = 'created_at'
     sortDir.value = 'desc'
     currentPage.value = 1
+    filterYear.value = '' // Add to the list of resets
     loadItems()
     if (newPath === '/books') fetchBookGenres()
     if (newPath === '/music') fetchMusicGenres()
     if (newPath === '/movies') fetchMovieGenres()
     if (newPath === '/tv-shows') fetchTvShowGenres()
     if (newPath === '/games') fetchGameGenres()
+    fetchYears() // Re-fetch years for the new media type
 })
 
-watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, filterVideoQuality, filterAudioFormat, filterLanguage, filterLetter, sortValue, filterGenre, filterVideoTier, filterBookLanguage, filterReadingStatus, filterPlayingStatus, filterEdition, topRated], () => {
+watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, filterVideoQuality, filterAudioFormat, filterLanguage, filterLetter, sortValue, filterGenre, filterVideoTier, filterBookLanguage, filterReadingStatus, filterPlayingStatus, filterEdition, topRated, filterYear], () => {
     currentPage.value = 1
     loadItems()
 })
@@ -315,6 +330,12 @@ watch([search, filterFormat, filterStatus, filterPlatform, filterWatchStatus, fi
                 class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
                 <option v-for="s in sortOptions" :key="s.value + s.dir" :value="s.value + '|' + s.dir">{{ s.label }}
                 </option>
+            </select>
+
+            <select v-if="years.length" v-model="filterYear"
+                class="px-4 py-2 bg-vault-800 border border-vault-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm">
+                <option value="">All Years</option>
+                <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
             </select>
 
             <select v-if="formatOptions.length" v-model="filterFormat"

@@ -120,6 +120,17 @@ class CollectionController extends Controller
             );
         }
 
+        // Release Year filter
+        if ($request->filled('year') && in_array($type, ['movie', 'book', 'game', 'music', 'tv_show'])) {
+            $query->whereExists(
+                fn($q) =>
+                $q->selectRaw(1)
+                    ->from($detailTable)
+                    ->whereColumn($detailTable . '.collection_item_id', 'collection_items.id')
+                    ->where('release_year', $request->year)
+            );
+        }
+
         // Video tier filter for movies
         if ($type === 'movie' && $request->filled('video_tier')) {
             $query->whereExists(
@@ -1209,5 +1220,22 @@ class CollectionController extends Controller
         }
 
         return response()->json(['message' => 'Status updated']);
+    }
+
+    public function filterYears(Request $request): JsonResponse
+    {
+        $request->validate(['type' => 'required|in:movie,book,game,music,tv_show']);
+
+        $modelClass = $this->getModelClass($request->type);
+
+        $years = $modelClass::whereHas('collectionItem', function ($query) {
+            $query->where('user_id', Auth::id());
+        })
+            ->whereNotNull('release_year')
+            ->groupBy('release_year')
+            ->orderByDesc('release_year')
+            ->pluck('release_year');
+
+        return response()->json($years);
     }
 }

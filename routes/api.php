@@ -22,7 +22,7 @@ Route::get('/tmdb/poster', [TmdbController::class, 'proxyPoster']);
 Route::get('/rawg/poster', [RawgController::class, 'proxyPoster']);
 Route::get('/google-books/poster', [GoogleBooksController::class, 'proxyPoster']);
 Route::get('/discogs/poster', [DiscogsController::class, 'proxyPoster']);
-    Route::get('/tmdb/test-key', [TmdbController::class, 'testKey']);
+Route::get('/tmdb/test-key', [TmdbController::class, 'testKey']);
 Route::middleware('auth:sanctum')->group(function () {
 
 
@@ -64,6 +64,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/filters/genres/game', [CollectionController::class, 'gameGenres']);
     Route::get('/filters/languages/book', [CollectionController::class, 'bookLanguages']);
     Route::get('/filters/editions/book', [CollectionController::class, 'bookEditions']);
+
+    Route::get('/filters/years', [CollectionController::class, 'filterYears']);
 
     Route::post('/google-books/search', [GoogleBooksController::class, 'search']);
     Route::post('/google-books/details', [GoogleBooksController::class, 'details']);
